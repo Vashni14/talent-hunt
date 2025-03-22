@@ -5,6 +5,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import MentorDashboard from "./pages/MentorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentLandingPage from "./pages/StudentLandingPage";
+import AddGoals from "./pages/AddGoals";
 
 function App() {
   return (
@@ -27,6 +28,8 @@ function App() {
 
           {/* 🏛️ Admin Dashboard */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+          <Route path="/add-goals" element={<AddGoals />} />
 
           {/* 🚨 Default Redirect to Landing */}
           <Route path="*" element={<LandingPage />} />

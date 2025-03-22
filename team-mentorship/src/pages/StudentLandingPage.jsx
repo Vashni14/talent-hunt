@@ -13,10 +13,23 @@ function StudentLandingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const user = auth.currentUser;
+  const [goals, setGoals] = useState([]); // 🔹 State for storing goals
+
+  const fetchGoals = async () => {
+    try {
+      const { data } = await axios.get(`http://localhost:5000/api/goals/${user.uid}`);
+      console.log("Fetched Goals:", data); // 🔹 Check if updated goals are coming
+      setGoals(data);
+    } catch (error) {
+      console.error("Error fetching goals:", error);
+    }
+  };
+  
 
   useEffect(() => {
     if (user) {
       fetchStudentProfile();
+      fetchGoals();
     } else {
       setLoading(false);
     }
@@ -58,6 +71,8 @@ function StudentLandingPage() {
     );
   }
 
+
+    
   // Mock data for competition highlights
   const competitionHighlights = [
     {
@@ -244,35 +259,28 @@ function StudentLandingPage() {
 
 {/* 🔹 Goals Progress Section */}
 <div className="bg-gray-800 p-6 rounded-lg shadow-md">
-  <h2 className="text-lg font-bold text-teal-400 flex items-center gap-2 whitespace-nowrap">
-    🎯 Your Goals
-  </h2>
+      <h2 className="text-lg font-bold text-teal-400 flex items-center gap-2 whitespace-nowrap">🎯 Your Goals</h2>
 
-  <div className="space-y-4 mt-3">
-    <div className="bg-gray-700 p-4 rounded-lg">
-      <p className="text-gray-300 font-medium">Complete 5 Projects</p>
-      <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
-        <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: "60%" }}></div>
+      <div className="space-y-4 mt-3">
+        {goals.slice(0, 2).map((goal,index) => (
+          <div key={index} className="bg-gray-700 p-4 rounded-lg">
+            <p className="text-gray-300 font-medium">{goal.title}</p>
+            <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
+              <div className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(goal.completed / goal.total) * 100}%` }}></div>
+            </div>
+            <p className="text-sm text-gray-400 mt-2">{goal.completed}/{goal.total} completed</p>
+          </div>
+        ))}
       </div>
-      <p className="text-sm text-gray-400 mt-2">3/5 completed</p>
-    </div>
 
-    <div className="bg-gray-700 p-4 rounded-lg">
-      <p className="text-gray-300 font-medium">Join 3 Hackathons</p>
-      <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
-        <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: "33%" }}></div>
+      <button
+        className="mt-3 bg-teal-500 px-4 py-2 rounded font-bold hover:bg-teal-600 w-full"
+        onClick={() => navigate("/add-goals")}
+      >
+        Add And View Goals
+      </button>
       </div>
-      <p className="text-sm text-gray-400 mt-2">1/3 completed</p>
-    </div>
-  </div>
-  <button
-                className="mt-3 bg-teal-500 px-4 py-2 rounded font-bold hover:bg-teal-600 w-full"
-                onClick={() => navigate("/team-matching")}
-              >
-                Add More Goals
-              </button>
-</div>
-
 {/* 🔹 Skills in Demand Section */}
 <div className="bg-gray-800 p-6 rounded-lg shadow-md">
   <h2 className="text-lg font-bold text-teal-400 flex items-center gap-2 whitespace-nowrap">
