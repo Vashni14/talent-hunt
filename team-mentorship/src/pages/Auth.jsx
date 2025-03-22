@@ -123,7 +123,7 @@ function Auth() {
   
       // 🔹 Redirect based on role
       if (userRole === "student") {
-        navigate("/student-dashboard");
+        navigate("/student/dashboard");
       } else if (userRole === "mentor") {
         navigate("/mentor-dashboard");
       } else if (userRole === "admin") {

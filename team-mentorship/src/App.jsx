@@ -4,6 +4,7 @@ import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
 import MentorDashboard from "./pages/MentorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import StudentLandingPage from "./pages/StudentLandingPage";
 
 function App() {
   return (
@@ -15,6 +16,8 @@ function App() {
 
           {/* 🔐 Authentication Page */}
           <Route path="/auth" element={<Auth />} />
+
+          <Route path="/student/dashboard" element={<StudentLandingPage />} />
 
           {/* 🎓 Student Dashboard */}
           <Route path="/student-dashboard" element={<StudentDashboard />} />

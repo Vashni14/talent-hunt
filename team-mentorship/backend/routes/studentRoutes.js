@@ -14,6 +14,7 @@ router.get("/profile/:uid", async (req, res) => {
   }
 });
 
+
 // 🔹 Create/Update Student Profile
 router.post("/profile", async (req, res) => {
   try {

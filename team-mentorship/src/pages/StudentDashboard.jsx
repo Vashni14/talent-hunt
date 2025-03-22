@@ -94,7 +94,7 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
     try {
       await axios.post("http://localhost:5000/api/student/profile", { uid: user.uid, ...studentData });
       alert("✅ Profile updated successfully!");
-      navigate(`/student/profile/${user.uid}`);
+      navigate(`/student/dashboard`);
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("❌ Error saving profile.");
