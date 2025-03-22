@@ -4,6 +4,8 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const path = require("path"); // ✅ Import path module
+const StudentProfile = require("./models/StudentProfile"); 
+
 
 
 dotenv.config();
@@ -17,7 +19,24 @@ app.post("/upload-profile-picture", (req, res) => {
     // Handle file upload logic here
   });
   
-
+  app.post("/api/student/profile", async (req, res) => {
+    try {
+      const { uid, name, contact, domain, rolePreference, skills, projects, certifications, experience } = req.body;
+  
+      // Update the database (MongoDB example)
+      await StudentProfile.findOneAndUpdate(
+        { uid },
+        { $set: { name, contact, domain, rolePreference, skills, projects, certifications, experience } },
+        { new: true, upsert: true } // Ensures document is updated or created if missing
+      );
+  
+      res.status(200).json({ message: "Profile updated successfully!" });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+  
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
 app.use("/api/users", require("./routes/userRoutes")); 

@@ -55,9 +55,12 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
 
   // 🔹 Handle input changes
   const handleChange = (e) => {
-    setStudentData({ ...studentData, [e.target.name]: e.target.value || "" });
+    setStudentData((prevData) => ({
+      ...prevData,
+      [e.target.name]: e.target.value,
+    }));
   };
-
+  
   const addItem = (type, value, setValue, setLevel = null) => {
     if (!value || (typeof value === "object" && !value.name.trim())) return; // Prevent empty items
   
@@ -90,16 +93,33 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
       alert("❌ Name and Contact are required!");
       return;
     }
-
+  
     try {
-      await axios.post("http://localhost:5000/api/student/profile", { uid: user.uid, ...studentData });
+      const payload = {
+        uid: user.uid,
+        name: studentData.name,
+        contact: studentData.contact,
+        domain: studentData.domain,
+        rolePreference: studentData.rolePreference,
+        skills: studentData.skills,
+        projects: studentData.projects,
+        certifications: studentData.certifications,
+        experience: studentData.experience,
+      };
+  
+      console.log("Sending Data:", payload); // Debugging Line
+  
+      await axios.post("http://localhost:5000/api/student/profile", payload);
+      
       alert("✅ Profile updated successfully!");
-      navigate(`/student/dashboard`);
+      fetchStudentData(); // Refresh data to check if changes are saved
+      navigate('/student/dashboard');
     } catch (error) {
       console.error("Error saving profile:", error);
       alert("❌ Error saving profile.");
     }
   };
+  
 
   const handleProfilePictureUpload = async (event) => {
     const file = event.target.files[0]; // Get the selected file
