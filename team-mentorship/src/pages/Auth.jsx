@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { db } from "../config/firebase"; // Import Firestore
 import { useNavigate } from "react-router-dom";
 import { auth, googleProvider } from "../config/firebase";
 import {
@@ -44,33 +46,96 @@ function Auth() {
 
   const register = async () => {
     try {
-      if (!isValidEmail(email)) {
-        alert("❌ Invalid Email! Please enter a valid email address.");
-        return;
-      }
-      const userCredential = await createUserWithEmailAndPassword(auth, email.toLowerCase(), password);
-      await updateProfile(userCredential.user, { displayName: name }); // Store Name in Firebase
-      alert(`✅ Signup successful! Welcome, ${name}!`);
-      setIsLogin(true);
-    } catch (error) {
-      alert("❌ Error: " + error.message);
-    }
-  };
+        console.log("🔄 Signup process started...");
 
+        if (!isValidEmail(email)) {
+            alert("❌ Invalid Email! Please enter a valid email address.");
+            return;
+        }
+        if (!name.trim()) {
+            alert("❌ Name is required for signup!");
+            return;
+        }
+
+        console.log("✅ Valid email and name entered!");
+
+        // 🔹 Create user in Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email.toLowerCase(), password);
+        const user = userCredential.user;
+
+        console.log("✅ Firebase auth successful:", user);
+
+        // 🔹 Update Firebase profile (displayName)
+        await updateProfile(user, { displayName: name });
+
+        console.log("✅ Display name updated:", name);
+
+        // 🔹 Store user details in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+            name,
+            email: email.toLowerCase(),
+            role,
+        });
+
+        console.log("✅ User data saved in Firestore!");
+
+        // ✅ Ensure UI updates immediately after signup
+        setEmail("");
+        setPassword("");
+        setName("");
+
+        // ✅ Delay state change to allow alert to appear
+        setTimeout(() => {
+            alert(`✅ Signup successful! Welcome, ${name}!`);
+            console.log("✅ Signup alert displayed!");
+            setIsLogin(true); // Move to login page
+        }, 500);
+        
+    } catch (error) {
+        console.error("❌ Signup error:", error.message);
+        alert("❌ Error: " + error.message);
+    }
+};
+
+  
   const login = async () => {
     try {
       if (!isValidEmail(email)) {
         alert("❌ Invalid Email! Please enter a valid email address.");
         return;
       }
+  
+      // 🔹 Authenticate user
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
-      const userName = userCredential.user.displayName || "User"; // Get Name from Firebase
+      const user = userCredential.user;
+  
+      // 🔹 Fetch user role from Firestore
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      if (!userDoc.exists()) {
+        alert("❌ User role not found. Contact admin.");
+        return;
+      }
+  
+      const userRole = userDoc.data().role;
+      const userName = userDoc.data().name || "User";
+  
       alert(`✅ Welcome, ${userName}!`);
-      navigate(role === "student" ? "/student-dashboard" : role === "mentor" ? "/mentor-dashboard" : "/admin-dashboard");
+  
+      // 🔹 Redirect based on role
+      if (userRole === "student") {
+        navigate("/student-dashboard");
+      } else if (userRole === "mentor") {
+        navigate("/mentor-dashboard");
+      } else if (userRole === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        alert("❌ Invalid role. Contact admin.");
+      }
     } catch (error) {
       alert("❌ Login Failed: " + error.message);
     }
   };
+  
 
   const [showForgotPassword, setShowForgotPassword] = useState(false); // Toggle state for forgot password
 
@@ -89,15 +154,37 @@ const handleForgotPassword = async () => {
 };
 
 
-  const signInWithGoogle = async () => {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      alert(`✅ Welcome, ${result.user.displayName}!`);
-      navigate("/student-dashboard");
-    } catch (error) {
-      alert("❌ Error: " + error.message);
+const signInWithGoogle = async () => {
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    const user = result.user;
+
+    // 🔹 Check if user exists in Firestore
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+
+    if (!userDoc.exists()) {
+      // 🔹 Prompt user to select a role if signing in for the first time
+      const selectedRole = prompt("Select your role: student, mentor, or admin").toLowerCase();
+
+      if (!["student", "mentor", "admin"].includes(selectedRole)) {
+        alert("❌ Invalid role. Try again.");
+        return;
+      }
+
+      // 🔹 Save new user to Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name: user.displayName,
+        email: user.email,
+        role: selectedRole,
+      });
     }
-  };
+
+    alert(`✅ Welcome, ${user.displayName}!`);
+    navigate("/student-dashboard");
+  } catch (error) {
+    alert("❌ Error: " + error.message);
+  }
+};
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-gray-900 text-white overflow-hidden">
@@ -136,16 +223,24 @@ const handleForgotPassword = async () => {
         <p className="text-center text-gray-300 text-lg mb-4 animate-fade-in">{dynamicText}</p>
 
     {/* Role Selection */}
-    <div className="mb-4">
-          <label className="block text-white font-semibold mb-1">
-            <FaUser className="inline mr-2 text-teal-400" /> Select Role:
-          </label>
-          <select className="w-full p-2 rounded border border-gray-600 bg-gray-700 text-white" value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="student">Student</option>
-            <option value="mentor">Mentor</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
+   {/* Role Selection - Only for Signup */}
+{!isLogin && (
+  <div className="mb-4">
+    <label className="block text-white font-semibold mb-1">
+      <FaUser className="inline mr-2 text-teal-400" /> Select Role:
+    </label>
+    <select 
+      className="w-full p-2 rounded border border-gray-600 bg-gray-700 text-white" 
+      value={role} 
+      onChange={(e) => setRole(e.target.value)}
+    >
+      <option value="student">Student</option>
+      <option value="mentor">Mentor</option>
+      <option value="admin">Admin</option>
+    </select>
+  </div>
+)}
+
         {/* Name Field (Only for Signup) */}
         {!isLogin && (
           <div className="mb-4">
