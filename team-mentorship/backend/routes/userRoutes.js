@@ -1,18 +1,25 @@
 const express = require("express");
 const router = express.Router();
+const StudentProfile = require("../models/StudentProfile");
 
-
-// 🔹 Get user details by UID
-router.get("/:uid", async (req, res) => {
+// ✅ Fetch all teammates (Exclude logged-in user)
+router.get("/", async (req, res) => {
   try {
-    const user = await User.findOne({ uid: req.params.uid });
+    const { uid, skills, domain, experience } = req.query;
+    let filters = {};
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    if (skills) filters.skills = { $elemMatch: { name: { $in: skills.split(",") } } };
+    if (domain) filters.domain = domain;
+    if (experience) filters.experience = { $gte: Number(experience) };
 
-    res.json(user);
+    // Exclude the logged-in user
+    if (uid) filters.uid = { $ne: uid };
+
+    const users = await StudentProfile.find(filters).select("uid name domain profilePicture skills experience github linkedin");
+
+    res.json(users);  // ✅ Return JSON array, not an object
   } catch (error) {
+    console.error("Error fetching teammates:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });

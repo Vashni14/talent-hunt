@@ -1,9 +1,12 @@
 const express = require("express");
+const http = require("http");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const StudentProfile = require("./models/StudentProfile"); 
+const socketIo = require("socket.io");
 const goalRoutes = require("./routes/goals");
 const GoalModel = require("./models/Goals"); // ✅ Import the model
 
@@ -21,12 +24,12 @@ app.post("/upload-profile-picture", (req, res) => {
   
   app.post("/api/student/profile", async (req, res) => {
     try {
-      const { uid, name, contact, domain, rolePreference, skills, projects, certifications, experience } = req.body;
+      const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience } = req.body;
   
       // Update the database (MongoDB example)
       await StudentProfile.findOneAndUpdate(
         { uid },
-        { $set: { name, contact, domain, rolePreference, skills, projects, certifications, experience } },
+        { $set: { name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience } },
         { new: true, upsert: true } // Ensures document is updated or created if missing
       );
   
@@ -67,9 +70,25 @@ app.post("/upload-profile-picture", (req, res) => {
       res.status(500).json({ error: "Failed to update goal" });
     }
   });
+  
+  const server = http.createServer(app);
+const io = socketIo(server);
+  io.on("connection", (socket) => {
+    console.log("A user connected");
+  
+    socket.on("message", (message) => {
+      io.emit("message", message); // Broadcast the message to all clients
+    });
+  
+    socket.on("disconnect", () => {
+      console.log("A user disconnected");
+    });
+  });
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
 app.use("/api/users", require("./routes/userRoutes")); 
+app.use("/api/teammates", require("./routes/userRoutes"))
+app.use("/api/invites", require("./routes/inviteRoutes"));
 app.use("/api/goals", goalRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

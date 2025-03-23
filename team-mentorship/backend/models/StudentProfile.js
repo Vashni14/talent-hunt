@@ -12,6 +12,9 @@ const StudentProfileSchema = new mongoose.Schema({
   portfolio: { type: String },
   skills: [{ name: String, level: String }], // Skill with proficiency
   projects: [{ type: String }],
+  linkedin: [{ type: String }],
+  github: [{ type: String }],
+  portfolio: [{ type: String }],
   certifications: [{ type: String }],
   experience: [
     {

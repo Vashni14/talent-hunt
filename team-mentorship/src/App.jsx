@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -6,8 +6,12 @@ import MentorDashboard from "./pages/MentorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentLandingPage from "./pages/StudentLandingPage";
 import AddGoals from "./pages/AddGoals";
+import FindTeammatesPage from "./pages/FindTeammatesPage";
+import { useAuth } from "./context/AuthContext"; // Correct import path
 
 function App() {
+  const { user } = useAuth(); // Get the authenticated user
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-900 text-white">
@@ -18,18 +22,41 @@ function App() {
           {/* 🔐 Authentication Page */}
           <Route path="/auth" element={<Auth />} />
 
-          <Route path="/student/dashboard" element={<StudentLandingPage />} />
+          {/* 🎓 Student Landing Page */}
+          <Route
+            path="/student/dashboard"
+            element={user ? <StudentLandingPage /> : <Navigate to="/auth" />}
+          />
 
           {/* 🎓 Student Dashboard */}
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
+          <Route
+            path="/student-dashboard"
+            element={user ? <StudentDashboard /> : <Navigate to="/auth" />}
+          />
 
           {/* 👨‍🏫 Mentor Dashboard */}
-          <Route path="/mentor-dashboard" element={<MentorDashboard />} />
+          <Route
+            path="/mentor-dashboard"
+            element={user ? <MentorDashboard /> : <Navigate to="/auth" />}
+          />
 
           {/* 🏛️ Admin Dashboard */}
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route
+            path="/admin-dashboard"
+            element={user ? <AdminDashboard /> : <Navigate to="/auth" />}
+          />
 
-          <Route path="/add-goals" element={<AddGoals />} />
+          {/* 🎯 Add Goals Page */}
+          <Route
+            path="/add-goals"
+            element={user ? <AddGoals /> : <Navigate to="/auth" />}
+          />
+
+          {/* 👥 Find Teammates Page */}
+          <Route
+            path="/find-teammates"
+            element={user ? <FindTeammatesPage /> : <Navigate to="/auth" />}
+          />
 
           {/* 🚨 Default Redirect to Landing */}
           <Route path="*" element={<LandingPage />} />

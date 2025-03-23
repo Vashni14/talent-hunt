@@ -209,7 +209,7 @@ function StudentLandingPage() {
             <li className="flex items-center gap-3 hover:bg-gray-700 p-3 rounded cursor-pointer" onClick={() => navigate("/competitions")}>
               <FaTrophy /> Competitions
             </li>
-            <li className="flex items-center gap-3 hover:bg-gray-700 p-3 rounded cursor-pointer" onClick={() => navigate("/team-matching")}>
+            <li className="flex items-center gap-3 hover:bg-gray-700 p-3 rounded cursor-pointer" onClick={() => navigate("/find-teammates")}>
               <FaUsers /> Find Teammates
             </li>
             <li className="flex items-center gap-3 hover:bg-gray-700 p-3 rounded cursor-pointer" onClick={() => navigate("/mentorship")}>
@@ -410,8 +410,8 @@ function StudentLandingPage() {
 {/* 🔹 Job & Internship Board */}
 
 <div className="bg-gray-800 p-5 rounded-lg shadow-md w-full md:w-96">
-  <h2 className="text-xl font-bold text-teal-400 flex items-center gap-2 whitespace-nowrap">
-    💼 Job & Internship Board
+  <h2 className="text-xl font-bold text-teal-400 flex items-center gap-2 ">
+    💼 Job & Internships
   </h2>
 
 

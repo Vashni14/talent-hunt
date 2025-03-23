@@ -14,12 +14,20 @@ function AddGoals() {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedTotal, setEditedTotal] = useState("");
   const [editedDeadline, setEditedDeadline] = useState("");
+   const [loading, setLoading] = useState(true);
 
   const user = auth.currentUser;
 
   useEffect(() => {
-    if (user) fetchGoals();
+    if (user) {
+        fetchGoals();}
+        else
+        {
+            setLoading(false);
+        }
   }, [user]);
+
+  
 
   const fetchGoals = async () => {
     try {
@@ -29,8 +37,18 @@ function AddGoals() {
     } catch (error) {
       console.error("Error fetching goals:", error);
     }
+    finally {
+        setLoading(false);
+      }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+      </div>
+    );
+  }
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !total || !deadline) {

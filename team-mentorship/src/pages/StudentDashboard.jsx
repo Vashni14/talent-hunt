@@ -16,6 +16,9 @@ function StudentDashboard() {
     projects: [],
     certifications: [],
     experience: [],
+    linkedin: "",
+    github: "",
+    portfolio: "",
   });
 
   const [newProject, setNewProject] = useState("");
@@ -43,6 +46,9 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
         contact: data.contact || "",
         domain: data.domain || "",
         rolePreference: data.rolePreference || "",
+        linkedin: data.linkedin || "",
+        github: data.github || "",
+        portfolio: data.portfolio || "",
         skills: Array.isArray(data.skills) ? data.skills : [], 
         projects: Array.isArray(data.projects) ? data.projects : [], 
         certifications: Array.isArray(data.certifications) ? data.certifications : [], 
@@ -101,6 +107,9 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
         contact: studentData.contact,
         domain: studentData.domain,
         rolePreference: studentData.rolePreference,
+        linkedin: studentData.linkedin,
+        github: studentData.github,
+        portfolio: studentData.portfolio,
         skills: studentData.skills,
         projects: studentData.projects,
         certifications: studentData.certifications,
