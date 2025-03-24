@@ -5,6 +5,7 @@ const TeammateSchema = new mongoose.Schema({
   name: { type: String, required: true },
   domain: { type: String, required: true },
   skills: { type: [String], required: true },
+  profilePicture: { type: String }, // Stores the image URL
   experience: { type: Number, required: true },
   rolePreference: { type: String, required: true },
   projects: { type: [String], default: [] },

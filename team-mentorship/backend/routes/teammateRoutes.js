@@ -4,8 +4,6 @@ const Teammate = require("../models/Teammate");
 const Invitation = require("../models/Invitation");
 
 // Fetch all teammates
-
-// Fetch all teammates
 router.get("/teammates", async (req, res) => {
     try {
       const { skills, domain, experience } = req.query;

@@ -1,8 +1,6 @@
 const express = require("express");
-const http = require("http");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const { Server } = require("socket.io");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const StudentProfile = require("./models/StudentProfile"); 
@@ -39,23 +37,30 @@ app.post("/upload-profile-picture", (req, res) => {
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
-  app.post("/api/goals", async (req, res) => {
-    try {
-      const { userId, title, total, completed, deadline } = req.body;
-  
-      if (!deadline) {
-        return res.status(400).json({ error: "Deadline is required" });
-      }
-  
-      const newGoal = new GoalModel({ userId, title, total, completed, deadline });
-      await newGoal.save();
-  
-      res.status(201).json({ message: "Goal added successfully!" });
-    } catch (error) {
-      console.error("Error adding goal:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+  // Backend route for adding a goal
+app.post("/api/goals", async (req, res) => {
+  try {
+    const { userId, title, total, completed, deadline } = req.body;
+
+    // Create a new goal
+    const newGoal = new Goal({
+      userId,
+      title,
+      total,
+      completed,
+      deadline,
+    });
+
+    // Save the goal to the database
+    const savedGoal = await newGoal.save();
+
+    // Return the saved goal object
+    res.status(201).json(savedGoal);
+  } catch (error) {
+    console.error("Error adding goal:", error);
+    res.status(500).json({ message: "Error adding goal" });
+  }
+});
   app.put("/api/goals/:id", async (req, res) => {
     try {
       const { title, total, deadline } = req.body;
@@ -71,19 +76,7 @@ app.post("/upload-profile-picture", (req, res) => {
     }
   });
   
-  const server = http.createServer(app);
-const io = socketIo(server);
-  io.on("connection", (socket) => {
-    console.log("A user connected");
   
-    socket.on("message", (message) => {
-      io.emit("message", message); // Broadcast the message to all clients
-    });
-  
-    socket.on("disconnect", () => {
-      console.log("A user disconnected");
-    });
-  });
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
 app.use("/api/users", require("./routes/userRoutes")); 

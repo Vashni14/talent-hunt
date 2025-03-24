@@ -14,20 +14,18 @@ function AddGoals() {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedTotal, setEditedTotal] = useState("");
   const [editedDeadline, setEditedDeadline] = useState("");
-   const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const user = auth.currentUser;
 
   useEffect(() => {
     if (user) {
-        fetchGoals();}
-        else
-        {
-            setLoading(false);
-        }
+      fetchGoals();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
-
-  
 
   const fetchGoals = async () => {
     try {
@@ -36,26 +34,25 @@ function AddGoals() {
       setGoals(sortedGoals);
     } catch (error) {
       console.error("Error fetching goals:", error);
+      alert("❌ Error fetching goals. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    finally {
-        setLoading(false);
-      }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-      </div>
-    );
-  }
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Form submitted"); // Debugging
+  
+    if (isSubmitting) return; // Prevent multiple submissions
+    setIsSubmitting(true);
+  
     if (!title || !total || !deadline) {
       alert("Please enter goal title, total tasks, and deadline.");
+      setIsSubmitting(false); // Re-enable the button
       return;
     }
-
+  
     try {
       const response = await axios.post("http://localhost:5000/api/goals", {
         userId: user.uid,
@@ -64,15 +61,32 @@ function AddGoals() {
         completed: 0,
         deadline,
       });
-
-      alert("✅ Goal added successfully!");
-      setGoals([...goals, response.data]); // Update UI immediately
-      setTitle("");
-      setTotal("");
-      setDeadline("");
+  
+      console.log("API Response:", response.data); // Debugging
+  
+      if (response.data._id) {
+        // If the response contains the newly added goal object
+        alert("✅ Goal added successfully!");
+  
+        // Use functional update to ensure you're working with the latest state
+        setGoals((prevGoals) => {
+          console.log("Previous Goals:", prevGoals); // Debugging
+          const updatedGoals = [...prevGoals, response.data];
+          return updatedGoals.sort((a, b) => new Date(a.deadline) - new Date(b.deadline)); // Sort goals by deadline
+        });
+  
+        // Reset form fields
+        setTitle("");
+        setTotal("");
+        setDeadline("");
+      } else {
+        alert("❌ Error: Goal not added. Please try again.");
+      }
     } catch (error) {
       console.error("Error adding goal:", error.response?.data || error);
       alert("❌ Error adding goal.");
+    } finally {
+      setIsSubmitting(false); // Re-enable the button
     }
   };
 
@@ -80,7 +94,7 @@ function AddGoals() {
     try {
       await axios.delete(`http://localhost:5000/api/goals/${goalId}`);
       alert("❌ Goal deleted!");
-      setGoals(goals.filter((goal) => goal._id !== goalId)); // Update UI immediately
+      setGoals((prevGoals) => prevGoals.filter((goal) => goal._id !== goalId));
     } catch (error) {
       console.error("Error deleting goal:", error);
       alert("❌ Error deleting goal.");
@@ -91,7 +105,7 @@ function AddGoals() {
     console.log("Editing Goal:", goal); // Debugging
     setEditingId(goal._id);
     setEditedTitle(goal.title);
-    setEditedTotal(goal.total.toString()); // Ensure total is a string for the input field
+    setEditedTotal(goal.total.toString());
     setEditedDeadline(goal.deadline);
   };
 
@@ -106,10 +120,7 @@ function AddGoals() {
       console.log("Backend Response:", response.data); // Debugging
 
       alert("✅ Goal updated successfully!");
-
-      // Fetch updated goals from the backend
-      fetchGoals();
-
+      await fetchGoals(); // Fetch updated goals
       setEditingId(null); // Exit edit mode
     } catch (error) {
       console.error("Error updating goal:", error);
@@ -122,12 +133,8 @@ function AddGoals() {
       try {
         const updatedGoal = { ...goal, completed: goal.completed + 1 };
         await axios.put(`http://localhost:5000/api/goals/${goal._id}`, updatedGoal);
-
-        // Update UI Immediately
         setGoals((prevGoals) =>
-          prevGoals.map((g) =>
-            g._id === goal._id ? { ...g, completed: g.completed + 1 } : g
-          )
+          prevGoals.map((g) => (g._id === goal._id ? updatedGoal : g))
         );
       } catch (error) {
         console.error("Error updating goal:", error);
@@ -141,12 +148,8 @@ function AddGoals() {
       try {
         const updatedGoal = { ...goal, completed: goal.completed - 1 };
         await axios.put(`http://localhost:5000/api/goals/${goal._id}`, updatedGoal);
-
-        // Update UI Immediately
         setGoals((prevGoals) =>
-          prevGoals.map((g) =>
-            g._id === goal._id ? { ...g, completed: g.completed - 1 } : g
-          )
+          prevGoals.map((g) => (g._id === goal._id ? updatedGoal : g))
         );
       } catch (error) {
         console.error("Error undoing task:", error);
@@ -154,6 +157,14 @@ function AddGoals() {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white px-6 py-10">
@@ -187,8 +198,12 @@ function AddGoals() {
             onChange={(e) => setDeadline(e.target.value)}
             className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white mt-3"
           />
-          <button type="submit" className="mt-4 bg-teal-500 px-4 py-2 rounded font-bold hover:bg-teal-600 w-full">
-            Add Goal
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-4 bg-teal-500 px-4 py-2 rounded font-bold hover:bg-teal-600 w-full"
+          >
+            {isSubmitting ? "Adding..." : "Add Goal"}
           </button>
         </form>
 
@@ -226,7 +241,7 @@ function AddGoals() {
                       <FaSave />
                     </button>
                     <button
-                      onClick={() => setEditingId(null)} // Cancel Edit
+                      onClick={() => setEditingId(null)}
                       className="bg-gray-500 px-3 py-1 rounded font-bold hover:bg-gray-600"
                     >
                       <FaUndoAlt />
@@ -236,22 +251,20 @@ function AddGoals() {
               ) : (
                 // Display Goal
                 <div className="w-full flex justify-between items-center">
-                <div className="w-full">  {/* Ensure it takes full width */}
-                  <p className="text-white font-medium">
-                    {goal.title} (Tasks: {goal.completed}/{goal.total})
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    📅 {new Date(goal.deadline).toLocaleDateString()}
-                  </p>
-                  {/* 🔹 Make Progress Bar Full Width */}
-                  <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
-                    <div 
-                      className="bg-teal-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(goal.completed / goal.total) * 100}%`, maxWidth: "100%" }} // Ensure it fills the width
-                    ></div>
+                  <div className="w-full">
+                    <p className="text-white font-medium">
+                      {goal.title} (Tasks: {goal.completed}/{goal.total})
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      📅 {new Date(goal.deadline).toLocaleDateString()}
+                    </p>
+                    <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
+                      <div
+                        className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(goal.completed / goal.total) * 100}%`, maxWidth: "100%" }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              
                   <div className="flex space-x-2">
                     <button
                       onClick={() => handleEdit(goal)}
