@@ -2,58 +2,184 @@ const express = require("express");
 const router = express.Router();
 const Teammate = require("../models/Teammate");
 const Invitation = require("../models/Invitation");
+const mongoose = require("mongoose");
 
-// Fetch all teammates
-router.get("/teammates", async (req, res) => {
-    try {
-      const { skills, domain, experience } = req.query;
-      const filter = {};
-      if (skills) filter.skills = { $in: skills.split(",") };
-      if (domain) filter.domain = domain;
-      if (experience) filter.experience = { $gte: parseInt(experience) };
-  
-      const teammates = await Teammate.find(filter);
-      res.status(200).json(teammates); // Return an array of teammates
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch teammates" });
+// routes/teammates.js
+router.get('/', async (req, res) => {
+  try {
+    const { excludeUserId } = req.query; // Get current user ID from query params
+    const filter = { isPublic: true }; // Only show public profiles
+    
+    if (excludeUserId) {
+      filter.uid = { $ne: excludeUserId }; // Exclude current user
     }
-  });
-  
+
+    const teammates = await Teammate.find(filter);
+    res.status(200).json(teammates);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch teammates" });
+  }
+});
+// Get all teammates with filtering
+router.get("/teammates", async (req, res) => {
+  try {
+    const { skills, domain, experience, excludeUserId } = req.query;
+    const filter = {};
+
+    // Apply filters
+    if (skills) {
+      filter.skills = {
+        $in: Array.isArray(skills) ? skills : skills.split(",")
+      };
+    }
+    if (domain) filter.domain = { $regex: domain, $options: "i" };
+    if (experience) filter["experience.duration"] = { $gte: parseInt(experience) };
+    if (excludeUserId) filter.uid = { $ne: excludeUserId };
+
+    // Projection to control returned fields
+    const projection = {
+      password: 0,
+      __v: 0,
+      createdAt: 0,
+      updatedAt: 0
+    };
+
+    const teammates = await Teammate.find(filter, projection)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Convert Mongoose documents to plain objects
+    const result = teammates.map(teammate => {
+      // Transform experience if it exists
+      if (teammate.experience) {
+        teammate.experience = Array.isArray(teammate.experience) 
+          ? teammate.experience 
+          : [teammate.experience];
+      }
+      return teammate;
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching teammates:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch teammates",
+      details: error.message 
+    });
+  }
+});
 
 // Send invitation
 router.post("/invitations", async (req, res) => {
   try {
-    const { fromUserId, toUserId, type, message } = req.body;
-    const invitation = new Invitation({ fromUserId, toUserId, type, message });
+    const { fromUserId, fromUserName, toUserId, toUserName, type, message } = req.body;
+
+    // Validate required fields
+    if (!fromUserId || !toUserId || !type) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Prevent self-invitation
+    if (fromUserId === toUserId) {
+      return res.status(400).json({ error: "Cannot invite yourself" });
+    }
+
+    // Validate invitation type
+    const validTypes = ["project", "competition", "feedback"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ error: "Invalid invitation type" });
+    }
+
+    const invitation = new Invitation({
+      fromUserId,
+      fromUserName: fromUserName || "Anonymous",
+      toUserId,
+      toUserName: toUserName || "Unknown User",
+      type,
+      message: message || `Invitation for ${type}`,
+      status: "pending"
+    });
+
     await invitation.save();
-    res.status(201).json(invitation);
+
+    res.status(201).json({
+      message: "Invitation sent successfully",
+      invitation
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to send invitation" });
+    console.error("Error sending invitation:", error);
+    res.status(500).json({ 
+      error: "Failed to send invitation",
+      details: error.message 
+    });
   }
 });
 
-// Fetch invitations for a user
+// Get invitations for a user
 router.get("/invitations/:userId", async (req, res) => {
   try {
-    const invitations = await Invitation.find({ toUserId: req.params.userId });
+    const { status } = req.query;
+    const filter = { 
+      $or: [
+        { fromUserId: req.params.userId },
+        { toUserId: req.params.userId }
+      ]
+    };
+
+    if (status) filter.status = status;
+
+    const invitations = await Invitation.find(filter)
+      .sort({ createdAt: -1 })
+      .lean();
+
     res.status(200).json(invitations);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch invitations" });
+    console.error("Error fetching invitations:", error);
+    res.status(500).json({ 
+      error: "Failed to fetch invitations",
+      details: error.message 
+    });
   }
 });
 
-// Accept/Decline invitation
+// Update invitation status
 router.put("/invitations/:id", async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, responseMessage } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ error: "Status is required" });
+    }
+
+    const validStatuses = ["accepted", "declined", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status value" });
+    }
+
     const invitation = await Invitation.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { 
+        status,
+        responseMessage,
+        updatedAt: new Date() 
+      },
       { new: true }
     );
-    res.status(200).json(invitation);
+
+    if (!invitation) {
+      return res.status(404).json({ error: "Invitation not found" });
+    }
+
+    res.status(200).json({
+      message: "Invitation updated successfully",
+      invitation
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update invitation" });
+    console.error("Error updating invitation:", error);
+    res.status(500).json({ 
+      error: "Failed to update invitation",
+      details: error.message 
+    });
   }
 });
 

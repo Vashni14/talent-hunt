@@ -24,6 +24,16 @@ const invitationSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
+  },
+  invitationType: {
+    type: String,
+    enum: ['direct', 'open'],
+    default: 'direct'
+  },
+  projectDetails: {  // For open invitations
+    title: String,
+    description: String,
+    requiredSkills: [String]
   }
 );
 
