@@ -12,7 +12,7 @@ const TeammateCard = ({ teammate, isMatch = false, currentUserId }) => {
     if (!imagePath) return '/default-avatar.png';
     if (imagePath.startsWith('http')) return imagePath;
     
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const baseUrl =  'http://localhost:5000';
     return `${baseUrl}${imagePath}`;
   };
 
@@ -28,12 +28,12 @@ const TeammateCard = ({ teammate, isMatch = false, currentUserId }) => {
 
       const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const response = await axios.post(
-        `${apiUrl}/api/invitations`,
+        `${apiUrl}/api/invites`,
         {
-          fromUserId: user.uid,
-          fromUserName: user.displayName || user.email,
-          toUserId: teammate.uid,
-          toUserName: teammate.name,
+          senderId: user.uid, 
+          senderName: user.displayName || user.email, 
+          receiverId: teammate.uid, 
+          receiverName: teammate.name, 
           type,
           message: `Hi ${teammate.name}, I'd like to collaborate on a ${type} project.`
         },

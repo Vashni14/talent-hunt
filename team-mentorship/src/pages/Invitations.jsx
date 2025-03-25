@@ -10,40 +10,64 @@ const Invitations = () => {
   const [error, setError] = useState(null);
 
   // Create axios instance with base URL
-  const api = axios.create({
-    baseURL: 'http://localhost:5000/api/invites',
-  });
+  // Move this outside the component or to a separate API config file
+const api = axios.create({
+  baseURL: 'http://localhost:5000/api/invites',
+  headers: {
+    'Content-Type': 'application/json',
+    // Add authorization if needed
+    'Authorization': `Bearer ${localStorage.getItem('token')}`
+  }
+});
 
-  const fetchInvitations = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      if (!user?.uid) {
-        throw new Error('User not authenticated');
-      }
-
-      const endpoint = activeTab === 'received' 
-        ? `/received/${user.uid}`
-        : `/sent/${user.uid}`;
-      
-      const response = await api.get(endpoint);
-      
-      if (response.data?.success && Array.isArray(response.data.data)) {
-        setInvitations(response.data.data);
-      } else {
-        throw new Error('Invalid response format');
-      }
-    } catch (error) {
-      console.error('Error fetching invitations:', error);
-      setError(error.response?.data?.message || 
-               error.message || 
-               'Failed to load invitations');
-      setInvitations([]);
-    } finally {
-      setIsLoading(false);
+const fetchInvitations = async () => {
+  try {
+    setIsLoading(true);
+    setError(null);
+    
+    if (!user?.uid) {
+      throw new Error('User not authenticated');
     }
-  };
+
+    const endpoint = activeTab === 'received' 
+      ? `/received/${user.uid}`
+      : `/sent/${user.uid}`;
+    
+    const response = await api.get(endpoint);
+    
+    // More robust response checking
+    if (!response.data) {
+      throw new Error('No data received from server');
+    }
+    
+    if (response.data.success === false) {
+      throw new Error(response.data.message || 'Request failed');
+    }
+    
+    if (!Array.isArray(response.data.data)) {
+      throw new Error('Invalid data format received');
+    }
+    
+    setInvitations(response.data.data);
+  } catch (error) {
+    console.error('Error fetching invitations:', error);
+    
+    let errorMessage = 'Failed to load invitations';
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      errorMessage = error.response.data?.message || 
+                    `Server responded with ${error.response.status}`;
+    } else if (error.request) {
+      // The request was made but no response was received
+      errorMessage = 'No response from server';
+    }
+    
+    setError(errorMessage);
+    setInvitations([]);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleInvitationResponse = async (inviteId, status) => {
     try {
