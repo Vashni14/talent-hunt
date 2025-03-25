@@ -16,6 +16,7 @@ const StudentProfileSchema = new mongoose.Schema({
   github: [{ type: String }],
   portfolio: [{ type: String }],
   certifications: [{ type: String }],
+  isPublic: { type: Boolean, default: true } ,
   experience: [
     {
       company: String,

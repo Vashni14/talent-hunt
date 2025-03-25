@@ -2,85 +2,111 @@ import React from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 
-const TeammateCard = ({ teammate, isMatch = false }) => {
+const TeammateCard = ({ teammate, isMatch = false, currentUserId }) => {
+  if (teammate.uid === currentUserId) return null;
   const { user } = useAuth();
+  const isCurrentUser = user?.uid === teammate.uid;
 
-  // Function to properly construct image URL
+  // Enhanced image URL handling with Vite environment variables
   const getProfileImageUrl = (imagePath) => {
     if (!imagePath) return '/default-avatar.png';
-    
-    // If it's already a full URL (from cloud storage)
     if (imagePath.startsWith('http')) return imagePath;
     
-    // For local development with Express server
-    if (imagePath.startsWith('/uploads')) {
-      return `http://localhost:5000${imagePath}`;
-    }
-    
-    // Default case (relative paths)
-    return imagePath;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    return `${baseUrl}${imagePath}`;
   };
 
   const sendInvitation = async (type) => {
     try {
       if (!user?.uid || !teammate?.uid) {
-        throw new Error("Missing user information");
+        throw new Error("User authentication required");
       }
 
-      const response = await axios.post('http://localhost:5000/api/invites', {
-        senderId: user.uid,
-        senderName: user.displayName || user.email,
-        receiverId: teammate.uid,
-        receiverName: teammate.name,
-        type,
-        message: `Hi ${teammate.name}, I'd like to invite you for a ${type}.`
-      });
+      if (isCurrentUser) {
+        throw new Error("Cannot invite yourself");
+      }
+
+      const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const response = await axios.post(
+        `${apiUrl}/api/invitations`,
+        {
+          fromUserId: user.uid,
+          fromUserName: user.displayName || user.email,
+          toUserId: teammate.uid,
+          toUserName: teammate.name,
+          type,
+          message: `Hi ${teammate.name}, I'd like to collaborate on a ${type} project.`
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
 
       alert(response.data?.message || 'Invitation sent successfully!');
     } catch (error) {
-      console.error('Error sending invitation:', error);
-      alert(error.response?.data?.message || 'Failed to send invitation');
+      console.error('Invitation error:', error);
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         'Failed to send invitation';
+      alert(errorMessage);
     }
   };
 
-  // Improved experience rendering
+  // Enhanced experience rendering
   const renderExperience = () => {
     if (!teammate.experience) return null;
 
-    if (Array.isArray(teammate.experience) && teammate.experience.length > 0) {
-      return teammate.experience.map((exp, index) => (
-        <div key={exp._id || index} className="mb-1">
-          <p className="text-gray-300 text-sm">
-            <span className="font-medium">{exp.role}</span> at {exp.company} 
-            {exp.duration && ` (${exp.duration})`}
-          </p>
-        </div>
-      ));
-    }
+    const experiences = Array.isArray(teammate.experience) 
+      ? teammate.experience 
+      : [teammate.experience];
 
-    if (typeof teammate.experience === 'object') {
-      return (
+    return experiences.map((exp, index) => (
+      <div key={`exp-${index}`} className="mb-1">
         <p className="text-gray-300 text-sm">
-          <span className="font-medium">{teammate.experience.role}</span> at {teammate.experience.company}
-          {teammate.experience.duration && ` (${teammate.experience.duration})`}
+          <span className="font-medium">{exp.role || 'Unknown role'}</span>
+          {exp.company && ` at ${exp.company}`}
+          {exp.duration && ` (${exp.duration})`}
         </p>
-      );
-    }
+      </div>
+    ));
+  };
 
-    return <p className="text-gray-300 text-sm">{teammate.experience} years experience</p>;
+  // Enhanced skills rendering
+  const renderSkills = () => {
+    if (!teammate.skills?.length) return null;
+
+    return (
+      <div className="mt-3">
+        <h3 className="font-semibold text-gray-300 mb-1">Skills:</h3>
+        <div className="flex flex-wrap gap-2">
+          {teammate.skills.map((skill, index) => (
+            <span 
+              key={`skill-${index}`}
+              className="bg-gray-700 px-2 py-1 rounded text-sm"
+            >
+              {typeof skill === 'object' ? skill.name : skill}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className={`bg-gray-800 p-4 rounded-lg shadow-md ${isMatch ? "border-2 border-teal-500" : ""}`}>
       <div className="flex items-start gap-4">
-        {/* Profile image with error handling */}
-        <div className="relative">
+        {/* Profile image with better error handling */}
+        <div className="relative flex-shrink-0">
           <img
             src={getProfileImageUrl(teammate.profilePicture)}
             alt={`${teammate.name}'s profile`}
             className="w-16 h-16 rounded-full object-cover border-2 border-gray-600"
             onError={(e) => {
+              e.target.onerror = null;
               e.target.src = '/default-avatar.png';
+              e.target.className = 'w-16 h-16 rounded-full object-cover border-2 border-gray-600 bg-gray-700';
             }}
           />
           {isMatch && (
@@ -92,34 +118,19 @@ const TeammateCard = ({ teammate, isMatch = false }) => {
 
         <div className="flex-1">
           <h2 className="text-xl font-bold text-teal-400">{teammate.name}</h2>
-          <p className="text-gray-300">{teammate.domain}</p>
+          <p className="text-gray-300">{teammate.domain || 'No domain specified'}</p>
           {renderExperience()}
           
-          {/* Contact information if available */}
-          {teammate.contact && (
+          {/* Contact information */}
+          {(teammate.contact || teammate.email) && (
             <p className="text-gray-400 text-sm mt-1">
-              Contact: {teammate.contact}
+              Contact: {teammate.contact || teammate.email}
             </p>
           )}
         </div>
       </div>
 
-      {/* Skills section */}
-      {teammate.skills?.length > 0 && (
-        <div className="mt-4">
-          <h3 className="font-semibold text-gray-300 mb-1">Skills:</h3>
-          <div className="flex flex-wrap gap-2">
-            {teammate.skills.map((skill, index) => (
-              <span 
-                key={skill._id || index}
-                className="bg-gray-700 px-2 py-1 rounded text-sm"
-              >
-                {typeof skill === 'object' ? skill.name : skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      {renderSkills()}
 
       {/* Match details */}
       {isMatch && teammate.matchScore && (
@@ -135,27 +146,32 @@ const TeammateCard = ({ teammate, isMatch = false }) => {
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          onClick={() => sendInvitation("project")}
-          className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm font-medium transition-colors"
-        >
-          Invite to Project
-        </button>
-        <button
-          onClick={() => sendInvitation("competition")}
-          className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-medium transition-colors"
-        >
-          Invite to Competition
-        </button>
-        <button
-          onClick={() => sendInvitation("feedback")}
-          className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm font-medium transition-colors"
-        >
-          Request Feedback
-        </button>
-      </div>
+      {/* Action buttons - only show if not current user */}
+      {!isCurrentUser && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={() => sendInvitation("project")}
+            className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm font-medium transition-colors"
+            disabled={!user} // Disable if not logged in
+          >
+            Invite to Project
+          </button>
+          <button
+            onClick={() => sendInvitation("competition")}
+            className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm font-medium transition-colors"
+            disabled={!user}
+          >
+            Invite to Competition
+          </button>
+          <button
+            onClick={() => sendInvitation("feedback")}
+            className="bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm font-medium transition-colors"
+            disabled={!user}
+          >
+            Request Feedback
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,23 @@ const router = express.Router();
 const Teammate = require("../models/Teammate");
 const Invitation = require("../models/Invitation");
 
+// routes/teammates.js
+router.get('/', async (req, res) => {
+  try {
+    const { excludeUserId } = req.query; // Get current user ID from query params
+    const filter = { isPublic: true }; // Only show public profiles
+    
+    if (excludeUserId) {
+      filter.uid = { $ne: excludeUserId }; // Exclude current user
+    }
+
+    const teammates = await Teammate.find(filter);
+    res.status(200).json(teammates);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch teammates" });
+  }
+});
+
 // Fetch all teammates
 router.get("/teammates", async (req, res) => {
     try {

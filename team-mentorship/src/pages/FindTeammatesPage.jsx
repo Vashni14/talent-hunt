@@ -23,32 +23,34 @@ const FindTeammatesPage = () => {
     fetchTeammates();
   }, [filters]);
 
-  const fetchTeammates = async () => {
-    try {
-      setIsLoading(true);
-      const { data } = await axios.get("http://localhost:5000/api/teammates", {
-        params: filters,
-      });
-
-      if (Array.isArray(data)) {
-        setTeammates(data);
-      } else {
-        console.error("Invalid response format: Expected an array");
-        setTeammates([]);
+  // In your fetchTeammates function
+// In your fetchTeammates function
+const fetchTeammates = async () => {
+  try {
+    setIsLoading(true);
+    const { data } = await axios.get("http://localhost:5000/api/teammates", {
+      params: {
+        ...filters,
+        excludeUserId: user?.uid // Pass current user ID
       }
-    } catch (error) {
-      console.error("Error fetching teammates:", error);
-      alert("Failed to fetch teammates. Please try again later.");
-      setTeammates([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+    });
+    setTeammates(data);
+  } catch (error) {
+    console.error("Error fetching teammates:", error);
+  } finally {
+    setIsLoading(false);
+  }
+};
+  // Define handleFilterChange function
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      [name]: value
+    }));
   };
 
+  // Define handleSearchChange function
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
@@ -59,12 +61,12 @@ const FindTeammatesPage = () => {
     return teammates.filter((teammate) => {
       const searchLower = searchQuery.toLowerCase();
       return (
-        teammate.name.toLowerCase().includes(searchLower) ||
-        teammate.domain.toLowerCase().includes(searchLower) ||
-        teammate.skills.some(skill => 
+        teammate.name?.toLowerCase().includes(searchLower) ||
+        teammate.domain?.toLowerCase().includes(searchLower) ||
+        teammate.skills?.some(skill => 
           typeof skill === 'object' 
-            ? skill.name.toLowerCase().includes(searchLower)
-            : skill.toLowerCase().includes(searchLower)
+            ? skill.name?.toLowerCase().includes(searchLower)
+            : skill?.toLowerCase().includes(searchLower)
         )
       );
     });
@@ -177,7 +179,12 @@ const FindTeammatesPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {getFilteredTeammates().length > 0 ? (
               getFilteredTeammates().map((teammate) => (
-                <TeammateCard key={teammate._id} teammate={teammate} />
+                <TeammateCard 
+                  key={teammate._id} 
+                  teammate={teammate}
+                  currentUserId={user?.uid}
+                  isMatch={matchedTeammates.some(match => match._id === teammate._id)}
+                />
               ))
             ) : (
               <div className="col-span-full text-center py-10">
