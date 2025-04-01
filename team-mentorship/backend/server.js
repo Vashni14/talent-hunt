@@ -4,10 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const StudentProfile = require("./models/StudentProfile"); 
-const socketIo = require("socket.io");
 const goalRoutes = require("./routes/goals");
-const GoalModel = require("./models/Goals"); // ✅ Import the model
-
 
 dotenv.config();
 connectDB();
@@ -37,45 +34,6 @@ app.post("/upload-profile-picture", (req, res) => {
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
-  // Backend route for adding a goal
-app.post("/api/goals", async (req, res) => {
-  try {
-    const { userId, title, total, completed, deadline } = req.body;
-
-    // Create a new goal
-    const newGoal = new Goal({
-      userId,
-      title,
-      total,
-      completed,
-      deadline,
-    });
-
-    // Save the goal to the database
-    const savedGoal = await newGoal.save();
-
-    // Return the saved goal object
-    res.status(201).json(savedGoal);
-  } catch (error) {
-    console.error("Error adding goal:", error);
-    res.status(500).json({ message: "Error adding goal" });
-  }
-});
-  app.put("/api/goals/:id", async (req, res) => {
-    try {
-      const { title, total, deadline } = req.body;
-      const updatedGoal = await GoalModel.findByIdAndUpdate(
-        req.params.id,
-        { title, total, deadline },
-        { new: true } // Return the updated document
-      );
-      res.status(200).json(updatedGoal);
-    } catch (error) {
-      console.error("Error updating goal:", error);
-      res.status(500).json({ error: "Failed to update goal" });
-    }
-  });
-  
   
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));

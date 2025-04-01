@@ -14,23 +14,42 @@ router.get("/:userId", async (req, res) => {
 
 // 📌 Add a new goal
 router.post("/", async (req, res) => {
-  const { userId, title, total } = req.body;
   try {
-    const newGoal = new GoalModel({ userId, title, total, completed: 0,deadline });
+    const { userId, title, total, completed = 0, deadline } = req.body;
+
+    if (!deadline) {
+      return res.status(400).json({ error: "Deadline is required" });
+    }
+
+    const newGoal = new GoalModel({ userId, title, total, completed, deadline });
     await newGoal.save();
-    res.json(newGoal);
+
+    res.status(201).json({ message: "Goal added successfully!", goal: newGoal });
   } catch (error) {
-    res.status(500).json({ error: "Failed to add goal" });
+    console.error("Error adding goal:", error);
+    res.status(500).json({ error: error.message });
   }
 });
 
+
 // 📌 Update goal progress
 router.put("/:goalId", async (req, res) => {
-  const { completed } = req.body;
   try {
-    const goal = await GoalModel.findByIdAndUpdate(req.params.goalId, { completed }, { new: true });
-    res.json(goal);
+    const { title, total, completed, deadline } = req.body;
+
+    const updatedGoal = await GoalModel.findByIdAndUpdate(
+      req.params.goalId, // ✅ Corrected parameter
+      { title, total, completed, deadline }, // ✅ Ensuring all fields can be updated
+      { new: true } // ✅ Return updated document
+    );
+
+    if (!updatedGoal) {
+      return res.status(404).json({ error: "Goal not found" });
+    }
+
+    res.status(200).json(updatedGoal);
   } catch (error) {
+    console.error("Error updating goal:", error);
     res.status(500).json({ error: "Failed to update goal" });
   }
 });
