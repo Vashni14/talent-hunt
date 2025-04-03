@@ -28,4 +28,4 @@ if (window.location.hostname === "localhost") {
 
 
 // ✅ Export Everything Properly
-export { auth, googleProvider, db };
+export { auth, googleProvider, db ,app};
