@@ -4,12 +4,20 @@ import {
   FaComment, FaHandshake, FaBriefcase, FaCalendarAlt,
   FaGraduationCap, FaClock, FaMedal, FaStar, FaRegStar,
   FaFilter, FaPlus, FaUserPlus, FaChevronLeft, FaChevronDown,
-  FaMagic, FaHeart, FaRegHeart, FaLightbulb, FaUserTie, FaUserFriends,FaChevronRight,
+  FaMagic, FaHeart, FaRegHeart, FaLightbulb, FaUserTie, FaUserFriends, FaChevronRight,FaSignOutAlt,
   FaGlobe, FaChartLine
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { auth } from "../config/firebase";
 
 const StudentLandingPage = () => {
+  // All hooks must be called unconditionally at the top level
+  const navigate = useNavigate();
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState("/default-profile.png");
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFeature, setActiveFeature] = useState(null);
   const [scrolled, setScrolled] = useState(false);
@@ -23,6 +31,47 @@ const StudentLandingPage = () => {
     sdgs: []
   });
 
+  const user = auth.currentUser;
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchStudentProfile();
+      } else {
+        navigate('/login');
+      }
+    });
+    return () => unsubscribe();
+  }, [navigate]);
+
+  const fetchStudentProfile = async () => {
+    try {
+      setLoading(true);
+      if (user) {
+        const { data } = await axios.get(`http://localhost:5000/api/student/profile/${user.uid}`);
+        setStudent(data);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      setStudent({
+        name: "New User",
+        rolePreference: "Aspiring Developer",
+        profilePicture: "/default-profile.png",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (student?.profilePicture) {
+      // If it's a Firebase storage reference, you might need to get download URL
+      // Otherwise, use the direct URL
+      setProfileImage(student.profilePicture);
+    } else {
+      setProfileImage("/default-profile.png");
+    }
+  }, [student]);
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
@@ -30,6 +79,22 @@ const StudentLandingPage = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+      </div>
+    );
+  }
+
+  const defaultProfile = {
+    name: "New User",
+    rolePreference: "Aspiring Developer",
+    profilePicture: "/default-profile.png",
+  };
+
+  const profileData = student || defaultProfile;
 
   const toggleSaveCompetition = (id) => {
     if (savedCompetitions.includes(id)) {
@@ -265,51 +330,78 @@ const StudentLandingPage = () => {
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
       {/* Header */}
       <header className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-gray-800/95 backdrop-blur-sm py-2 shadow-lg' : 'bg-gray-900 py-3'} border-b border-gray-700`}>
-        <div className="container mx-auto px-4 sm:px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <FaGraduationCap className="text-sm" />
-            </div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">ScholarCompete</h1>
-          </div>
-          
-          <nav className="hidden md:flex items-center gap-4">
-            <button
-              className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'competitions' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-              onClick={() => setActiveTab('competitions')}
-            >
-              <FaTrophy className="inline mr-1" /> Competitions
-            </button>
-            <button
-              className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'team-match' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-              onClick={() => setActiveTab('team-match')}
-            >
-              <FaUsers className="inline mr-1" /> Team Match
-            </button>
-            <button
-              className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'mentorship' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
-              onClick={() => setActiveTab('mentorship')}
-            >
-              <FaComment className="inline mr-1" /> Mentorship
-            </button>
-          </nav>
-          
-          <div className="flex items-center gap-3">
-            <button className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors relative">
-              <FaBell />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <div className="w-8 h-8 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50">
-              <img 
-                src="https://randomuser.me/api/portraits/women/44.jpg" 
-                alt="Profile" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+  <div className="container mx-auto px-4 sm:px-6 flex justify-between items-center">
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+        <FaGraduationCap className="text-sm" />
+      </div>
+      <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">ScholarCompete</h1>
+    </div>
+    
+    <nav className="hidden md:flex items-center gap-4">
+      <button
+        className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'competitions' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+        onClick={() => setActiveTab('competitions')}
+      >
+        <FaTrophy className="inline mr-1" /> Competitions
+      </button>
+      <button
+        className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'team-match' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+        onClick={() => setActiveTab('team-match')}
+      >
+        <FaUsers className="inline mr-1" /> Team Match
+      </button>
+      <button
+        className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${activeTab === 'mentorship' ? 'text-white bg-gray-700' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}
+        onClick={() => setActiveTab('mentorship')}
+      >
+        <FaComment className="inline mr-1" /> Mentorship
+      </button>
+    </nav>
+    
+    <div className="flex items-center gap-4">
+      <button className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors relative">
+        <FaBell />
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+      </button>
+      
+      {/* Enhanced Profile Photo with Dropdown */}
+      <div className="relative group">
+        <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-all duration-200">
+          <img 
+            src={student?.profilePicture ? `http://localhost:5000${student.profilePicture}` : "/default-profile.png"}
+            alt="Profile"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "/default-profile.png";
+              setProfileImage("/default-profile.png");
+            }}
+          />
         </div>
-      </header>
-
+        
+        {/* Dropdown Menu */}
+        <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
+          <div className="px-4 py-2 border-b border-gray-700">
+            <p className="text-sm text-white font-medium">{student?.name || 'User'}</p>
+            <p className="text-xs text-gray-400">{student?.email || ''}</p>
+          </div>
+          <button 
+            onClick={() => {
+              // Add your logout logic here
+              auth.signOut();
+              navigate('/login');
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
+          >
+            <FaSignOutAlt className="text-gray-400" />
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
       {/* Hero Section */}
       <section className="pt-28 pb-12 px-4 sm:px-6">
         <div className="container mx-auto flex flex-col lg:flex-row items-center gap-8">
@@ -320,7 +412,7 @@ const StudentLandingPage = () => {
             className="lg:w-1/2 space-y-6"
           >
             <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-              Compete. <span className="text-blue-400">Collaborate.</span> Succeed.
+              Welcome,<span className="text-blue-400">{profileData.name}!</span> 
             </h1>
             <p className="text-lg text-gray-300 max-w-lg">
               The complete platform for academic competitions, team building, and professional growth.
@@ -519,7 +611,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'profile' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('profile')}
+              onClick={() => navigate("/student-dashboard")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
                 <FaUser className="text-xl" />
@@ -541,7 +633,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'team-match' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('team-match')}
+              onClick={() => navigate("/find-teammates")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-green-500 to-green-600 shadow-md">
                 <FaUserFriends className="text-xl" />
@@ -575,7 +667,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'progress' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('progress')}
+              onClick={() => navigate("/add-goals")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-orange-500 to-orange-600 shadow-md">
                 <FaChartLine className="text-xl" />

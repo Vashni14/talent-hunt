@@ -37,18 +37,18 @@ function AddGoals() {
       alert("Please enter goal title, total tasks, and deadline.");
       return;
     }
-
+  
     try {
-      const response = await axios.post("http://localhost:5000/api/goals", {
+      await axios.post("http://localhost:5000/api/goals", {
         userId: user.uid,
         title,
         total: parseInt(total),
         completed: 0,
         deadline,
       });
-
+  
       alert("✅ Goal added successfully!");
-      setGoals([...goals, response.data]); // Update UI immediately
+      await fetchGoals(); // Fetch the latest goals from the server
       setTitle("");
       setTotal("");
       setDeadline("");

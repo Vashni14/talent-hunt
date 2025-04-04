@@ -355,7 +355,7 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
 </div>
 
 <div className="col-span-2">
-  <label className="block font-semibold">Experience</label>
+  <label className="block font-semibold">Competition Experience</label>
   <div className="flex gap-2">
     <input type="text" placeholder="Company" value={newExperience.company} 
       onChange={(e) => setNewExperience({ ...newExperience, company: e.target.value })}
