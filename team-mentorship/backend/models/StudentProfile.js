@@ -19,9 +19,7 @@ const StudentProfileSchema = new mongoose.Schema({
   isPublic: { type: Boolean, default: true } ,
   experience: [
     {
-      company: String,
-      role: String,
-      duration: String,
+      competition: String,
     },
   ],
 });

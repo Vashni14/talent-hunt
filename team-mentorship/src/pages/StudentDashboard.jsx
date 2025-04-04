@@ -23,7 +23,7 @@ function StudentDashboard() {
 
   const [newProject, setNewProject] = useState("");
   const [newCertification, setNewCertification] = useState("");
-  const [newExperience, setNewExperience] = useState({ company: "", role: "", duration: "" });
+  const [newExperience, setNewExperience] = useState({ competition: ""});
   const [newSkill, setNewSkill] = useState("");
 const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
 
@@ -82,9 +82,9 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
   
 
   const addExperience = () => {
-    if (newExperience.company.trim() && newExperience.role.trim() && newExperience.duration.trim()) {
+    if (newExperience.competition.trim()) {
       setStudentData({ ...studentData, experience: [...studentData.experience, newExperience] });
-      setNewExperience({ company: "", role: "", duration: "" });
+      setNewExperience({ competition: "" });
     }
   };
 
@@ -356,23 +356,17 @@ const [skillLevel, setSkillLevel] = useState(""); // ✅ Define skillLevel
 
 <div className="col-span-2">
   <label className="block font-semibold">Competition Experience</label>
-  <div className="flex gap-2">
-    <input type="text" placeholder="Company" value={newExperience.company} 
-      onChange={(e) => setNewExperience({ ...newExperience, company: e.target.value })}
-      className="p-3 rounded bg-gray-700 border border-gray-600 text-white w-full max-w-xs"/>
-    <input type="text" placeholder="Role" value={newExperience.role}
-      onChange={(e) => setNewExperience({ ...newExperience, role: e.target.value })}
-      className="p-3 rounded bg-gray-700 border border-gray-600 text-white w-full max-w-xs"/>
-    <input type="text" placeholder="Duration" value={newExperience.duration}
-      onChange={(e) => setNewExperience({ ...newExperience, duration: e.target.value })}
-      className="p-3 rounded bg-gray-700 border border-gray-600 text-white w-full max-w-xs"/>
-    <button onClick={addExperience} className="bg-orange-500 px-4 py-2 rounded font-bold hover:bg-orange-600">+</button>
+  <div className="flex items-center gap-2">
+    <input type="text" placeholder="Competition Experience" value={newExperience.compettiton} 
+      onChange={(e) => setNewExperience({ ...newExperience, competition: e.target.value })}
+ className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white mt-2"/>
+    <button onClick={addExperience} className="bg-blue-500 px-4 py-2.5 rounded font-bold hover:bg-blue-600">+</button>
   </div>
 
   <div className="flex flex-wrap gap-2 mt-2 overflow-auto max-h-32">
     {studentData.experience.map((exp, index) => (
       <div key={index} className="bg-gray-700 px-3 py-1 rounded flex items-center whitespace-nowrap">
-        {exp.company} - {exp.role} ({exp.duration})
+        {exp.competition} 
         <FaTimes className="text-red-500 cursor-pointer ml-2" onClick={() => removeItem("experience", index)}/>
       </div>
     ))}
