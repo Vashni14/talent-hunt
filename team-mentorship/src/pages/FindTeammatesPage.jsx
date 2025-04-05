@@ -1,5 +1,6 @@
 "use client"
 
+import ProfileModal from "../components/ProfileModal";
 import { useState, useEffect } from "react"
 import axios from "axios";
 import {
@@ -31,6 +32,8 @@ const API_URL = "http://localhost:5000/api"
 export default function FindTeammatesPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("")
+const [showProfileModal, setShowProfileModal] = useState(false);
+const [selectedProfile, setSelectedProfile] = useState(null);
   const [activeTab, setActiveTab] = useState("find-teammates")
   const [scrolled, setScrolled] = useState(false)
   const [selectedSkills, setSelectedSkills] = useState([])
@@ -322,7 +325,7 @@ export default function FindTeammatesPage() {
         contact: response.data.contact,
         department: response.data.department,
         skills: response.data.skills?.map(skill => skill.name) || [],
-        competitions: response.data.competitions || [],
+        experience: response.data.experience || [],
         profilePicture: response.data.profilePicture || "",
       });
     } catch (error) {
@@ -349,8 +352,14 @@ export default function FindTeammatesPage() {
           _id: profile._id,
           uid: profile._id,
           name: profile.name,
+          rolePreference: profile.rolePreference,
           contact: profile.contact,
+          linkedin: profile.linkedin,
+          github: profile.github,
+          portfolio: profile.portfolio,
           department: profile.domain,
+          projects: profile.projects?.map(project => project.name) || [],
+          certifications: profile.certifications?.map(certification => certification.name) || [],
           skills: profile.skills?.map(skill => skill.name) || [],
           competitions: profile.experience?.map(exp => exp.competition) || [],
           availability: "Available",
@@ -861,7 +870,11 @@ export default function FindTeammatesPage() {
                                       </div>
 
                                       <div className="flex justify-end mt-3 gap-2">
-                                        <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors"
+                                        onClick={() => {
+                                          setSelectedProfile(teammate);
+                                          setShowProfileModal(true);
+                                        }}>
                                           View Profile
                                         </button>
                                         <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors">
@@ -947,7 +960,11 @@ export default function FindTeammatesPage() {
                                       </div>
 
                                       <div className="flex justify-end mt-3 gap-2">
-                                        <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors">
+                                        <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors"
+                                        onClick={() => {
+                                          setSelectedProfile(teammate);
+                                          setShowProfileModal(true);
+                                        }}>
                                           View Profile
                                         </button>
                                         <button className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs font-medium transition-colors">
@@ -1400,6 +1417,12 @@ export default function FindTeammatesPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {showProfileModal && (
+      <ProfileModal 
+        profile={selectedProfile} 
+        onClose={() => setShowProfileModal(false)} 
+      />
+    )}
     </div>
   )
 }

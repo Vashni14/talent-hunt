@@ -7,9 +7,6 @@ const StudentProfileSchema = new mongoose.Schema({
   domain: { type: String },
   rolePreference: { type: String },
   profilePicture: { type: String }, // Stores the image URL
-  linkedin: { type: String },
-  github: { type: String },
-  portfolio: { type: String },
   skills: [{ name: String, level: String }], // Skill with proficiency
   projects: [{ type: String }],
   linkedin: [{ type: String }],
