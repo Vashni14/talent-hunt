@@ -13,18 +13,15 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static("uploads"));
-app.post("/upload-profile-picture", (req, res) => {
-    // Handle file upload logic here
-  });
   
   app.post("/api/student/profile", async (req, res) => {
     try {
-      const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience } = req.body;
+      const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience, bio } = req.body;
   
       // Update the database (MongoDB example)
       await StudentProfile.findOneAndUpdate(
         { uid },
-        { $set: { name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience } },
+        { $set: { name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience, bio } },
         { new: true, upsert: true } // Ensures document is updated or created if missing
       );
   
@@ -37,9 +34,6 @@ app.post("/upload-profile-picture", (req, res) => {
   
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
-app.use("/api/users", require("./routes/userRoutes")); 
-app.use("/api/teammates", require("./routes/userRoutes"))
-app.use("/api/invites", require("./routes/inviteRoutes"));
 app.use("/api/goals", goalRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

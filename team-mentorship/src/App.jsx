@@ -31,7 +31,7 @@ function App() {
           {/* 🎓 Student Dashboard */}
           <Route
             path="/student-dashboard"
-            element={user ? <StudentDashboard /> : <Navigate to="/auth" />}
+            element={user ? <StudentDashboard /> : <Navigate to="/student/dashboard" />}
           />
 
           {/* 👨‍🏫 Mentor Dashboard */}
@@ -49,13 +49,13 @@ function App() {
           {/* 🎯 Add Goals Page */}
           <Route
             path="/add-goals"
-            element={user ? <AddGoals /> : <Navigate to="/auth" />}
+            element={user ? <AddGoals /> : <Navigate to="/student/dashboard" />}
           />
 
           {/* 👥 Find Teammates Page */}
           <Route
             path="/find-teammates"
-            element={user ? <FindTeammatesPage /> : <Navigate to="/auth" />}
+            element={user ? <FindTeammatesPage /> : <Navigate to="/student/dashboard" />}
           />
 
           {/* 🚨 Default Redirect to Landing */}

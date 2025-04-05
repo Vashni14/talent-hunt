@@ -380,24 +380,25 @@ const StudentLandingPage = () => {
           />
         </div>
         
-        {/* Dropdown Menu */}
         <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
-          <div className="px-4 py-2 border-b border-gray-700">
-            <p className="text-sm text-white font-medium">{student?.name || 'User'}</p>
-            <p className="text-xs text-gray-400">{student?.email || ''}</p>
-          </div>
-          <button 
-            onClick={() => {
-              // Add your logout logic here
-              auth.signOut();
-              navigate('/login');
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
-          >
-            <FaSignOutAlt className="text-gray-400" />
-            Logout
-          </button>
-        </div>
+                  <div className="px-4 py-2 border-b border-gray-700">
+                    <p className="text-sm text-white font-medium">{student.name}</p>
+                    <p className="text-xs text-gray-400">{student.contact}</p>
+                  </div>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
+                   onClick={() => {navigate('/student-dashboard');}}>
+                    <FaUser className="text-gray-400" />
+                    My Profile
+                  </button>
+                  <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
+                                                    onClick={() => {
+                                                                 // Add your logout logic here
+                                                                 auth.signOut();
+                                                                 navigate('/login');}}>
+                    <FaSignOutAlt className="text-gray-400" />
+                    Logout
+                  </button>
+                </div>
       </div>
     </div>
   </div>

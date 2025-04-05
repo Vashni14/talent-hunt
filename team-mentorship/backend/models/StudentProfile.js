@@ -17,11 +17,7 @@ const StudentProfileSchema = new mongoose.Schema({
   portfolio: [{ type: String }],
   certifications: [{ type: String }],
   isPublic: { type: Boolean, default: true } ,
-  experience: [
-    {
-      competition: String,
-    },
-  ],
+  experience: [{competition: String}],
+  bio: { type: String }, // Added for UI compatibility
 });
-
 module.exports = mongoose.model("StudentProfile", StudentProfileSchema);

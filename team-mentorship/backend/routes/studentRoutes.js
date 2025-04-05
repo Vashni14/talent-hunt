@@ -13,19 +13,29 @@ router.get("/profile/:uid", async (req, res) => {
     res.status(500).json({ message: "Error fetching profile", error });
   }
 });
+router.get("/profile", async (req, res) => {
+  try {
+    const students = await StudentProfile.find({});
+    if (!students || students.length === 0) {
+      return res.status(404).json({ message: "No profiles found" });
+    }
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching profiles", error });
+  }
+});
 
 
 // 🔹 Create/Update Student Profile
 router.post("/profile", async (req, res) => {
   try {
-    const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience } = req.body;
+    const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience,bio } = req.body;
 
     let student = await StudentProfile.findOne({ uid });
 
     if (!student) {
       student = new StudentProfile({ uid, name, contact });
     }
-
     student.domain = domain;
     student.rolePreference = rolePreference;
     student.linkedin = linkedin;
@@ -35,6 +45,7 @@ router.post("/profile", async (req, res) => {
     student.projects = projects;
     student.certifications = certifications;
     student.experience = experience;
+    student.bio=bio;
 
     await student.save();
     res.json({ message: "Profile updated successfully!", student });
