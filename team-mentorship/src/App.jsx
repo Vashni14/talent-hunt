@@ -8,6 +8,10 @@ import StudentLandingPage from "./pages/StudentLandingPage";
 import AddGoals from "./pages/AddGoals";
 import FindTeammatesPage from "./pages/FindTeammatesPage";
 import { useAuth } from "./context/AuthContext"; // Correct import path
+import FindTeammates from "./pages/FindTeammates";
+import OpenTeams  from "./pages/OpenTeams";
+import Chat from "./pages/Chat";
+import MyTeams from "./pages/MyTeams";
 
 function App() {
   const { user } = useAuth(); // Get the authenticated user
@@ -21,6 +25,11 @@ function App() {
 
           {/* 🔐 Authentication Page */}
           <Route path="/auth" element={<Auth />} />
+
+          <Route path="dashboard" element={<FindTeammates />} />
+          <Route path="open-teams" element={<OpenTeams />} />
+          <Route path="chats" element={<Chat />} />
+          <Route path="my-teams" element={<MyTeams />} />
 
           {/* 🎓 Student Landing Page */}
           <Route

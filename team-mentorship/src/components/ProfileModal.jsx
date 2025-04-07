@@ -50,7 +50,7 @@ export default function ProfileModal({ profile, onClose }) {
             initial={{  scale:  0.95  }}
             animate={{  scale:  1  }}
             exit={{  scale:  0.95  }}
-            className="bg-gray-800  rounded-xl  p-6  w-full  max-w-2xl  border  border-gray-700  shadow-xl  overflow-y-auto  max-h-[90vh]"
+            className="bg-gray-800  rounded-xl  p-6  w-full  max-w-4xl  border  border-gray-700  shadow-xl  overflow-y-auto  max-h-[90vh]"
             onClick={(e)  =>  e.stopPropagation()}
           >
             {/*  Header  */}
