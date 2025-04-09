@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 const StudentProfile = require("./models/StudentProfile"); 
 const goalRoutes = require("./routes/goals");
+const teamsRouter = require('./routes/team');
 
 dotenv.config();
 connectDB();
@@ -13,6 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use("/uploads", express.static("uploads"));
+
   
   app.post("/api/student/profile", async (req, res) => {
     try {
@@ -34,6 +36,7 @@ app.use("/uploads", express.static("uploads"));
   
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
+app.use('/api/teams', teamsRouter);
 app.use("/api/goals", goalRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

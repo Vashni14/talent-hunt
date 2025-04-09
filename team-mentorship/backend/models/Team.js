@@ -1,0 +1,50 @@
+const mongoose = require('mongoose');
+
+const TeamSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  logo: { type: String, default: "/placeholder-team.svg" },
+  project: { type: String, required: true },
+  description: { type: String, required: true },
+  owner: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
+  members: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String },
+    joinedAt: { type: Date, default: Date.now }
+  }],
+  skillsNeeded: [{ type: String }],
+  maxMembers: { type: Number, required: true, min: 1 },
+  currentMembers: { type: Number, default: 1 },
+  deadline: { type: Date, required: true },
+  contactEmail: { type: String, required: true },
+  status: { 
+    type: String, 
+    enum: ['recruiting', 'active', 'completed'], 
+    default: 'recruiting' 
+  },
+  applications: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    message: { type: String },
+    skills: [{ type: String }],
+    status: { 
+      type: String, 
+      enum: ['pending', 'accepted', 'rejected'], 
+      default: 'pending' 
+    },
+    appliedAt: { type: Date, default: Date.now }
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Indexes for better query performance
+TeamSchema.index({ owner: 1 });
+TeamSchema.index({ status: 1 });
+TeamSchema.index({ skillsNeeded: 1 });
+TeamSchema.index({ 'members.user': 1 });
+TeamSchema.index({ 'applications.user': 1 });
+
+module.exports = mongoose.model('Team', TeamSchema);
