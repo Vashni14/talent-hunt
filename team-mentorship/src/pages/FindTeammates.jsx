@@ -261,32 +261,25 @@ export default function FindTeammatesPage() {
 
   const fetchInvitations = async (userId) => {
     try {
-      setLoading(prev => ({ ...prev, invitations: true }));
-      console.log("📨 Fetching invitations for userId:", userId);
-  
+      setLoading(prev => ({ ...prev, invitations: true }))
       // Fetch SENT invitations
        try {
     // Fetch SENT invitations
     const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
     if (sentResponse.data && sentResponse.data.success) {
       setSentInvitations(sentResponse.data.data);
-      console.log("✅ Sent invitations:", sentResponse.data.data);
     } else {
       setSentInvitations([]); // Ensure fallback to empty array
-      console.warn("⚠️ Sent response didn't contain valid data.");
     }
   } catch (error) {
     setSentInvitations([]); // Prevent crash
-    console.error("❌ Error fetching sent invitations:", error.message);
   }
 
       // Fetch RECEIVED invitations
       const receivedResponse = await axios.get(`${API_URL}/teams/invitations/received/${userId}`);
-      console.log("✅ Received Invitations Response:", receivedResponse.data);
       setReceivedInvitations(receivedResponse.data?.data || []);
   
     } catch (error) {
-      console.error("❌ Error fetching invitations:", error);
       toast.error("Failed to load invitations");
     } finally {
       setLoading(prev => ({ ...prev, invitations: false }));
@@ -378,7 +371,7 @@ export default function FindTeammatesPage() {
 
   const handleInvitationResponse = async (invitationId, accepted) => {
     try {
-      const response = await axios.put(`${API_URL}/invitations/${invitationId}`, {
+      const response = await axios.put(`${API_URL}/teams/invite/${invitationId}`, {
         status: accepted ? "accepted" : "rejected"
       });
       
@@ -868,7 +861,7 @@ export default function FindTeammatesPage() {
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700">
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img
-                    src={selectedTeammate.profilePicture || "/default-profile.png"}
+                     src={selectedTeammate?.profilePicture  ?  `http://localhost:5000${selectedTeammate.profilePicture}`  :  "/default-profile.png"}
                     alt={selectedTeammate.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

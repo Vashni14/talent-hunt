@@ -338,7 +338,6 @@ router.patch('/invite/:id/accept', async (req, res) => {
 
 router.get('/invitations/sent/:userId', async (req, res) => {
   const { userId } = req.params;
-  console.log('➡️ Received userId:', userId);
 
   try {
     let invitations = [];
@@ -347,24 +346,17 @@ router.get('/invitations/sent/:userId', async (req, res) => {
     const isObjectId = mongoose.Types.ObjectId.isValid(userId);
 
     if (isObjectId) {
-      console.log('🔍 Interpreting userId as ObjectId');
       invitations = await Invitation.find({ createdBy: userId })
         .populate('team', 'name')
         .populate('user', 'name rolePreference department profilePicture')
         .sort({ createdAt: -1 });
-
-      if (invitations.length > 0) {
-        console.log(`✅ Found ${invitations.length} invitations using ObjectId`);
-      }
     }
 
     // If no results or invalid ObjectId, try using UID
     if (invitations.length === 0) {
-      console.log('🕵️ No invitations using ObjectId. Trying UID lookup...');
       const user = await User.findOne({ uid: userId });
 
       if (!user) {
-        console.warn('❌ No user found for UID:', userId);
         return res.status(404).json({
           success: false,
           message: 'User not found by UID'
@@ -375,8 +367,6 @@ router.get('/invitations/sent/:userId', async (req, res) => {
         .populate('team', 'name')
         .populate('user', 'name department profilePicture')
         .sort({ createdAt: -1 });
-
-      console.log(`✅ Found ${invitations.length} invitations using UID-mapped ObjectId`);
     }
 
     return res.status(200).json({
@@ -386,7 +376,6 @@ router.get('/invitations/sent/:userId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('🔥 Error in /invitations/sent/:userId:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error fetching invitations',
@@ -397,7 +386,6 @@ router.get('/invitations/sent/:userId', async (req, res) => {
 
 router.get('/invitations/received/:userId', async (req, res) => {
   const { userId } = req.params;
-  console.log('➡️ Received userId:', userId);
 
   try {
     let invitations = [];
@@ -406,24 +394,17 @@ router.get('/invitations/received/:userId', async (req, res) => {
     const isObjectId = mongoose.Types.ObjectId.isValid(userId);
 
     if (isObjectId) {
-      console.log('🔍 Interpreting userId as ObjectId');
       invitations = await Invitation.find({ user: userId })
         .populate('team', 'name')
         .populate('createdBy', 'name rolePreference department profilePicture')
         .sort({ createdAt: -1 });
-
-      if (invitations.length > 0) {
-        console.log(`✅ Found ${invitations.length} invitations using ObjectId`);
-      }
     }
 
     // If no results or invalid ObjectId, try using UID
     if (invitations.length === 0) {
-      console.log('🕵️ No invitations using ObjectId. Trying UID lookup...');
       const user = await User.findOne({ uid: userId });
 
       if (!user) {
-        console.warn('❌ No user found for UID:', userId);
         return res.status(404).json({
           success: false,
           message: 'User not found by UID'
@@ -434,8 +415,6 @@ router.get('/invitations/received/:userId', async (req, res) => {
         .populate('team', 'name')
         .populate('createdBy', 'name department profilePicture')
         .sort({ createdAt: -1 });
-
-      console.log(`✅ Found ${invitations.length} invitations using UID-mapped ObjectId`);
     }
 
     return res.status(200).json({
@@ -445,7 +424,6 @@ router.get('/invitations/received/:userId', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('🔥 Error in /invitations/received/:userId:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error fetching invitations',

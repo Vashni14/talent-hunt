@@ -653,7 +653,7 @@ export default function MyTeams() {
                         className="w-full bg-gray-600 text-white p-2 rounded"
                       />
                       <button 
-  onClick={() => navigate('/find-teammates')}
+  onClick={() => navigate('/dashboard')}
   className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
 >
   <FaPlus className="text-xs" />Add Member
