@@ -165,16 +165,13 @@ export default function FindTeammatesPage() {
         fetchUserTeams(user.uid);
   
         try {
-          console.log("Fetching ObjectId using UID:", user.uid);
           const res = await fetch(`${API_URL}/student/profile/${user.uid}`);
           const text = await res.text(); // raw response
-          console.log("Raw API response:", text);
   
           const result = JSON.parse(text); // now parse it
           if (result && result._id) {
             const objectId = result._id;
             fetchInvitations(objectId);
-            console.log("Fetched ObjectId:", objectId);
           } else {
             console.error("User not found in DB");
           }          
@@ -367,11 +364,15 @@ export default function FindTeammatesPage() {
       toast.error(error.response?.data?.message || "Failed to send invitation");
     }
   };
-
   const handleInvitationResponse = async (invitationId, accepted) => {
     try {
-      const response = await axios.put(`${API_URL}/teams/invite/${invitationId}`, {
+      const response = await axios.put(`${API_URL}/teams/invitations/${invitationId}`, {
         status: accepted ? "accepted" : "rejected"
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+        }
       });
       
       setReceivedInvitations(prev => 
@@ -393,10 +394,12 @@ export default function FindTeammatesPage() {
       }
     } catch (error) {
       console.error("Error responding to invitation:", error);
-      toast.error("Failed to update invitation status");
+      const errorMessage = error.response?.data?.message || 
+        error.message || 
+        "Failed to update invitation status";
+      toast.error(errorMessage);
     }
   };
-
   const withdrawInvitation = async (invitationId) => {
     try {
       console.log('Withdrawing invitation:', invitationId);

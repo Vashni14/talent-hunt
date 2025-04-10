@@ -45,25 +45,22 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get teams for specific user
 router.get('/user/:userId', async (req, res) => {
   try {
-    const { status } = req.query;
-    const query = {
+    const teams = await Team.find({
       $or: [
         { createdBy: req.params.userId },
         { 'members.id': req.params.userId }
       ]
-    };
-    if (status) query.status = status;
+    })
+    .populate('createdBy', 'name profilePicture')
+    .populate('members.id', 'name profilePicture rolePreference');
     
-    const teams = await Team.find(query).sort({ createdAt: -1 });
     res.status(200).json(teams);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
-
 // Get a specific team by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -111,25 +108,35 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Add a member to a team
+// In your backend route for adding members
 router.post('/:id/members', async (req, res) => {
   try {
     const team = await Team.findById(req.params.id);
-    if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
-    }
-    
+    if (!team) return res.status(404).json({ message: 'Team not found' });
+
+    const user = await User.findById(req.body.userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Add user to team
     const newMember = {
-      ...req.body,
-      id: Date.now().toString()
+      id: user._id,
+      name: user.name,
+      role: req.body.role || 'Member',
+      skills: user.skills || []
     };
     
     team.members.push(newMember);
-    const updatedTeam = await team.save();
-    
-    res.status(200).json(updatedTeam);
+    await team.save();
+
+    // Add team to user's teams array if not already present
+    if (!user.teams.includes(team._id)) {
+      user.teams.push(team._id);
+      await user.save();
+    }
+
+    res.status(200).json(team);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: error.message });
   }
 });
 
@@ -472,53 +479,74 @@ router.get('/invitations/:id', async (req, res) => {
   }
 });
 
-// Update invitation status (accept/reject)
-router.patch('/invitations/:id', async (req, res) => {
+// Update invitation status (accept/reject/withdraw)
+router.put('/invitations/:id', async (req, res) => {
   try {
     const { status } = req.body;
     
-    if (!['pending', 'accepted', 'rejected'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
+    // Validate status
+    if (!['pending', 'accepted', 'rejected', 'withdrawn'].includes(status)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid status value' 
+      });
     }
 
-    const invitation = await Invitation.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    )
+    // Find and update invitation
+    const invitation = await Invitation.findById(req.params.id)
       .populate('team', 'name')
-      .populate('user', 'name rolePreference department profilePicture');
+      .populate('user', 'name rolePreference department profilePicture')
+      .populate('createdBy', 'name profilePicture');
 
     if (!invitation) {
-      return res.status(404).json({ message: 'Invitation not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Invitation not found' 
+      });
     }
+
+    // Check if already processed
+    if (invitation.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false,
+        message: `Invitation already ${invitation.status}`
+      });
+    }
+
+    // Update status
+    invitation.status = status;
+    await invitation.save();
 
     // If accepted, add user to team
     if (status === 'accepted') {
       const team = await Team.findById(invitation.team);
-      const user = await User.findById(invitation.user);
-
-      if (team && user) {
-        // Check if user is already a member
-        const isMember = team.members.some(m => m.id.toString() === user._id.toString());
+      if (team) {
+        const isMember = team.members.some(m => 
+          m.id.toString() === invitation.user._id.toString()
+        );
         
         if (!isMember) {
           team.members.push({
-            id: user._id,
-            name: user.name,
-            role: user.rolePreference || 'Member',
-            skills: user.skills || []
+            id: invitation.user._id,
+            name: invitation.user.name,
+            role: invitation.user.rolePreference || 'Member',
+            skills: invitation.user.skills || []
           });
           await team.save();
         }
       }
     }
 
-    res.status(200).json(invitation);
+    res.status(200).json({
+      success: true,
+      data: invitation
+    });
   } catch (error) {
+    console.error('Error updating invitation:', error);
     res.status(500).json({ 
-      message: 'Error updating invitation',
-      error: error.message 
+      success: false,
+      message: 'Server error updating invitation',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
