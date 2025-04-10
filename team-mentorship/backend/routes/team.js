@@ -523,20 +523,47 @@ router.patch('/invitations/:id', async (req, res) => {
   }
 });
 
-// Withdraw an invitation
+// In your backend routes
 router.delete('/invitations/:id', async (req, res) => {
   try {
-    const invitation = await Invitation.findByIdAndDelete(req.params.id);
-
-    if (!invitation) {
-      return res.status(404).json({ message: 'Invitation not found' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid invitation ID format' 
+      });
     }
 
-    res.status(200).json({ message: 'Invitation withdrawn successfully' });
+    const invitation = await Invitation.findById(req.params.id);
+    
+    if (!invitation) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Invitation not found' 
+      });
+    }
+
+    console.log('Current invitation status:', invitation.status);
+    
+    if (invitation.status === 'accepted') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Cannot withdraw an accepted invitation' 
+      });
+    }
+
+    invitation.status = 'withdrawn';
+    await invitation.save();
+    res.status(200).json({
+      success: true,
+      data: invitation
+    });
   } catch (error) {
+    console.error('SERVER ERROR:', error);
     res.status(500).json({ 
-      message: 'Error withdrawing invitation',
-      error: error.message 
+      success: false,
+      message: 'Server error during withdrawal',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

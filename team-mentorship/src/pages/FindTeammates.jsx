@@ -116,6 +116,7 @@ export default function FindTeammatesPage() {
   const [message, setMessage] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [activeTab, setActiveTab] = useState("find");
+  const [invitationFilter, setInvitationFilter] = useState("all");
 
   const [loading, setLoading] = useState({
     user: true,
@@ -263,17 +264,16 @@ export default function FindTeammatesPage() {
     try {
       setLoading(prev => ({ ...prev, invitations: true }))
       // Fetch SENT invitations
-       try {
-    // Fetch SENT invitations
-    const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
-    if (sentResponse.data && sentResponse.data.success) {
-      setSentInvitations(sentResponse.data.data);
-    } else {
-      setSentInvitations([]); // Ensure fallback to empty array
-    }
-  } catch (error) {
-    setSentInvitations([]); // Prevent crash
-  }
+      try {
+        const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
+        if (sentResponse.data && sentResponse.data.success) {
+          setSentInvitations(sentResponse.data.data);
+        } else {
+          setSentInvitations([]); // Ensure fallback to empty array
+        }
+      } catch (error) {
+        setSentInvitations([]); // Prevent crash
+      }
 
       // Fetch RECEIVED invitations
       const receivedResponse = await axios.get(`${API_URL}/teams/invitations/received/${userId}`);
@@ -286,7 +286,6 @@ export default function FindTeammatesPage() {
     }
   };  
   const triggerRefreshInvitations = () => setRefreshInvitations(prev => !prev);
-
 
   const calculateMutualInterests = (currentUser, profile) => {
     const userSkills = new Set(currentUser.skills);
@@ -400,12 +399,38 @@ export default function FindTeammatesPage() {
 
   const withdrawInvitation = async (invitationId) => {
     try {
-      await axios.delete(`${API_URL}/invitations/${invitationId}`);
-      setSentInvitations(prev => prev.filter(inv => inv._id !== invitationId));
-      toast.success("Invitation withdrawn successfully");
+      console.log('Withdrawing invitation:', invitationId);
+      
+      const response = await axios.delete(`${API_URL}/teams/invitations/${invitationId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+        }
+      });
+  
+      console.log('Withdrawal response:', response.data);
+  
+      if (response.data.success) {
+        setSentInvitations(prev => 
+          prev.map(inv => 
+            inv._id === invitationId ? { ...inv, status: 'withdrawn' } : inv
+          )
+        );
+        toast.success("Invitation withdrawn successfully");
+      } else {
+        toast.error(response.data.message || "Failed to withdraw invitation");
+      }
     } catch (error) {
-      console.error("Error withdrawing invitation:", error);
-      toast.error("Failed to withdraw invitation");
+      console.error('Withdrawal error:', {
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || "Failed to withdraw invitation";
+      toast.error(errorMessage);
     }
   };
 
@@ -423,6 +448,17 @@ export default function FindTeammatesPage() {
       );
 
     return matchesSearch && matchesSkills;
+  });
+
+  // Filter invitations based on selected status
+  const filteredSentInvitations = sentInvitations.filter(inv => {
+    if (invitationFilter === "all") return true;
+    return inv.status === invitationFilter;
+  });
+
+  const filteredReceivedInvitations = receivedInvitations.filter(inv => {
+    if (invitationFilter === "all") return true;
+    return inv.status === invitationFilter;
   });
 
   const handleNavigateToTeams = () => {
@@ -574,8 +610,8 @@ export default function FindTeammatesPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-400">
                     {activeTab === "find" && `${filteredTeammates.length} results`}
-                    {activeTab === "sent" && `${sentInvitations.length} sent`}
-                    {activeTab === "received" && `${receivedInvitations.length} received`}
+                    {activeTab === "sent" && `${filteredSentInvitations.length} ${invitationFilter === "all" ? "total" : invitationFilter}`}
+                    {activeTab === "received" && `${filteredReceivedInvitations.length} ${invitationFilter === "all" ? "total" : invitationFilter}`}
                   </span>
                   <button 
                     className="p-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors lg:hidden"
@@ -595,17 +631,72 @@ export default function FindTeammatesPage() {
                 </button>
                 <button
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "sent" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                  onClick={() => [setActiveTab("sent"),triggerRefreshInvitations()]}
+                  onClick={() => [setActiveTab("sent"), setInvitationFilter("all"), triggerRefreshInvitations()]}
                 >
                   Sent Invitations
                 </button>
                 <button
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "received" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                  onClick={() => [setActiveTab("received"),triggerRefreshInvitations()]}
+                  onClick={() => [setActiveTab("received"), setInvitationFilter("all"), triggerRefreshInvitations()]}
                 >
                   Received Invitations
                 </button>
               </div>
+
+              {activeTab !== "find" && (
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+                  <button
+                    className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "all" ? "bg-blue-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                    onClick={() => setInvitationFilter("all")}
+                  >
+                    All
+                  </button>
+                  <button
+                    className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "pending" ? "bg-blue-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                    onClick={() => setInvitationFilter("pending")}
+                  >
+                    Pending
+                  </button>
+                  {activeTab === "sent" && (
+                    <>
+                      <button
+                        className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "accepted" ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        onClick={() => setInvitationFilter("accepted")}
+                      >
+                        Accepted
+                      </button>
+                      <button
+                        className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "rejected" ? "bg-red-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        onClick={() => setInvitationFilter("rejected")}
+                      >
+                        Rejected
+                      </button>
+                      <button
+                        className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "withdrawn" ? "bg-gray-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        onClick={() => setInvitationFilter("withdrawn")}
+                      >
+                        Withdrawn
+                      </button>
+                    </>
+                  )}
+                  {activeTab === "received" && (
+                    <>
+                      <button
+                        className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "accepted" ? "bg-green-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        onClick={() => setInvitationFilter("accepted")}
+                      >
+                        Accepted
+                      </button>
+                      <button
+                        className={`px-3 py-1 text-xs rounded-full ${invitationFilter === "rejected" ? "bg-red-500 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"}`}
+                        onClick={() => setInvitationFilter("rejected")}
+                      >
+                        Rejected
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
 
               {loading.teammates ? (
                 <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
@@ -672,10 +763,9 @@ export default function FindTeammatesPage() {
                   )}
 
                   {activeTab === "received" && (
-
                     <div className="space-y-4">
-                      {receivedInvitations.length > 0 ? (
-                        receivedInvitations.map((invitation) => (
+                      {filteredReceivedInvitations.length > 0 ? (
+                        filteredReceivedInvitations.map((invitation) => (
                           <div key={invitation._id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
@@ -694,6 +784,13 @@ export default function FindTeammatesPage() {
                                   <div>
                                     <h3 className="font-medium">{invitation.createdBy?.name}</h3>
                                     <p className="text-sm text-gray-400">{invitation.createdBy?.rolePreference}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      invitation.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                      invitation.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                                      "bg-red-500/20 text-red-400"
+                                    }`}>
+                                      {invitation.status}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <button
@@ -755,8 +852,12 @@ export default function FindTeammatesPage() {
                       ) : (
                         <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
                           <FaEnvelope className="mx-auto text-3xl text-gray-600 mb-3" />
-                          <h3 className="text-lg font-medium mb-1">No received invitations</h3>
-                          <p className="text-gray-400 text-sm">You haven't received any invitations yet</p>
+                          <h3 className="text-lg font-medium mb-1">No {invitationFilter === "all" ? "" : invitationFilter} received invitations</h3>
+                          <p className="text-gray-400 text-sm">
+                            {invitationFilter === "all" 
+                              ? "You haven't received any invitations yet" 
+                              : `You don't have any ${invitationFilter} invitations`}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -764,8 +865,8 @@ export default function FindTeammatesPage() {
 
                   {activeTab === "sent" && (
                     <div className="space-y-4">
-                      {sentInvitations.length > 0 ? (
-                        sentInvitations.map((invitation) => (
+                      {filteredSentInvitations.length > 0 ? (
+                        filteredSentInvitations.map((invitation) => (
                           <div key={invitation._id} className="bg-gray-800 rounded-lg border border-gray-700 p-4">
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
@@ -783,6 +884,14 @@ export default function FindTeammatesPage() {
                                 <div className="flex justify-between items-start">
                                   <div>
                                     <h3 className="font-medium">{invitation.user?.name}</h3>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                      invitation.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                      invitation.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                                      invitation.status === "rejected" ? "bg-red-500/20 text-red-400" :
+                                      "bg-gray-500/20 text-gray-400"
+                                    }`}>
+                                      {invitation.status}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {invitation.status === "pending" && (
@@ -822,8 +931,12 @@ export default function FindTeammatesPage() {
                       ) : (
                         <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
                           <FaEnvelope className="mx-auto text-3xl text-gray-600 mb-3" />
-                          <h3 className="text-lg font-medium mb-1">No sent invitations</h3>
-                          <p className="text-gray-400 text-sm">You haven't sent any invitations yet</p>
+                          <h3 className="text-lg font-medium mb-1">No {invitationFilter === "all" ? "" : invitationFilter} sent invitations</h3>
+                          <p className="text-gray-400 text-sm">
+                            {invitationFilter === "all" 
+                              ? "You haven't sent any invitations yet" 
+                              : `You don't have any ${invitationFilter} invitations`}
+                          </p>
                         </div>
                       )}
                     </div>
