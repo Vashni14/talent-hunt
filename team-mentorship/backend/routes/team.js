@@ -1,32 +1,12 @@
  express = require('express');
 const router = express.Router();
 const Team = require('../models/Team');
+const User = require('../models/StudentProfile'); // Import User model
+const Invitation = require('../models/Invitation'); // Import Invitation model
 
-// Add this at the top of your routes
-const validateTeamData = (req, res, next) => {
-  const requiredFields = ['name', 'project', 'createdBy'];
-  const missingFields = requiredFields.filter(field => !req.body[field]);
-  
-  if (missingFields.length > 0) {
-    return res.status(400).json({
-      message: 'Missing required fields',
-      missing: missingFields
-    });
-  }
-  
-  // Validate task counts are numbers
-  if (req.body.tasks) {
-    if (isNaN(req.body.tasks.total) || isNaN(req.body.tasks.completed)) {
-      return res.status(400).json({
-        message: 'Task counts must be numbers'
-      });
-    }
-  }
-  
-  next();
-};
+const mongoose = require('mongoose');
 
-router.post('/',validateTeamData, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const teamData = {
       ...req.body,
@@ -75,7 +55,6 @@ router.get('/user/:userId', async (req, res) => {
         { 'members.id': req.params.userId }
       ]
     };
-    
     if (status) query.status = status;
     
     const teams = await Team.find(query).sort({ createdAt: -1 });
@@ -220,6 +199,317 @@ router.patch('/:id/tasks/complete', async (req, res) => {
     res.status(200).json(updatedTeam);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+// Remove the duplicate /invite route and keep this improved version:
+router.post('/invite', async (req, res) => {
+  try {
+    const { teamId, teammateId, message, createdBy } = req.body;
+    
+    // Validate all required fields
+    if (!teamId || !teammateId || !createdBy) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Team ID, teammate ID, and creator ID are required' 
+      });
+    }
+
+    // Check if team exists
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Team not found' 
+      });
+    }
+
+    // Check if team can accept members
+    if (!['active', 'pending'].includes(team.status)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Team is not accepting new members' 
+      });
+    }
+
+    // Check if user exists
+    const user = await User.findById(teammateId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    // Check for existing invitation
+    const existingInvite = await Invitation.findOne({
+      team: teamId,
+      user: teammateId,
+      status: 'pending'
+    });
+    
+    if (existingInvite) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Pending invitation already exists' 
+      });
+    }
+
+    // Create new invitation
+    const newInvitation = new Invitation({
+      team: teamId,
+      user: teammateId,
+      message: message || '',
+      status: 'pending',
+      createdBy: createdBy
+    });
+
+    await newInvitation.save();
+
+    // Populate invitation data before returning
+    const populatedInvite = await Invitation.findById(newInvitation._id)
+      .populate('team', 'name')
+      .populate('user', 'name rolePreference department profilePicture')
+      .populate('createdBy', 'name profilePicture');
+
+    res.status(201).json({
+      success: true,
+      data: populatedInvite
+    });
+  } catch (error) {
+    console.error('Invitation error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+router.patch('/invite/:id/accept', async (req, res) => {
+  try {
+    const invitation = await Invitation.findById(req.params.id);
+    if (!invitation) {
+      return res.status(404).json({ 
+        message: 'Invitation not found' 
+      });
+    }
+
+    // Update invitation status
+    invitation.status = 'accepted';
+    await invitation.save();
+
+    // Add user to team
+    const team = await Team.findById(invitation.team);
+    if (!team) {
+      return res.status(404).json({ 
+        message: 'Team not found' 
+      });
+    }
+
+    const user = await User.findById(invitation.user);
+    if (!user) {
+      return res.status(404).json({ 
+        message: 'User not found' 
+      });
+    }
+
+    team.members.push({
+      id: user._id,
+      name: user.name,
+      role: user.rolePreference || 'Member',
+      skills: user.skills || []
+    });
+
+    await team.save();
+
+    res.status(200).json({
+      message: 'Invitation accepted',
+      team: team
+    });
+  } catch (error) {
+    console.error('Error in /invite/:id/accept:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: error.message 
+    });
+  }
+});
+
+
+router.get('/invitations/sent/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // First try to find by MongoDB _id
+    let invitations = await Invitation.find({ 
+      createdBy: mongoose.Types.ObjectId(userId) 
+    })
+      .populate('team', 'name')
+      .populate('user', 'name rolePreference department profilePicture')
+      .sort({ createdAt: -1 });
+
+    // If no results, try finding by Firebase UID
+    if (invitations.length === 0) {
+      const user = await User.findOne({ uid: userId });
+      if (user) {
+        invitations = await Invitation.find({ 
+          createdBy: user._id 
+        })
+          .populate('team', 'name')
+          .populate('user', 'name rolePreference department profilePicture')
+          .sort({ createdAt: -1 });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      count: invitations.length,
+      data: invitations
+    });
+  } catch (error) {
+    console.error('Error fetching sent invitations:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching sent invitations',
+      error: error.message 
+    });
+  }
+});
+
+router.get('/invitations/received/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // First try to find by MongoDB _id
+    let invitations = await Invitation.find({ user: userId })
+      .populate('team', 'name')
+      .populate('createdBy', 'name profilePicture')
+      .sort({ createdAt: -1 });
+
+    // If no results, try finding by Firebase UID
+    if (invitations.length === 0) {
+      const user = await User.findOne({ uid: userId });
+      if (user) {
+        invitations = await Invitation.find({ user: user._id })
+          .populate('team', 'name')
+          .populate('createdBy', 'name profilePicture')
+          .sort({ createdAt: -1 });
+      }
+    }
+
+    res.status(200).json(invitations);
+  } catch (error) {
+    console.error('Error fetching received invitations:', error);
+    res.status(500).json({ 
+      message: 'Error fetching received invitations',
+      error: error.message 
+    });
+  }
+});
+
+// Get all invitations for a team (admin view)
+router.get('/invitations/team/:teamId', async (req, res) => {
+  try {
+    const invitations = await Invitation.find({ team: req.params.teamId })
+      .populate('user', 'name rolePreference department profilePicture')
+      .populate('createdBy', 'name profilePicture')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(invitations);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error fetching team invitations',
+      error: error.message 
+    });
+  }
+});
+
+// Get a single invitation by ID
+router.get('/invitations/:id', async (req, res) => {
+  try {
+    const invitation = await Invitation.findById(req.params.id)
+      .populate('team', 'name')
+      .populate('user', 'name rolePreference department profilePicture')
+      .populate('createdBy', 'name profilePicture');
+
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    res.status(200).json(invitation);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error fetching invitation',
+      error: error.message 
+    });
+  }
+});
+
+// Update invitation status (accept/reject)
+router.patch('/invitations/:id', async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['pending', 'accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const invitation = await Invitation.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    )
+      .populate('team', 'name')
+      .populate('user', 'name rolePreference department profilePicture');
+
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    // If accepted, add user to team
+    if (status === 'accepted') {
+      const team = await Team.findById(invitation.team);
+      const user = await User.findById(invitation.user);
+
+      if (team && user) {
+        // Check if user is already a member
+        const isMember = team.members.some(m => m.id.toString() === user._id.toString());
+        
+        if (!isMember) {
+          team.members.push({
+            id: user._id,
+            name: user.name,
+            role: user.rolePreference || 'Member',
+            skills: user.skills || []
+          });
+          await team.save();
+        }
+      }
+    }
+
+    res.status(200).json(invitation);
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error updating invitation',
+      error: error.message 
+    });
+  }
+});
+
+// Withdraw an invitation
+router.delete('/invitations/:id', async (req, res) => {
+  try {
+    const invitation = await Invitation.findByIdAndDelete(req.params.id);
+
+    if (!invitation) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    res.status(200).json({ message: 'Invitation withdrawn successfully' });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error withdrawing invitation',
+      error: error.message 
+    });
   }
 });
 

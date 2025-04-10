@@ -7,26 +7,25 @@ const TeamSchema = new mongoose.Schema({
   description: { type: String, required: true },
   owner: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', 
-    required: true 
+    ref: 'StudentProfile', 
   },
   members: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile' },
     role: { type: String },
     joinedAt: { type: Date, default: Date.now }
   }],
   skillsNeeded: [{ type: String }],
-  maxMembers: { type: Number, required: true, min: 1 },
+  maxMembers: { type: Number,  min: 1 },
   currentMembers: { type: Number, default: 1 },
   deadline: { type: Date, required: true },
-  contactEmail: { type: String, required: true },
+  contactEmail: { type: String},
   status: { 
     type: String, 
     enum: ['recruiting', 'active', 'completed'], 
     default: 'recruiting' 
   },
   applications: [{
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile' },
     message: { type: String },
     skills: [{ type: String }],
     status: { 
@@ -36,6 +35,10 @@ const TeamSchema = new mongoose.Schema({
     },
     appliedAt: { type: Date, default: Date.now }
   }],
+  createdBy:{
+    type:String,
+    required:true
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

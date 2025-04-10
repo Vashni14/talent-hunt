@@ -120,9 +120,9 @@ export default function MyTeams() {
           total: Number(newTeam.tasks.total) || 0,
           completed: Number(newTeam.tasks.completed) || 0
         },
-        createdBy: userId // Make sure this matches your backend expectation
+        createdBy: userId,
+        members: [] // Initialize with empty array
       };
-  
       // Only add deadline if it exists
       if (newTeam.deadline) {
         requestBody.deadline = new Date(newTeam.deadline).toISOString();
@@ -190,55 +190,60 @@ export default function MyTeams() {
 
   const handleAddMember = async (teamId) => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const newMember = {
-        id: Date.now().toString(),
-        name: "New Member",
-        avatar: "/placeholder.svg",
-        role: "Team Member",
-        skills: []
-      }
-
+        name: "New Member",  // Required field
+        role: "Team Member", // Required field
+        // Add other required fields your backend expects
+      };
+  
       const response = await fetch(`http://localhost:5000/api/teams/${teamId}/members`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(newMember)
-      })
-
+      });
+  
       if (!response.ok) {
-        throw new Error('Failed to add member')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add member');
       }
-
-      const updatedTeam = await response.json()
-      setTeams(teams.map(team => team._id === teamId ? updatedTeam : team))
+  
+      const updatedTeam = await response.json();
+      setTeams(teams.map(team => team._id === teamId ? updatedTeam : team));
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
+      console.error('Add member error:', err);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleCompleteTask = async (teamId) => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/tasks/complete`, {
-        method: 'PATCH'
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to complete task')
+ const handleCompleteTask = async (teamId) => {
+  try {
+    setIsLoading(true);
+    const response = await fetch(`http://localhost:5000/api/teams/${teamId}/tasks/complete`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
       }
+    });
 
-      const updatedTeam = await response.json()
-      setTeams(teams.map(team => team._id === teamId ? updatedTeam : team))
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setIsLoading(false)
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to complete task');
     }
+
+    const updatedTeam = await response.json();
+    setTeams(teams.map(team => team._id === teamId ? updatedTeam : team));
+  } catch (err) {
+    setError(err.message);
+    console.error('Complete task error:', err);
+  } finally {
+    setIsLoading(false);
   }
+};
 
   const handleUpdateTeam = async () => {
     try {
@@ -647,12 +652,12 @@ export default function MyTeams() {
                         placeholder="Member role"
                         className="w-full bg-gray-600 text-white p-2 rounded"
                       />
-                      <button
-                        onClick={addNewMember}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded flex items-center justify-center gap-2"
-                      >
-                        <FaUserPlus /> Add Member
-                      </button>
+                      <button 
+  onClick={() => navigate('/find-teammates')}
+  className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
+>
+  <FaPlus className="text-xs" />Add Member
+</button>
                     </div>
                   </div>
                 </div>
