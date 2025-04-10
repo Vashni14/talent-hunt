@@ -335,76 +335,126 @@ router.patch('/invite/:id/accept', async (req, res) => {
 });
 
 
+
 router.get('/invitations/sent/:userId', async (req, res) => {
+  const { userId } = req.params;
+  console.log('➡️ Received userId:', userId);
+
   try {
-    const { userId } = req.params;
+    let invitations = [];
 
-    // First try to find by MongoDB _id
-    let invitations = await Invitation.find({ 
-      createdBy: mongoose.Types.ObjectId(userId) 
-    })
-      .populate('team', 'name')
-      .populate('user', 'name rolePreference department profilePicture')
-      .sort({ createdAt: -1 });
+    // Check if it's a valid ObjectId
+    const isObjectId = mongoose.Types.ObjectId.isValid(userId);
 
-    // If no results, try finding by Firebase UID
-    if (invitations.length === 0) {
-      const user = await User.findOne({ uid: userId });
-      if (user) {
-        invitations = await Invitation.find({ 
-          createdBy: user._id 
-        })
-          .populate('team', 'name')
-          .populate('user', 'name rolePreference department profilePicture')
-          .sort({ createdAt: -1 });
+    if (isObjectId) {
+      console.log('🔍 Interpreting userId as ObjectId');
+      invitations = await Invitation.find({ createdBy: userId })
+        .populate('team', 'name')
+        .populate('user', 'name rolePreference department profilePicture')
+        .sort({ createdAt: -1 });
+
+      if (invitations.length > 0) {
+        console.log(`✅ Found ${invitations.length} invitations using ObjectId`);
       }
     }
 
-    res.status(200).json({
+    // If no results or invalid ObjectId, try using UID
+    if (invitations.length === 0) {
+      console.log('🕵️ No invitations using ObjectId. Trying UID lookup...');
+      const user = await User.findOne({ uid: userId });
+
+      if (!user) {
+        console.warn('❌ No user found for UID:', userId);
+        return res.status(404).json({
+          success: false,
+          message: 'User not found by UID'
+        });
+      }
+
+      invitations = await Invitation.find({ createdBy: user._id })
+        .populate('team', 'name')
+        .populate('user', 'name department profilePicture')
+        .sort({ createdAt: -1 });
+
+      console.log(`✅ Found ${invitations.length} invitations using UID-mapped ObjectId`);
+    }
+
+    return res.status(200).json({
       success: true,
       count: invitations.length,
       data: invitations
     });
+
   } catch (error) {
-    console.error('Error fetching sent invitations:', error);
-    res.status(500).json({ 
+    console.error('🔥 Error in /invitations/sent/:userId:', error);
+    return res.status(500).json({
       success: false,
-      message: 'Error fetching sent invitations',
-      error: error.message 
+      message: 'Server error fetching invitations',
+      error: error.message
     });
   }
 });
 
 router.get('/invitations/received/:userId', async (req, res) => {
+  const { userId } = req.params;
+  console.log('➡️ Received userId:', userId);
+
   try {
-    const { userId } = req.params;
+    let invitations = [];
 
-    // First try to find by MongoDB _id
-    let invitations = await Invitation.find({ user: userId })
-      .populate('team', 'name')
-      .populate('createdBy', 'name profilePicture')
-      .sort({ createdAt: -1 });
+    // Check if it's a valid ObjectId
+    const isObjectId = mongoose.Types.ObjectId.isValid(userId);
 
-    // If no results, try finding by Firebase UID
-    if (invitations.length === 0) {
-      const user = await User.findOne({ uid: userId });
-      if (user) {
-        invitations = await Invitation.find({ user: user._id })
-          .populate('team', 'name')
-          .populate('createdBy', 'name profilePicture')
-          .sort({ createdAt: -1 });
+    if (isObjectId) {
+      console.log('🔍 Interpreting userId as ObjectId');
+      invitations = await Invitation.find({ user: userId })
+        .populate('team', 'name')
+        .populate('createdBy', 'name rolePreference department profilePicture')
+        .sort({ createdAt: -1 });
+
+      if (invitations.length > 0) {
+        console.log(`✅ Found ${invitations.length} invitations using ObjectId`);
       }
     }
 
-    res.status(200).json(invitations);
+    // If no results or invalid ObjectId, try using UID
+    if (invitations.length === 0) {
+      console.log('🕵️ No invitations using ObjectId. Trying UID lookup...');
+      const user = await User.findOne({ uid: userId });
+
+      if (!user) {
+        console.warn('❌ No user found for UID:', userId);
+        return res.status(404).json({
+          success: false,
+          message: 'User not found by UID'
+        });
+      }
+
+      invitations = await Invitation.find({ user: user._id })
+        .populate('team', 'name')
+        .populate('createdBy', 'name department profilePicture')
+        .sort({ createdAt: -1 });
+
+      console.log(`✅ Found ${invitations.length} invitations using UID-mapped ObjectId`);
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: invitations.length,
+      data: invitations
+    });
+
   } catch (error) {
-    console.error('Error fetching received invitations:', error);
-    res.status(500).json({ 
-      message: 'Error fetching received invitations',
-      error: error.message 
+    console.error('🔥 Error in /invitations/received/:userId:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching invitations',
+      error: error.message
     });
   }
 });
+
+
 
 // Get all invitations for a team (admin view)
 router.get('/invitations/team/:teamId', async (req, res) => {

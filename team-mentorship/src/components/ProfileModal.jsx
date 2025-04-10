@@ -58,8 +58,8 @@ export default function ProfileModal({ profile, onClose }) {
               <div>
                 <h2  className="text-2xl  font-bold  text-white">{profile.name}</h2>
                 <div  className="flex  gap-2  items-center">
-                  {profile.department  &&  (
-                    <span  className="text-blue-400">{profile.department}</span>
+                  {profile.domain  &&  (
+                    <span  className="text-blue-400">{profile.domain}</span>
                   )}
                   {profile.rolePreference  &&  (
                     <span  className="text-gray-400  text-sm  flex  items-center  gap-1">

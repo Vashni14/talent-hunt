@@ -21,7 +21,7 @@ function TeammateCard({ teammate, onView, onConnect }) {
       <div className="p-4">
         <div className="flex items-start gap-3">
           <img
-            src={teammate.profilePicture || "/default-profile.png"}
+             src={teammate?.profilePicture  ?  `http://localhost:5000${teammate.profilePicture}`  :  "/default-profile.png"}
             alt={teammate.name}
             className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/30"
             onError={(e) => {
@@ -34,7 +34,7 @@ function TeammateCard({ teammate, onView, onConnect }) {
               <div>
                 <h3 className="font-medium text-white">{teammate.name}</h3>
                 <p className="text-sm text-gray-400">{teammate.rolePreference}</p>
-                <p className="text-xs text-gray-500 mt-1">{teammate.department}</p>
+                <p className="text-xs text-gray-500 mt-1">{teammate.domain}</p>
               </div>
               {teammate.compatibility && (
                 <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-medium">
@@ -138,6 +138,7 @@ export default function FindTeammatesPage() {
   const [teams, setTeams] = useState([]);
   const [sentInvitations, setSentInvitations] = useState([]);
   const [receivedInvitations, setReceivedInvitations] = useState([]);
+  const [refreshInvitations, setRefreshInvitations] = useState(false);
 
   const skillsList = [
     "AI", "Machine Learning", "Web Development", "UI/UX Design", 
@@ -156,19 +157,38 @@ export default function FindTeammatesPage() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         fetchStudentProfile(user.uid);
         fetchTeammates(user.uid);
         fetchUserTeams(user.uid);
-        fetchInvitations(user.uid);
+  
+        try {
+          console.log("Fetching ObjectId using UID:", user.uid);
+          const res = await fetch(`${API_URL}/student/profile/${user.uid}`);
+          const text = await res.text(); // raw response
+          console.log("Raw API response:", text);
+  
+          const result = JSON.parse(text); // now parse it
+          if (result && result._id) {
+            const objectId = result._id;
+            fetchInvitations(objectId);
+            console.log("Fetched ObjectId:", objectId);
+          } else {
+            console.error("User not found in DB");
+          }          
+        } catch (err) {
+          console.error("Error fetching ObjectId for invitations:", err);
+        }
       } else {
-        navigate('/student/dashboard');
+        navigate("/student/dashboard");
       }
     });
+  
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate,refreshInvitations]);
 
+  
   const fetchStudentProfile = async (userId) => {
     try {
       setLoading(prev => ({ ...prev, user: true }));
@@ -242,19 +262,38 @@ export default function FindTeammatesPage() {
   const fetchInvitations = async (userId) => {
     try {
       setLoading(prev => ({ ...prev, invitations: true }));
-      
-      const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
-      setSentInvitations(sentResponse.data);
-      
+      console.log("📨 Fetching invitations for userId:", userId);
+  
+      // Fetch SENT invitations
+       try {
+    // Fetch SENT invitations
+    const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
+    if (sentResponse.data && sentResponse.data.success) {
+      setSentInvitations(sentResponse.data.data);
+      console.log("✅ Sent invitations:", sentResponse.data.data);
+    } else {
+      setSentInvitations([]); // Ensure fallback to empty array
+      console.warn("⚠️ Sent response didn't contain valid data.");
+    }
+  } catch (error) {
+    setSentInvitations([]); // Prevent crash
+    console.error("❌ Error fetching sent invitations:", error.message);
+  }
+
+      // Fetch RECEIVED invitations
       const receivedResponse = await axios.get(`${API_URL}/teams/invitations/received/${userId}`);
-      setReceivedInvitations(receivedResponse.data);
+      console.log("✅ Received Invitations Response:", receivedResponse.data);
+      setReceivedInvitations(receivedResponse.data?.data || []);
+  
     } catch (error) {
-      console.error("Error fetching invitations:", error);
+      console.error("❌ Error fetching invitations:", error);
       toast.error("Failed to load invitations");
     } finally {
       setLoading(prev => ({ ...prev, invitations: false }));
     }
-  };
+  };  
+  const triggerRefreshInvitations = () => setRefreshInvitations(prev => !prev);
+
 
   const calculateMutualInterests = (currentUser, profile) => {
     const userSkills = new Set(currentUser.skills);
@@ -326,7 +365,7 @@ export default function FindTeammatesPage() {
         createdAt: new Date().toISOString()
       };
   
-      setSentInvitations(prev => [newInvitation, ...prev]);
+     
       toast.success(`Invitation sent to ${selectedTeammate.name}`);
       setShowInviteModal(false);
       setMessage("");
@@ -412,7 +451,7 @@ export default function FindTeammatesPage() {
         <div className="relative group">
           <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-all duration-200">
             <img
-              src={user?.profilePicture || "/default-profile.png"}
+               src={user?.profilePicture  ?  `http://localhost:5000${user.profilePicture}`  :  "/default-profile.png"}
               alt="Profile"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -424,7 +463,7 @@ export default function FindTeammatesPage() {
           <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-md shadow-lg py-1 z-50 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
             <div className="px-4 py-2 border-b border-gray-700">
               <p className="text-sm text-white font-medium">{user.name}</p>
-              <p className="text-xs text-gray-400">{user.email}</p>
+              <p className="text-xs text-gray-400">{user.contact}</p>
             </div>
             <button 
               className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
@@ -563,13 +602,13 @@ export default function FindTeammatesPage() {
                 </button>
                 <button
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "sent" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                  onClick={() => setActiveTab("sent")}
+                  onClick={() => [setActiveTab("sent"),triggerRefreshInvitations()]}
                 >
                   Sent Invitations
                 </button>
                 <button
                   className={`px-4 py-2 font-medium text-sm ${activeTab === "received" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                  onClick={() => setActiveTab("received")}
+                  onClick={() => [setActiveTab("received"),triggerRefreshInvitations()]}
                 >
                   Received Invitations
                 </button>
@@ -640,6 +679,7 @@ export default function FindTeammatesPage() {
                   )}
 
                   {activeTab === "received" && (
+
                     <div className="space-y-4">
                       {receivedInvitations.length > 0 ? (
                         receivedInvitations.map((invitation) => (
@@ -647,24 +687,24 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                  src={invitation.from?.profilePicture || "/default-profile.png"}
-                                  alt={invitation.from?.name}
+                                   src={invitation.createdBy?.profilePicture  ?  `http://localhost:5000${invitation.createdBy.profilePicture}`  :  "/default-profile.png"}
+                                  alt={invitation.createdBy?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = `https://ui-avatars.com/api/?name=${invitation.from?.name}&background=random`;
+                                    e.target.src = `https://ui-avatars.com/api/?name=${invitation.createdBy?.name}&background=random`;
                                   }}
                                 />
                               </div>
                               <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                   <div>
-                                    <h3 className="font-medium">{invitation.from?.name}</h3>
-                                    <p className="text-sm text-gray-400">{invitation.from?.rolePreference}</p>
+                                    <h3 className="font-medium">{invitation.createdBy?.name}</h3>
+                                    <p className="text-sm text-gray-400">{invitation.createdBy?.rolePreference}</p>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     <button
-                                      onClick={() => alert(`Starting chat with ${invitation.from?.name}`)}
+                                      onClick={() => alert(`Starting chat with ${invitation.createdBy?.name}`)}
                                       className="p-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
                                       title="Chat"
                                     >
@@ -701,7 +741,7 @@ export default function FindTeammatesPage() {
                                     )}
                                     <button
                                       onClick={() => {
-                                        const profile = potentialTeammates.find(t => t._id === invitation.from?._id);
+                                        const profile = potentialTeammates.find(t => t._id === invitation.createdBy?._id);
                                         if (profile) {
                                           setSelectedProfile(profile);
                                           setShowProfileModal(true);
@@ -737,20 +777,19 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                  src={invitation.student?.profilePicture || "/default-profile.png"}
-                                  alt={invitation.student?.name}
+                                   src={invitation.user?.profilePicture  ?  `http://localhost:5000${invitation.user.profilePicture}`  :  "/default-profile.png"}
+                                  alt={invitation.user?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = `https://ui-avatars.com/api/?name=${invitation.student?.name}&background=random`;
+                                    e.target.src = `https://ui-avatars.com/api/?name=${invitation.user?.name}&background=random`;
                                   }}
                                 />
                               </div>
                               <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                   <div>
-                                    <h3 className="font-medium">{invitation.student?.name}</h3>
-                                    <p className="text-sm text-gray-400">{invitation.student?.rolePreference}</p>
+                                    <h3 className="font-medium">{invitation.user?.name}</h3>
                                   </div>
                                   <div className="flex items-center gap-2">
                                     {invitation.status === "pending" && (
