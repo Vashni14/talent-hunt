@@ -16,5 +16,6 @@ const StudentProfileSchema = new mongoose.Schema({
   isPublic: { type: Boolean, default: true } ,
   experience: [{competition: String}],
   bio: { type: String }, // Added for UI compatibility
+  teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }]
 });
 module.exports = mongoose.model("StudentProfile", StudentProfileSchema);

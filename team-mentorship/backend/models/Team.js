@@ -11,7 +11,9 @@ const TeamSchema = new mongoose.Schema({
   },
   members: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile' },
-    role: { type: String },
+    name: String,
+    role: String,
+    avatar: String,
     joinedAt: { type: Date, default: Date.now }
   }],
   skillsNeeded: [{ type: String }],
@@ -49,5 +51,11 @@ TeamSchema.index({ status: 1 });
 TeamSchema.index({ skillsNeeded: 1 });
 TeamSchema.index({ 'members.user': 1 });
 TeamSchema.index({ 'applications.user': 1 });
+TeamSchema.pre('find', function() {
+  this.populate('members.user', 'name profilePicture rolePreference');
+});
+TeamSchema.pre('findOne', function() {
+  this.populate('members.user', 'name profilePicture rolePreference');
+});
 
 module.exports = mongoose.model('Team', TeamSchema);

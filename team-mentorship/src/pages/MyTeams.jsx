@@ -1,7 +1,8 @@
 "use client"
-
+import { toast } from "react-hot-toast";
 import { useState, useEffect } from "react"
 import { auth } from "../config/firebase";
+import { useNavigate } from "react-router-dom";
 import {
   FaCalendarAlt,
   FaChartBar,
@@ -20,11 +21,13 @@ import {
   FaEdit,
   FaTrash,
   FaUserPlus,
-  FaSave
+  FaSave,
+  FaSearch
 } from "react-icons/fa"
 
 export default function MyTeams() {
-  const[userId,setUserId]=useState(null)
+  const navigate = useNavigate();
+  const [userId, setUserId] = useState(null)
   const [activeTab, setActiveTab] = useState("active")
   const [expandedTeam, setExpandedTeam] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -43,28 +46,16 @@ export default function MyTeams() {
     members: []
   })
   const [editingTeam, setEditingTeam] = useState(null)
-  const [newMember, setNewMember] = useState({
-    name: "",
-    role: "",
-    skills: []
-  })
-  const [newSkill, setNewSkill] = useState("")
+  const [currentTeam, setCurrentTeam] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
-  const mentors = [
-    { id: "m1", name: "Dr. Alan Turing", role: "Senior Architect" },
-    { id: "m2", name: "Dr. Yann LeCun", role: "AI Research Lead" },
-    { id: "m3", name: "Grace Hopper", role: "Mobile Tech Lead" },
-    { id: "m4", name: "Werner Vogels", role: "Cloud Architect" },
-    { id: "m5", name: "Andrew Ng", role: "AI Advisor" }
-  ]
   const user = auth.currentUser;
 
   useEffect(() => {
-    if (user){
+    if (user) {
       setUserId(user.uid)
     }
   }, [user]);
-
 
   const fetchTeams = async () => {
     try {
@@ -89,28 +80,21 @@ export default function MyTeams() {
     fetchTeams();
   }, [activeTab, userId]);
 
+  const filteredTeams = teams.filter(team => 
+    team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    team.project.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const toggleExpandTeam = (teamId) => {
     setExpandedTeam(expandedTeam === teamId ? null : teamId);
   };
 
   const handleCreateTeam = async () => {
     try {
-          console.log('Current values:', {
-            name: newTeam.name,
-            project: newTeam.project,
-            userId: userId
-          });
-      
-          // Validate required fields
-          if (!newTeam.name || !newTeam.project || !userId) {
-            console.error('Validation failed:', {
-              nameMissing: !newTeam.name,
-              projectMissing: !newTeam.project,
-              userIdMissing: !userId
-            });
-            throw new Error('Team name, project, and user ID are required');
-          }
-      // Prepare the request body to match your backend expectations
+      if (!newTeam.name || !newTeam.project || !userId) {
+        throw new Error('Team name, project, and user ID are required');
+      }
+
       const requestBody = {
         name: newTeam.name.trim(),
         project: newTeam.project.trim(),
@@ -121,32 +105,28 @@ export default function MyTeams() {
           completed: Number(newTeam.tasks.completed) || 0
         },
         createdBy: userId,
-        members: [] // Initialize with empty array
+        members: []
       };
-      // Only add deadline if it exists
+
       if (newTeam.deadline) {
         requestBody.deadline = new Date(newTeam.deadline).toISOString();
       }
-  
+
       const response = await fetch('http://localhost:5000/api/teams', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Add authorization if needed
-          // 'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(requestBody)
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create team');
       }
-  
+
       const createdTeam = await response.json();
       setTeams(prevTeams => [...prevTeams, createdTeam]);
-      
-      // Reset form
       setNewTeam({
         name: "",
         project: "",
@@ -157,13 +137,13 @@ export default function MyTeams() {
         tasks: { total: 0, completed: 0 },
         members: []
       });
-      
       setShowCreateModal(false);
       setActiveTab(createdTeam.status || "active");
+      toast.success("Team created successfully");
       
     } catch (err) {
       setError(err.message);
-      console.error('Create team error:', err);
+      toast.error(err.message || "Failed to create team");
     } finally {
       setIsLoading(false);
     }
@@ -181,69 +161,14 @@ export default function MyTeams() {
       }
 
       setTeams(teams.filter(team => team._id !== teamId))
+      toast.success("Team deleted successfully");
     } catch (err) {
       setError(err.message)
+      toast.error(err.message || "Failed to delete team");
     } finally {
       setIsLoading(false)
     }
   }
-
-  const handleAddMember = async (teamId) => {
-    try {
-      setIsLoading(true);
-      const newMember = {
-        name: "New Member",  // Required field
-        role: "Team Member", // Required field
-        // Add other required fields your backend expects
-      };
-  
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/members`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newMember)
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add member');
-      }
-  
-      const updatedTeam = await response.json();
-      setTeams(teams.map(team => team._id === teamId ? updatedTeam : team));
-    } catch (err) {
-      setError(err.message);
-      console.error('Add member error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
- const handleCompleteTask = async (teamId) => {
-  try {
-    setIsLoading(true);
-    const response = await fetch(`http://localhost:5000/api/teams/${teamId}/tasks/complete`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to complete task');
-    }
-
-    const updatedTeam = await response.json();
-    setTeams(teams.map(team => team._id === teamId ? updatedTeam : team));
-  } catch (err) {
-    setError(err.message);
-    console.error('Complete task error:', err);
-  } finally {
-    setIsLoading(false);
-  }
-};
 
   const handleUpdateTeam = async () => {
     try {
@@ -259,33 +184,12 @@ export default function MyTeams() {
       const updatedTeam = await response.json()
       setTeams(teams.map(t => t._id === updatedTeam._id ? updatedTeam : t))
       setShowEditModal(false)
+      toast.success("Team updated successfully");
     } catch (err) {
       setError(err.message)
+      toast.error(err.message || "Failed to update team");
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleMemberChange = (memberId, field, value) => {
-    setEditingTeam(prev => ({
-      ...prev,
-      members: prev.members.map(member => 
-        member.id === memberId ? { ...member, [field]: value } : member
-      )
-    }))
-  }
-
-  const addNewMember = () => {
-    if (newMember.name && newMember.role) {
-      setEditingTeam(prev => ({
-        ...prev,
-        members: [...prev.members, {
-          ...newMember,
-          id: Date.now().toString(),
-          avatar: "/placeholder.svg"
-        }]
-      }))
-      setNewMember({ name: "", role: "", skills: [] })
     }
   }
 
@@ -303,36 +207,13 @@ export default function MyTeams() {
       if (editingTeam?._id === teamId) {
         setEditingTeam(updatedTeam)
       }
+      toast.success("Member removed successfully");
     } catch (err) {
       setError(err.message)
+      toast.error(err.message || "Failed to remove member");
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const addSkillToMember = (memberId) => {
-    if (newSkill) {
-      setEditingTeam(prev => ({
-        ...prev,
-        members: prev.members.map(member => 
-          member.id === memberId 
-            ? { ...member, skills: [...member.skills, newSkill] } 
-            : member
-        )
-      }))
-      setNewSkill("")
-    }
-  }
-
-  const removeSkillFromMember = (memberId, skillIndex) => {
-    setEditingTeam(prev => ({
-      ...prev,
-      members: prev.members.map(member => 
-        member.id === memberId
-          ? { ...member, skills: member.skills.filter((_, i) => i !== skillIndex) }
-          : member
-      )
-    }))
   }
 
   const getProgressBarColor = (team) => {
@@ -374,98 +255,98 @@ export default function MyTeams() {
     <div className="p-6 bg-gray-900 min-h-screen">
       {/* Create Team Modal */}
       {showCreateModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-white">Create New Team</h3>
-        <button 
-          onClick={() => setShowCreateModal(false)}
-          className="text-gray-400 hover:text-white"
-        >
-          <FaTimes />
-        </button>
-      </div>
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Team Name*</label>
-          <input
-            type="text"
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            value={newTeam.name}
-            onChange={(e) => setNewTeam({...newTeam, name: e.target.value})}
-            placeholder="Web Wizards"
-            required
-          />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Create New Team</h3>
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Team Name*</label>
+                <input
+                  type="text"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  value={newTeam.name}
+                  onChange={(e) => setNewTeam({...newTeam, name: e.target.value})}
+                  placeholder="Web Wizards"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Project Name*</label>
+                <input
+                  type="text"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  value={newTeam.project}
+                  onChange={(e) => setNewTeam({...newTeam, project: e.target.value})}
+                  placeholder="E-commerce Platform"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                <textarea
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  rows={3}
+                  value={newTeam.description}
+                  onChange={(e) => setNewTeam({...newTeam, description: e.target.value})}
+                  placeholder="Brief description of the project..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Deadline</label>
+                <input
+                  type="date"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  value={newTeam.deadline}
+                  onChange={(e) => setNewTeam({...newTeam, deadline: e.target.value})}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Total Tasks</label>
+                <input
+                  type="number"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  value={newTeam.tasks.total}
+                  onChange={(e) => setNewTeam({
+                    ...newTeam,
+                    tasks: { ...newTeam.tasks, total: parseInt(e.target.value) || 0 }
+                  })}
+                  placeholder="10"
+                  min="0"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateTeam}
+                className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                disabled={!newTeam.name || !newTeam.project || isLoading}
+              >
+                {isLoading ? 'Creating...' : 'Create Team'}
+              </button>
+            </div>
+          </div>
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Project Name*</label>
-          <input
-            type="text"
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            value={newTeam.project}
-            onChange={(e) => setNewTeam({...newTeam, project: e.target.value})}
-            placeholder="E-commerce Platform"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
-          <textarea
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            rows={3}
-            value={newTeam.description}
-            onChange={(e) => setNewTeam({...newTeam, description: e.target.value})}
-            placeholder="Brief description of the project..."
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Deadline</label>
-          <input
-            type="date"
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            value={newTeam.deadline}
-            onChange={(e) => setNewTeam({...newTeam, deadline: e.target.value})}
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Total Tasks</label>
-          <input
-            type="number"
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            value={newTeam.tasks.total}
-            onChange={(e) => setNewTeam({
-              ...newTeam,
-              tasks: { ...newTeam.tasks, total: parseInt(e.target.value) || 0 }
-            })}
-            placeholder="10"
-            min="0"
-          />
-        </div>
-      </div>
-      
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          onClick={() => setShowCreateModal(false)}
-          className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleCreateTeam}
-          className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
-          disabled={!newTeam.name || !newTeam.project || isLoading}
-        >
-          {isLoading ? 'Creating...' : 'Create Team'}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* Edit Team Modal */}
       {showEditModal && editingTeam && (
@@ -573,93 +454,30 @@ export default function MyTeams() {
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Members</h3>
                 <div className="space-y-4">
-                  {editingTeam.members.map(member => (
-                    <div key={member.id} className="bg-gray-700 p-4 rounded-lg">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 space-y-2">
-                          <input
-                            type="text"
-                            value={member.name}
-                            onChange={(e) => handleMemberChange(member.id, 'name', e.target.value)}
-                            className="w-full bg-gray-600 text-white p-2 rounded"
-                            placeholder="Member name"
+                  {editingTeam.members?.map(member => (
+                    <div key={member._id} className="bg-gray-700 p-4 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={member.avatar || "/placeholder.svg"}
+                            alt={member.name}
+                            className="w-10 h-10 rounded-full border border-gray-600"
                           />
-                          <input
-                            type="text"
-                            value={member.role}
-                            onChange={(e) => handleMemberChange(member.id, 'role', e.target.value)}
-                            className="w-full bg-gray-600 text-white p-2 rounded"
-                            placeholder="Member role"
-                          />
+                          <div>
+                            <p className="text-white font-medium">{member.name}</p>
+                            <p className="text-gray-400 text-sm">{member.role}</p>
+                          </div>
                         </div>
                         <button
-                          onClick={() => removeMember(editingTeam._id, member.id)}
-                          className="ml-2 text-red-500 hover:text-red-400 p-2"
+                          onClick={() => removeMember(editingTeam._id, member._id)}
+                          className="text-red-500 hover:text-red-400 p-2"
                           disabled={isLoading}
                         >
                           <FaTrash />
                         </button>
                       </div>
-                      
-                      <div className="mt-2">
-                        <h4 className="text-sm font-medium text-gray-300 mb-1">Skills</h4>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {member.skills?.map((skill, index) => (
-                            <span key={index} className="flex items-center text-xs bg-gray-800 text-gray-300 px-2 py-1 rounded">
-                              {skill}
-                              <button 
-                                onClick={() => removeSkillFromMember(member.id, index)}
-                                className="ml-1 text-red-400 hover:text-red-300"
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newSkill}
-                            onChange={(e) => setNewSkill(e.target.value)}
-                            placeholder="Add skill"
-                            className="flex-1 bg-gray-600 text-white p-2 rounded"
-                          />
-                          <button
-                            onClick={() => addSkillToMember(member.id)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
-                          >
-                            Add
-                          </button>
-                        </div>
-                      </div>
                     </div>
                   ))}
-                  
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">Add New Member</h4>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={newMember.name}
-                        onChange={(e) => setNewMember({...newMember, name: e.target.value})}
-                        placeholder="Member name"
-                        className="w-full bg-gray-600 text-white p-2 rounded"
-                      />
-                      <input
-                        type="text"
-                        value={newMember.role}
-                        onChange={(e) => setNewMember({...newMember, role: e.target.value})}
-                        placeholder="Member role"
-                        className="w-full bg-gray-600 text-white p-2 rounded"
-                      />
-                      <button 
-  onClick={() => navigate('/dashboard')}
-  className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
->
-  <FaPlus className="text-xs" />Add Member
-</button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -691,6 +509,16 @@ export default function MyTeams() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-white">My Teams</h1>
           <div className="flex gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search teams..."
+                className="bg-gray-700 rounded-lg py-2 px-4 pr-10 text-white placeholder-gray-400 border border-gray-600"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <FaSearch className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
             <button 
               className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
               onClick={() => setShowCreateModal(true)}
@@ -735,8 +563,8 @@ export default function MyTeams() {
 
         {/* Teams List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {teams.length > 0 ? (
-            teams.map((team) => (
+          {filteredTeams.length > 0 ? (
+            filteredTeams.map((team) => (
               <div
                 key={team._id}
                 className={`bg-gray-800 rounded-xl border border-gray-700 overflow-hidden transition-all duration-300 ${
@@ -845,7 +673,7 @@ export default function MyTeams() {
                         <h4 className="text-sm font-medium text-white mb-2">Team Members</h4>
                         <div className="space-y-3">
                           {team.members?.map((member) => (
-                            <div key={member.id} className="flex items-start gap-3">
+                            <div key={member._id} className="flex items-start gap-3">
                               <img
                                 src={member.avatar || "/placeholder.svg"}
                                 alt={member.name}
@@ -854,7 +682,7 @@ export default function MyTeams() {
                                 height={32}
                               />
                               <div className="flex-1">
-                                <p className="text-sm text-white">{member.name}</p>
+                                <p className="text-sm text-white font-medium">{member.name}</p>
                                 <p className="text-xs text-gray-400">{member.role}</p>
                                 {member.skills?.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
@@ -868,7 +696,7 @@ export default function MyTeams() {
                               </div>
                               {team.createdBy === userId && (
                                 <button
-                                  onClick={() => removeMember(team._id, member.id)}
+                                  onClick={() => removeMember(team._id, member._id)}
                                   className="text-red-500 hover:text-red-400 p-1"
                                   disabled={isLoading}
                                 >
@@ -892,99 +720,13 @@ export default function MyTeams() {
                           </div>
                         </div>
                       )}
-
-                      {team.status === "completed" && (
-                        <>
-                          {team.retrospective && (
-                            <div className="mb-4">
-                              <h4 className="text-sm font-medium text-white mb-2">Retrospective</h4>
-                              <p className="text-xs text-gray-300 mb-2">{team.retrospective}</p>
-                            </div>
-                          )}
-                          {team.lessons?.length > 0 && (
-                            <div className="mb-4">
-                              <h4 className="text-sm font-medium text-white mb-2">Key Lessons</h4>
-                              <ul className="text-xs text-gray-300 space-y-1">
-                                {team.lessons.map((lesson, index) => (
-                                  <li key={index} className="flex items-start">
-                                    <span className="mr-1">•</span>
-                                    <span>{lesson}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {team.successMetrics && (
-                            <div className="mb-4">
-                              <h4 className="text-sm font-medium text-white mb-2">Success Metrics</h4>
-                              <div className="grid grid-cols-2 gap-2 text-xs text-gray-300">
-                                {Object.entries(team.successMetrics).map(([metric, value]) => (
-                                  <div key={metric} className="bg-gray-700/50 p-2 rounded">
-                                    <span className="capitalize">{metric}: </span>
-                                    <span className="text-white">{value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {team.status === "pending" && (
-                        <>
-                          {team.onboarding?.length > 0 && (
-                            <div className="mb-4">
-                              <h4 className="text-sm font-medium text-white mb-2">Onboarding Tasks</h4>
-                              <ul className="text-xs text-gray-300 space-y-2">
-                                {team.onboarding.map((task, index) => (
-                                  <li key={index} className="flex items-start">
-                                    <input 
-                                      type="checkbox" 
-                                      id={`task-${team._id}-${index}`} 
-                                      className="mr-2 mt-0.5" 
-                                    />
-                                    <label htmlFor={`task-${team._id}-${index}`}>{task}</label>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {team.pendingTasks?.length > 0 && (
-                            <div className="mb-4">
-                              <h4 className="text-sm font-medium text-white mb-2">Pending Tasks</h4>
-                              <ul className="text-xs text-gray-300 space-y-1">
-                                {team.pendingTasks.map((task, index) => (
-                                  <li key={index} className="flex items-start">
-                                    <span className="mr-1">•</span>
-                                    <span>{task}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {team.meetings?.length > 0 && (
-                        <div className="mb-4">
-                          <h4 className="text-sm font-medium text-white mb-2">Meetings</h4>
-                          <div className="space-y-2">
-                            {team.meetings.map((meeting, index) => (
-                              <div key={index} className="flex items-center text-xs text-gray-300">
-                                <FaVideo className="mr-2 text-gray-400" />
-                                <span>{meeting.day} {meeting.time} - {meeting.type}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
 
                   <div className="flex -space-x-2 mt-4">
                     {team.members?.map((member) => (
                       <img
-                        key={member.id}
+                        key={member._id}
                         src={member.avatar || "/placeholder.svg"}
                         alt={member.name}
                         title={`${member.name} - ${member.role}`}
@@ -996,7 +738,7 @@ export default function MyTeams() {
                     {team.status === "active" && team.createdBy === userId && (
                       <button 
                         className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
-                        onClick={() => handleAddMember(team._id)}
+                        onClick={() => navigate('/dashboard')}
                         disabled={isLoading}
                       >
                         <FaPlus className="text-xs" />
@@ -1008,12 +750,14 @@ export default function MyTeams() {
                   <div className="flex gap-3">
                     <button 
                       className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                      onClick={() => navigate(`/team-analytics/${team._id}`)}
                     >
                       <FaChartBar className="mr-1" />
                       <span>Analytics</span>
                     </button>
                     <button 
                       className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                      onClick={() => navigate(`/team-chat/${team._id}`)}
                     >
                       <FaComments className="mr-1" />
                       <span>Chat</span>

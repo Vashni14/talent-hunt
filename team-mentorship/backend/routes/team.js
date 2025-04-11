@@ -1,10 +1,11 @@
- express = require('express');
+express = require('express');
 const router = express.Router();
 const Team = require('../models/Team');
 const User = require('../models/StudentProfile'); // Import User model
 const Invitation = require('../models/Invitation'); // Import Invitation model
 
 const mongoose = require('mongoose');
+const StudentProfile = require('../models/StudentProfile');
 
 router.post('/', async (req, res) => {
   try {
@@ -45,22 +46,25 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get teams for specific user
 router.get('/user/:userId', async (req, res) => {
   try {
-    const teams = await Team.find({
+    const { status } = req.query;
+    const query = {
       $or: [
         { createdBy: req.params.userId },
         { 'members.id': req.params.userId }
       ]
-    })
-    .populate('createdBy', 'name profilePicture')
-    .populate('members.id', 'name profilePicture rolePreference');
+    };
+    if (status) query.status = status;
     
+    const teams = await Team.find(query).sort({ createdAt: -1 });
     res.status(200).json(teams);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
+
 // Get a specific team by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -109,34 +113,58 @@ router.delete('/:id', async (req, res) => {
 });
 
 // In your backend route for adding members
-router.post('/:id/members', async (req, res) => {
+// Updated backend route in teams.js
+router.post('/:teamId/members', async (req, res) => {
   try {
-    const team = await Team.findById(req.params.id);
-    if (!team) return res.status(404).json({ message: 'Team not found' });
+    const { teamId } = req.params;
+    const { userId, role } = req.body;
 
-    const user = await User.findById(req.body.userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    // Validate input
+    if (!mongoose.Types.ObjectId.isValid(teamId) || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid ID format' });
+    }
 
-    // Add user to team
-    const newMember = {
-      id: user._id,
+    // Find team and user
+    const team = await Team.findById(teamId);
+    const user = await StudentProfile.findById(userId);
+
+    if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Check if user is already a member
+    const isMember = team.members.some(member => member.user.toString() === userId);
+    if (isMember) {
+      return res.status(400).json({ success: false, message: 'User already in team' });
+    }
+
+    // Add member
+    team.members.push({
+      user: userId,
       name: user.name,
-      role: req.body.role || 'Member',
-      skills: user.skills || []
-    };
-    
-    team.members.push(newMember);
-    await team.save();
+      role: role || 'Member',
+      avatar: user.profilePicture || '/default-avatar.png'
+    });
 
     // Add team to user's teams array if not already present
-    if (!user.teams.includes(team._id)) {
-      user.teams.push(team._id);
+    if (!user.teams.includes(teamId)) {
+      user.teams.push(teamId);
       await user.save();
     }
 
-    res.status(200).json(team);
+    const updatedTeam = await team.save();
+    
+    res.status(200).json({
+      success: true,
+      data: await Team.findById(updatedTeam._id).populate('members.user', 'name profilePicture rolePreference')
+    });
+
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Add member error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
