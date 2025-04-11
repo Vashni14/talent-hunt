@@ -6,6 +6,10 @@ const Invitation = require('../models/Invitation'); // Import Invitation model
 
 const mongoose = require('mongoose');
 const StudentProfile = require('../models/StudentProfile');
+router.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
 
 router.post('/', async (req, res) => {
   try {
@@ -27,41 +31,91 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get all teams with optional status filter
-router.get('/', async (req, res) => {
-  try {
-    const { status, userId } = req.query;
-    const query = {};
-    
-    if (status) query.status = status;
-    if (userId) query.$or = [
-      { createdBy: userId },
-      { 'members.id': userId }
-    ];
-    
-    const teams = await Team.find(query).sort({ createdAt: -1 });
-    res.status(200).json(teams);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Get teams for specific user
 router.get('/user/:userId', async (req, res) => {
+  console.log(`\n=== GET /user/${req.params.userId} ===`);
+  console.log('Query params:', req.query);
+
   try {
-    const { status } = req.query;
-    const query = {
-      $or: [
-        { createdBy: req.params.userId },
-        { 'members.id': req.params.userId }
-      ]
-    };
-    if (status) query.status = status;
-    
-    const teams = await Team.find(query).sort({ createdAt: -1 });
-    res.status(200).json(teams);
+    const { status, populateMembers } = req.query;
+
+    let userId = req.params.userId;
+    let userObjectId = null;
+    let userUid = null;
+
+    // If not a valid ObjectId, treat as UID and get corresponding ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.log('Looking up user by UID');
+      const user = await User.findOne({ uid: userId }).select('_id uid');
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+      userObjectId = user._id;
+      userUid = user.uid;
+    } else {
+      userObjectId = new mongoose.Types.ObjectId(userId);
+    }
+
+    // Build query conditions
+    const orConditions = [];
+
+    if (userObjectId) orConditions.push({ 'members.user': userObjectId });
+    if (userUid) orConditions.push({ createdBy: userUid });
+    else orConditions.push({ createdBy: userId }); // in case userId was a UID or already string
+
+    const query = { $or: orConditions };
+
+    // Optional status filter
+    if (status) {
+      const validStatuses = ['active', 'pending', 'completed', 'archived'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+        });
+      }
+      query.status = status;
+    }
+
+    console.log('Final query:', query);
+
+    // Build query
+    let teamsQuery = Team.find(query).sort({ createdAt: -1 }).lean();
+
+    // Optional population
+    if (populateMembers === 'true') {
+      teamsQuery = teamsQuery
+        .populate({
+          path: 'createdBy',
+          select: 'name profilePicture rolePreference department',
+          model: 'StudentProfile'
+        })
+        .populate({
+          path: 'members.user',
+          select: 'name profilePicture rolePreference department',
+          model: 'StudentProfile'
+        });
+    }
+
+    const teams = await teamsQuery.exec();
+
+    res.status(200).json({
+      success: true,
+      count: teams.length,
+      data: teams
+    });
+
+    console.log('teams:', teams);
+    console.log('count:', teams.length);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -320,56 +374,110 @@ router.post('/invite', async (req, res) => {
   }
 });
 router.patch('/invite/:id/accept', async (req, res) => {
+  console.log('\n===== START INVITATION ACCEPTANCE =====');
+  console.log('Headers:', req.headers);
+  console.log('Params:', req.params);
+  console.log('Body:', req.body);
+
   try {
-    const invitation = await Invitation.findById(req.params.id);
+    // 1. Verify database connection
+    console.log('\n[1/7] Checking database connection...');
+    const dbState = mongoose.connection.readyState;
+    console.log('Mongoose connection state:', dbState, 
+      dbState === 1 ? 'Connected' : 'Disconnected');
+
+    if (dbState !== 1) {
+      throw new Error('Database not connected');
+    }
+
+    // 2. Find invitation
+    console.log('\n[2/7] Finding invitation...');
+    const invitation = await Invitation.findById(req.params.id).lean();
+    console.log('Invitation found:', invitation);
+
     if (!invitation) {
-      return res.status(404).json({ 
-        message: 'Invitation not found' 
-      });
+      console.log('Invitation not found');
+      return res.status(404).json({ success: false, message: 'Invitation not found' });
     }
 
-    // Update invitation status
-    invitation.status = 'accepted';
-    await invitation.save();
+    // 3. Verify team exists
+    console.log('\n[3/7] Finding team...');
+    const team = await Team.findById(invitation.team).lean();
+    console.log('Team found:', team);
 
-    // Add user to team
-    const team = await Team.findById(invitation.team);
     if (!team) {
-      return res.status(404).json({ 
-        message: 'Team not found' 
-      });
+      console.log('Team not found');
+      return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    const user = await User.findById(invitation.user);
+    // 4. Verify user exists
+    console.log('\n[4/7] Finding user...');
+    const user = await StudentProfile.findById(invitation.user).lean();
+    console.log('User found:', user);
+
     if (!user) {
-      return res.status(404).json({ 
-        message: 'User not found' 
-      });
+      console.log('User not found');
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    team.members.push({
-      id: user._id,
-      name: user.name,
-      role: user.rolePreference || 'Member',
-      skills: user.skills || []
-    });
+    // 5. Update invitation status
+    console.log('\n[5/7] Updating invitation status...');
+    const updatedInvitation = await Invitation.findByIdAndUpdate(
+      req.params.id,
+      { status: 'accepted' },
+      { new: true }
+    );
+    console.log('Updated invitation:', updatedInvitation);
 
-    await team.save();
+    // 6. Add user to team
+    console.log('\n[6/7] Adding user to team...');
+    const updatedTeam = await Team.findByIdAndUpdate(
+      team._id,
+      {
+        $addToSet: {
+          members: {
+            user: user._id,
+            name: user.name,
+            role: user.rolePreference || 'Member',
+            avatar: user.profilePicture || '/default-avatar.png'
+          }
+        }
+      },
+      { new: true }
+    );
+    console.log('Updated team:', updatedTeam);
 
+    // 7. Add team to user
+    console.log('\n[7/7] Adding team to user...');
+    const updatedUser = await StudentProfile.findByIdAndUpdate(
+      user._id,
+      { $addToSet: { teams: team._id } },
+      { new: true }
+    );
+    console.log('Updated user:', updatedUser);
+
+    console.log('\n===== PROCESS COMPLETE =====');
     res.status(200).json({
-      message: 'Invitation accepted',
-      team: team
+      success: true,
+      invitation: updatedInvitation,
+      team: updatedTeam,
+      user: updatedUser
     });
+
   } catch (error) {
-    console.error('Error in /invite/:id/accept:', error);
-    res.status(500).json({ 
+    console.error('\n!!!!! ERROR !!!!!');
+    console.error('Error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
+    res.status(500).json({
+      success: false,
       message: 'Server error',
-      error: error.message 
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
-
-
 
 router.get('/invitations/sent/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -506,75 +614,115 @@ router.get('/invitations/:id', async (req, res) => {
     });
   }
 });
-
-// Update invitation status (accept/reject/withdraw)
 router.put('/invitations/:id', async (req, res) => {
+  console.log('\n=== PUT /invitations/:id ===');
+  console.log('Params:', req.params);
+  console.log('Body:', req.body);
+
   try {
     const { status } = req.body;
     
     // Validate status
     if (!['pending', 'accepted', 'rejected', 'withdrawn'].includes(status)) {
+      console.log('Invalid status value:', status);
       return res.status(400).json({ 
         success: false,
         message: 'Invalid status value' 
       });
     }
 
-    // Find and update invitation
+    // Find and populate invitation
+    console.log('\n[1/4] Finding invitation...');
     const invitation = await Invitation.findById(req.params.id)
-      .populate('team', 'name')
-      .populate('user', 'name rolePreference department profilePicture')
+      .populate('team', 'name members')
+      .populate('user', 'name rolePreference department profilePicture teams')
       .populate('createdBy', 'name profilePicture');
 
     if (!invitation) {
+      console.log('Invitation not found');
       return res.status(404).json({ 
         success: false,
         message: 'Invitation not found' 
       });
     }
+    console.log('Found invitation:', invitation._id);
 
     // Check if already processed
     if (invitation.status !== 'pending') {
+      console.log('Invitation already processed with status:', invitation.status);
       return res.status(400).json({ 
         success: false,
         message: `Invitation already ${invitation.status}`
       });
     }
 
-    // Update status
+    // Update invitation status
+    console.log('\n[2/4] Updating invitation status to:', status);
     invitation.status = status;
     await invitation.save();
 
-    // If accepted, add user to team
+    // Special handling for accepted invitations
     if (status === 'accepted') {
-      const team = await Team.findById(invitation.team);
-      if (team) {
-        const isMember = team.members.some(m => 
-          m.id.toString() === invitation.user._id.toString()
-        );
-        
-        if (!isMember) {
-          team.members.push({
-            id: invitation.user._id,
-            name: invitation.user.name,
-            role: invitation.user.rolePreference || 'Member',
-            skills: invitation.user.skills || []
-          });
-          await team.save();
-        }
+      console.log('\n[3/4] Processing acceptance...');
+      
+      const team = invitation.team;
+      const user = invitation.user;
+
+      // Add user to team if not already a member
+      const isTeamMember = team.members.some(member => 
+        member.user && member.user.toString() === user._id.toString()
+      );
+
+      if (!isTeamMember) {
+        console.log('Adding user to team members');
+        team.members.push({
+          user: user._id,
+          name: user.name,
+          role: user.rolePreference || 'Member',
+          avatar: user.profilePicture || '/default-avatar.png',
+          joinedAt: new Date()
+        });
+        await team.save();
+        console.log('Team members after update:', team.members.length);
+      } else {
+        console.log('User already in team members');
+      }
+
+      // Add team to user's teams if not already present
+      const hasTeam = user.teams.some(teamId => 
+        teamId.toString() === team._id.toString()
+      );
+
+      if (!hasTeam) {
+        console.log('Adding team to user teams');
+        user.teams.push(team._id);
+        await user.save();
+        console.log('User teams after update:', user.teams.length);
+      } else {
+        console.log('Team already in user teams');
       }
     }
 
+    console.log('\n[4/4] Operation complete');
     res.status(200).json({
       success: true,
-      data: invitation
+      data: {
+        invitation,
+        team: invitation.team,
+        user: invitation.user
+      }
     });
+
   } catch (error) {
-    console.error('Error updating invitation:', error);
+    console.error('\n!!! ERROR !!!');
+    console.error('Message:', error.message);
+    console.error('Stack:', error.stack);
+    
     res.status(500).json({ 
       success: false,
       message: 'Server error updating invitation',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

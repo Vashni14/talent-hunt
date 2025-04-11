@@ -247,8 +247,16 @@ export default function FindTeammatesPage() {
   const fetchUserTeams = async (userId) => {
     try {
       setLoading(prev => ({ ...prev, teams: true }));
+  
       const response = await axios.get(`${API_URL}/teams/user/${userId}`);
-      setTeams(response.data);
+      const result = response.data;
+  
+      // Filter teams where createdBy === userId
+      const createdByTeams = result.data?.filter(team => {
+        return team.createdBy === userId || team.createdBy?._id === userId;
+      }) || [];
+  
+      setTeams(createdByTeams);
     } catch (error) {
       console.error("Error fetching teams:", error);
       toast.error("Failed to load teams");
@@ -256,7 +264,7 @@ export default function FindTeammatesPage() {
       setLoading(prev => ({ ...prev, teams: false }));
     }
   };
-
+  
   const fetchInvitations = async (userId) => {
     try {
       setLoading(prev => ({ ...prev, invitations: true }))

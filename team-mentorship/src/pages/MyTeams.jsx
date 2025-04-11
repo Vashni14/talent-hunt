@@ -67,8 +67,14 @@ export default function MyTeams() {
       
       if (!response.ok) throw new Error('Failed to fetch teams');
       
-      const data = await response.json();
-      setTeams(data);
+      const result = await response.json();
+    
+      // Access the data property from the response
+      setTeams(result.data || []); // Fallback to empty array if data is missing
+      
+      // For debugging:
+      console.log('API Response:', result);
+      console.log('Teams data:', result.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -459,7 +465,7 @@ export default function MyTeams() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <img
-                            src={member.avatar || "/placeholder.svg"}
+                             src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
                             alt={member.name}
                             className="w-10 h-10 rounded-full border border-gray-600"
                           />
@@ -576,13 +582,6 @@ export default function MyTeams() {
                 <div className="p-5">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
-                      <img
-                        src={team.logo || "/placeholder.svg"}
-                        alt={`${team.name} logo`}
-                        className="w-14 h-14 rounded-lg object-cover border-2 border-yellow-500/30"
-                        width={56}
-                        height={56}
-                      />
                       <div>
                         <h3 className="font-medium text-white text-lg">{team.name}</h3>
                         <p className="text-sm text-yellow-400">{team.project}</p>
@@ -675,7 +674,7 @@ export default function MyTeams() {
                           {team.members?.map((member) => (
                             <div key={member._id} className="flex items-start gap-3">
                               <img
-                                src={member.avatar || "/placeholder.svg"}
+                                src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
                                 alt={member.name}
                                 className="w-8 h-8 rounded-full border border-gray-600"
                                 width={32}
@@ -727,7 +726,7 @@ export default function MyTeams() {
                     {team.members?.map((member) => (
                       <img
                         key={member._id}
-                        src={member.avatar || "/placeholder.svg"}
+                        src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
                         alt={member.name}
                         title={`${member.name} - ${member.role}`}
                         className="w-8 h-8 rounded-full border-2 border-gray-800"
