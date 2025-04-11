@@ -425,37 +425,7 @@ export default function MyTeams() {
                   </select>
                 </div>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Total Tasks</label>
-                  <input
-                    type="number"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                    value={editingTeam.tasks.total}
-                    onChange={(e) => setEditingTeam({
-                      ...editingTeam,
-                      tasks: { ...editingTeam.tasks, total: parseInt(e.target.value) || 0 }
-                    })}
-                    min="0"
-                  />
-                </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-1">Completed Tasks</label>
-                  <input
-                    type="number"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                    value={editingTeam.tasks.completed}
-                    onChange={(e) => setEditingTeam({
-                      ...editingTeam,
-                      tasks: { ...editingTeam.tasks, completed: parseInt(e.target.value) || 0 }
-                    })}
-                    min="0"
-                    max={editingTeam.tasks.total}
-                  />
-                </div>
-              </div>
 
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Members</h3>
