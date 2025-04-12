@@ -7,6 +7,7 @@ import {
   FaCalendarAlt,
   FaChartBar,
   FaCheckCircle,
+  FaInfoCircle,
   FaClock,
   FaComments,
   FaEllipsisH,
@@ -50,6 +51,7 @@ export default function MyTeams() {
   const [editingTeam, setEditingTeam] = useState(null)
   const [currentTeam, setCurrentTeam] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
+   const [allSDGs, setAllSDGs] = useState([]);
 
   const user = auth.currentUser;
 
@@ -83,6 +85,20 @@ export default function MyTeams() {
   useEffect(() => {
     fetchTeams();
   }, [userId]);
+    useEffect(() => {
+      const fetchSDGs = async () => {
+        try {
+          const response = await fetch('http://localhost:5000/api/sdgs');
+          if (!response.ok) throw new Error('Failed to fetch SDGs');
+          const data = await response.json();
+          setAllSDGs(data);
+        } catch (err) {
+          console.error('Error fetching SDGs:', err);
+          toast.error('Failed to load SDG data');
+        }
+      };
+      fetchSDGs();
+    }, []);
 
   // Separate teams into created by me and teams I'm a member of
   const createdTeams = teams.filter(team => team.createdBy === userId);
@@ -661,256 +677,305 @@ export default function MyTeams() {
 
         {/* Teams List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredTeams.length > 0 ? (
-            filteredTeams.map((team) => {
-              const isCreator = team.createdBy === userId;
-              
-              return (
-                <div
-                  key={team._id}
-                  className={`bg-gray-800 rounded-xl border border-gray-700 overflow-hidden transition-all duration-300 ${
-                    expandedTeam === team._id 
-                      ? "border-yellow-500 shadow-lg shadow-yellow-500/10" 
-                      : "hover:border-yellow-500/30 hover:shadow-lg hover:shadow-yellow-500/10"
-                  }`}
-                >
-                  <div className="p-5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div>
-                          <h3 className="font-medium text-white text-lg">{team.name}</h3>
-                          <p className="text-sm text-yellow-400">{team.project}</p>
-                          <div className="flex items-center mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              team.status === "active" ? "bg-green-900 text-green-400" :
-                              team.status === "pending" ? "bg-blue-900 text-blue-400" :
-                              "bg-purple-900 text-purple-400"
-                            }`}>
-                              {team.status === "active" ? (
-                                <span className="flex items-center">
-                                  <FaCheckCircle className="mr-1" /> Active
-                                </span>
-                              ) : team.status === "pending" ? (
-                                <span className="flex items-center">
-                                  <FaHourglassStart className="mr-1" /> Pending
-                                </span>
-                              ) : (
-                                <span className="flex items-center">
-                                  <FaThumbsUp className="mr-1" /> Completed
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isCreator ? (
-                          <>
-                            <button 
-                              className="text-gray-400 hover:text-white p-1"
-                              onClick={() => {
-                                setEditingTeam(team)
-                                setShowEditModal(true)
-                              }}
-                            >
-                              <FaEdit />
-                            </button>
-                            <button 
-                              className="text-gray-400 hover:text-red-500 p-1"
-                              onClick={() => handleDeleteTeam(team._id)}
-                              disabled={isLoading}
-                            >
-                              <FaTrash />
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                            className="text-gray-400 hover:text-red-500 p-1"
-                            onClick={() => handleLeaveTeam(team._id)}
-                            disabled={isLoading}
-                          >
-                            <FaSignOutAlt />
-                          </button>
-                        )}
-                        <button 
-                          className="text-gray-400 hover:text-white p-1"
-                          onClick={() => toggleExpandTeam(team._id)}
-                        >
-                          <FaEllipsisH />
-                        </button>
-                      </div>
-                    </div>
-
-                    <p className="mt-4 text-sm text-gray-300">{team.description}</p>
-
-                    {team.mentor && (
-                      <div className="mt-3 flex items-center gap-2 text-sm text-gray-300">
-                        <FaUserTie className="text-yellow-400" />
-                        <span>Mentor: </span>
-                        <span className="text-white">{team.mentor.name}</span>
-                        <span className="text-gray-400 text-xs ml-1">({team.mentor.role})</span>
-                      </div>
-                    )}
-
-                    <div className="mt-4">
-                      <div className="flex justify-between mb-2">
-                        <span className="text-xs text-gray-400">Progress</span>
-                        <span className="text-xs text-gray-400">{team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%</span>
-                      </div>
-                      <div className="w-full bg-gray-700 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full ${getProgressBarColor(team)}`}
-                          style={{ width: `${team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 mt-4">
-                      <div className="flex items-center text-xs text-gray-400">
-                        <FaUsers className="mr-1" />
-                        <span>{team.members?.length || 0} members</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-400">
-                        <FaCalendarAlt className="mr-1" />
-                        <span>Deadline: {team.deadline ? new Date(team.deadline).toLocaleDateString() : 'Not set'}</span>
-                      </div>
-                      <div className="flex items-center text-xs text-gray-400">
-                        <FaCheckCircle className="mr-1" />
-                        <span>
-                          {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
+  {filteredTeams.length > 0 ? (
+    filteredTeams.map((team) => {
+      const isCreator = team.createdBy === userId;
+      
+      return (
+        <div
+          key={team._id}
+          className={`bg-gray-800 rounded-xl border border-gray-700 overflow-hidden transition-all duration-300 ${
+            expandedTeam === team._id 
+              ? "border-yellow-500 shadow-lg shadow-yellow-500/10" 
+              : "hover:border-yellow-500/30 hover:shadow-lg hover:shadow-yellow-500/10"
+          }`}
+        >
+          <div className="p-5">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-4">
+                <div>
+                  <h3 className="font-medium text-white text-lg">{team.name}</h3>
+                  <p className="text-sm text-yellow-400">{team.project}</p>
+                  <div className="flex items-center mt-1 gap-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      team.status === "active" ? "bg-green-900 text-green-400" :
+                      team.status === "pending" ? "bg-blue-900 text-blue-400" :
+                      "bg-purple-900 text-purple-400"
+                    }`}>
+                      {team.status === "active" ? (
+                        <span className="flex items-center">
+                          <FaCheckCircle className="mr-1" /> Active
                         </span>
-                      </div>
-                    </div>
-
-                    {expandedTeam === team._id && (
-                      <div className="mt-4 pt-4 border-t border-gray-700">
-                        <div className="mb-4">
-                          <h4 className="text-sm font-medium text-white mb-2">Team Members</h4>
-                          <div className="space-y-3">
-                            {team.members?.map((member) => (
-                              <div key={member._id} className="flex items-start gap-3">
-                                <img
-                                  src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
-                                  alt={member.name}
-                                  className="w-8 h-8 rounded-full border border-gray-600"
-                                  width={32}
-                                  height={32}
-                                />
-                                <div className="flex-1">
-                                  <p className="text-sm text-white font-medium">{member.name}</p>
-                                  <p className="text-xs text-gray-400">{member.role}</p>
-                                  {member.skills?.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-1">
-                                      {member.skills.map((skill, index) => (
-                                        <span key={index} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                                          {skill}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                                {isCreator && (
-                                  <button
-                                    onClick={() => removeMember(team._id, member._id)}
-                                    className="text-red-500 hover:text-red-400 p-1"
-                                    disabled={isLoading}
-                                  >
-                                    <FaTimes />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {team.skillsNeeded?.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium text-white mb-2">Skills Needed</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {team.skillsNeeded.map((skill, index) => (
-                                <span key={index} className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-1 rounded">
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex -space-x-2 mt-4">
-                      {team.members?.slice(0, 5).map((member) => (
-                        <img
-                          key={member._id}
-                          src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
-                          alt={member.name}
-                          title={`${member.name} - ${member.role}`}
-                          className="w-8 h-8 rounded-full border-2 border-gray-800"
-                          width={32}
-                          height={32}
-                        />
-                      ))}
-                      {team.members?.length > 5 && (
-                        <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-800 flex items-center justify-center text-xs text-gray-300">
-                          +{team.members.length - 5}
-                        </div>
+                      ) : team.status === "pending" ? (
+                        <span className="flex items-center">
+                          <FaHourglassStart className="mr-1" /> Pending
+                        </span>
+                      ) : (
+                        <span className="flex items-center">
+                          <FaThumbsUp className="mr-1" /> Completed
+                        </span>
                       )}
-                      {team.status === "active" && isCreator && (
-                        <button 
-                          className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
-                          onClick={() => navigate('/dashboard')}
-                          disabled={isLoading}
-                        >
-                          <FaPlus className="text-xs" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="border-t border-gray-700 p-3 flex justify-between items-center">
-                    <div className="flex gap-3">
-                      <button 
-                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                        onClick={() => navigate(`/team-analytics/${team._id}`)}
-                      >
-                        <FaChartBar className="mr-1" />
-                        <span>Analytics</span>
-                      </button>
-                      <button 
-                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                        onClick={() => navigate(`/team-chat/${team._id}`)}
-                      >
-                        <FaComments className="mr-1" />
-                        <span>Chat</span>
-                      </button>
-                    </div>
-                    {team.status === "active" && team.tasks?.total > 0 && (
-                      <button 
-                        className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                        disabled={isLoading}
-                      >
-                        <FaCheckCircle className="text-xs" />
-                        Complete Task
-                      </button>
+                    </span>
+                    {team.sdgs?.length > 0 && (
+                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full flex items-center">
+                        <FaBook className="mr-1 text-blue-400" />
+                        {team.sdgs.length} SDGs
+                      </span>
                     )}
                   </div>
                 </div>
-              )
-            })
-          ) : (
-            <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
-              <p className="text-gray-400">{getEmptyStateMessage()}</p>
-              {activeTab === "created" && (
+              </div>
+              <div className="flex items-center gap-2">
+                {isCreator ? (
+                  <>
+                    <button 
+                      className="text-gray-400 hover:text-white p-1"
+                      onClick={() => {
+                        setEditingTeam(team)
+                        setShowEditModal(true)
+                      }}
+                    >
+                      <FaEdit />
+                    </button>
+                    <button 
+                      className="text-gray-400 hover:text-red-500 p-1"
+                      onClick={() => handleDeleteTeam(team._id)}
+                      disabled={isLoading}
+                    >
+                      <FaTrash />
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    className="text-gray-400 hover:text-red-500 p-1"
+                    onClick={() => handleLeaveTeam(team._id)}
+                    disabled={isLoading}
+                  >
+                    <FaSignOutAlt />
+                  </button>
+                )}
                 <button 
-                  className="mt-4 flex items-center gap-1 mx-auto text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
-                  onClick={() => setShowCreateModal(true)}
+                  className="text-gray-400 hover:text-white p-1"
+                  onClick={() => toggleExpandTeam(team._id)}
                 >
-                  <FaPlus />
-                  Create New Team
+                  <FaEllipsisH />
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-gray-300">{team.description}</p>
+
+            {team.mentor && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-gray-300">
+                <FaUserTie className="text-yellow-400" />
+                <span>Mentor: </span>
+                <span className="text-white">{team.mentor.name}</span>
+                <span className="text-gray-400 text-xs ml-1">({team.mentor.role})</span>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-xs text-gray-400">Progress</span>
+                <span className="text-xs text-gray-400">{team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full ${getProgressBarColor(team)}`}
+                  style={{ width: `${team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%` }}
+                ></div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-4 mt-4">
+              <div className="flex items-center text-xs text-gray-400">
+                <FaUsers className="mr-1" />
+                <span>{team.members?.length || 0} members</span>
+              </div>
+              <div className="flex items-center text-xs text-gray-400">
+                <FaCalendarAlt className="mr-1" />
+                <span>Deadline: {team.deadline ? new Date(team.deadline).toLocaleDateString() : 'Not set'}</span>
+              </div>
+              <div className="flex items-center text-xs text-gray-400">
+                <FaCheckCircle className="mr-1" />
+                <span>
+                  {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
+                </span>
+              </div>
+            </div>
+
+            {expandedTeam === team._id && (
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                {/* Team Members Section */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium text-white">Team Members</h4>
+                    {isCreator && (
+                      <button 
+                        onClick={() => navigate(`/dashboard`)}
+                        className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                      >
+                        <FaPlus size={10} /> Add Member
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {team.members?.length > 0 ? (
+                      team.members.map((member) => (
+                        <div key={member._id} className="flex items-start gap-3">
+                          <img
+                            src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
+                            alt={member.name}
+                            className="w-8 h-8 rounded-full border border-gray-600"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm text-white font-medium">{member.name}</p>
+                            <p className="text-xs text-gray-400">{member.role}</p>
+                            {member.skills?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {member.skills.map((skill, index) => (
+                                  <span key={index} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {isCreator && (
+                            <button
+                              onClick={() => removeMember(team._id, member._id)}
+                              className="text-red-500 hover:text-red-400 p-1"
+                              disabled={isLoading}
+                            >
+                              <FaTimes />
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-400 text-sm">No members added yet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills Needed Section */}
+                {team.skillsNeeded?.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-white mb-2">Skills Needed</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {team.skillsNeeded.map((skill, index) => (
+                        <span key={index} className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-1 rounded">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* SDGs Section */}
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-sm font-medium text-white">Sustainable Development Goals</h4>
+                    <button
+                      onClick={() => navigate(`/sdg`)}
+                      className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                    >
+                      <FaPlus size={10} /> Add SDGs
+                    </button>
+                  </div>
+                  {team.sdgs?.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {team.sdgs.map(sdgId => {
+                        const sdg = allSDGs.find(s => s.id === sdgId);
+                        return sdg ? (
+                          <div 
+                            key={sdgId} 
+                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${sdg.color} text-white`}
+                          >
+                            <span>SDG {sdg.id}</span>
+                           
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm">No SDGs mapped yet</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex -space-x-2 mt-4">
+              {team.members?.slice(0, 5).map((member) => (
+                <img
+                  key={member._id}
+                  src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
+                  alt={member.name}
+                  title={`${member.name} - ${member.role}`}
+                  className="w-8 h-8 rounded-full border-2 border-gray-800"
+                />
+              ))}
+              {team.members?.length > 5 && (
+                <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-800 flex items-center justify-center text-xs text-gray-300">
+                  +{team.members.length - 5}
+                </div>
+              )}
+              {team.status === "active" && isCreator && !expandedTeam &&(
+                <button 
+                  className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
+                  onClick={() => navigate(`/dashboard`)}
+                >
+                  <FaPlus className="text-xs" />
                 </button>
               )}
             </div>
-          )}
+          </div>
+          
+          <div className="border-t border-gray-700 p-3 flex justify-between items-center">
+            <div className="flex gap-3">
+              <button 
+                className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                onClick={() => navigate(`/team-analytics/${team._id}`)}
+              >
+                <FaChartBar className="mr-1" />
+                <span>Analytics</span>
+              </button>
+              <button 
+                className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                onClick={() => navigate(`/team-chat/${team._id}`)}
+              >
+                <FaComments className="mr-1" />
+                <span>Chat</span>
+              </button>
+            </div>
+            {team.status === "active" && team.tasks?.total > 0 && (
+              <button 
+                className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                disabled={isLoading}
+              >
+                <FaCheckCircle className="text-xs" />
+                Complete Task
+              </button>
+            )}
+          </div>
         </div>
+      )
+    })
+  ) : (
+    <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
+      <p className="text-gray-400">{getEmptyStateMessage()}</p>
+      {activeTab === "created" && (
+        <button 
+          className="mt-4 flex items-center gap-1 mx-auto text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
+          onClick={() => setShowCreateModal(true)}
+        >
+          <FaPlus />
+          Create New Team
+        </button>
+      )}
+    </div>
+  )}
+</div>
       </div>
     </div>
   )
