@@ -4,53 +4,46 @@ import {
   FaSearch, FaFilter, FaUserPlus, FaTimes, FaChevronDown,
   FaUsers, FaEnvelope, FaCheck, FaClock, FaPlus, FaCalendarAlt,
   FaProjectDiagram, FaTrash, FaEdit, FaUser, FaChevronRight, FaComment,
-  FaInbox, FaPaperPlane, FaLink, FaUserCircle
+  FaInbox, FaPaperPlane, FaLink, FaUserCircle, FaUserFriends
 } from "react-icons/fa";
 
 function TeamCard({ team, onView, onEdit, onJoin, isOwner }) {
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-500/30 transition-all duration-300 w-[320px] h-[280px] flex flex-col">
+    <div className="bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-500 transition-all duration-300 w-full flex flex-col">
       {/* Header */}
-      <div className="p-4 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <img
-            src={team.logo || "/placeholder-team.svg"}
-            alt={`${team.name} logo`}
-            className="w-12 h-12 rounded-lg object-cover border-2 border-blue-500/30 flex-shrink-0"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-center">
-              <div className="min-w-0">
-                <h3 className="font-medium text-white truncate">{team.name}</h3>
-                <p className="text-sm text-blue-400 truncate">{team.project}</p>
-              </div>
-              {isOwner && (
-                <button 
-                  className="text-gray-400 hover:text-blue-400 p-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(team);
-                  }}
-                >
-                  <FaEdit size={14} />
-                </button>
-              )}
-            </div>
+      <div className="p-4 pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <h3 className="font-medium text-white text-lg mb-1">{team.name}</h3>
+            <p className="text-blue-400 text-sm flex items-center gap-1">
+              <FaProjectDiagram size={12} /> {team.project}
+            </p>
           </div>
+          {isOwner && (
+            <button 
+              className="text-gray-400 hover:text-blue-400 p-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(team);
+              }}
+            >
+              <FaEdit size={14} />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 flex-1 flex flex-col overflow-hidden">
+      <div className="px-4 pb-3 flex-1 flex flex-col overflow-hidden">
         {/* Description */}
-        <div className="mb-3 flex-1 overflow-y-auto pr-2">
-          <p className="text-sm text-gray-300">{team.description}</p>
+        <div className="mb-3 flex-1 overflow-y-auto">
+          <p className="text-sm text-gray-300 line-clamp-3">{team.description}</p>
         </div>
 
         {/* Skills */}
-        <div className="mb-3 overflow-x-auto whitespace-nowrap pb-1">
+        <div className="mb-2 overflow-x-auto whitespace-nowrap pb-1">
           {team.skillsNeeded?.map((skill, index) => (
-            <span key={index} className="inline-block px-2 py-1 bg-gray-700 rounded-full text-xs text-gray-300 mr-2 last:mr-0">
+            <span key={index} className="inline-block px-2.5 py-1 bg-gray-700 rounded-full text-xs text-gray-300 mr-2 last:mr-0">
               {skill}
             </span>
           ))}
@@ -58,8 +51,8 @@ function TeamCard({ team, onView, onEdit, onJoin, isOwner }) {
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-700 bg-gray-800/50 flex justify-between items-center">
-        <div className="flex items-center gap-3 text-xs text-gray-400">
+      <div className="p-3 bg-gray-800/50 border-t border-gray-700 rounded-b-lg flex justify-between items-center">
+        <div className="flex items-center gap-4 text-xs text-gray-400">
           <span className="flex items-center gap-1">
             <FaUsers size={12} />
             {team.members?.length || 0}/{team.maxMembers}
@@ -72,17 +65,17 @@ function TeamCard({ team, onView, onEdit, onJoin, isOwner }) {
         
         <div className="flex gap-2">
           <button 
-            className="text-xs text-gray-300 hover:text-blue-400 px-2 py-1"
+            className="text-xs text-gray-300 hover:text-blue-400 px-3 py-1.5 rounded bg-gray-700 hover:bg-gray-600 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               onView(team);
             }}
           >
-            Details
+            View
           </button>
           {!isOwner && (
             <button 
-              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
                 onJoin(team);
@@ -124,8 +117,7 @@ export default function OpenTeams() {
     maxMembers: 3,
     deadline: "",
     contact: "",
-    status: "active",
-    logo: ""
+    status: "active"
   });
 
   // Sample data
@@ -139,9 +131,8 @@ export default function OpenTeams() {
       id: "1",
       name: "Web Wizards",
       isOwner: true,
-      logo: "/placeholder-team.svg",
       project: "E-commerce Platform",
-      description: "Building a modern e-commerce platform with React, Node.js, and MongoDB.",
+      description: "Building a modern e-commerce platform with React, Node.js, and MongoDB. Looking for frontend and backend developers with experience in these technologies.",
       skillsNeeded: ["JavaScript", "React", "Node.js"],
       members: [{ id: "u1", name: "You", role: "Owner", avatar: "/default-profile.png" }],
       maxMembers: 5,
@@ -173,9 +164,8 @@ export default function OpenTeams() {
       id: "2",
       name: "Data Dynamos",
       isOwner: false,
-      logo: "/placeholder-team.svg",
       project: "Predictive Analytics Tool",
-      description: "Creating machine learning models for healthcare analytics.",
+      description: "Creating machine learning models for healthcare analytics. Need data scientists and Python developers.",
       skillsNeeded: ["Python", "Machine Learning", "Data Science"],
       members: [{ id: "u2", name: "Sarah Lee", role: "Lead", avatar: "/default-profile.png" }],
       maxMembers: 4,
@@ -192,7 +182,6 @@ export default function OpenTeams() {
       id: "app2",
       teamId: "2",
       teamName: "Data Dynamos",
-      teamAvatar: "/placeholder-team.svg",
       message: "I have experience with Python and ML and would love to contribute.",
       status: "pending",
       date: "2023-10-18"
@@ -201,19 +190,9 @@ export default function OpenTeams() {
       id: "app4",
       teamId: "3",
       teamName: "AI Innovators",
-      teamAvatar: "/placeholder-team.svg",
       message: "I'd like to join your AI research team.",
       status: "rejected",
       date: "2023-10-19"
-    },
-    {
-      id: "app5",
-      teamId: "4",
-      teamName: "Mobile Masters",
-      teamAvatar: "/placeholder-team.svg",
-      message: "React Native developer interested in your project.",
-      status: "withdrawn",
-      date: "2023-10-20"
     }
   ]);
 
@@ -252,7 +231,6 @@ export default function OpenTeams() {
     const newTeam = {
       id: `team${Date.now()}`,
       isOwner: true,
-      logo: teamForm.logo || "/placeholder-team.svg",
       ...teamForm,
       members: [{ id: "u1", name: "You", role: "Owner", avatar: "/default-profile.png" }],
       applications: []
@@ -272,8 +250,7 @@ export default function OpenTeams() {
       maxMembers: team.maxMembers,
       deadline: team.deadline,
       contact: team.contact,
-      status: team.status,
-      logo: team.logo
+      status: team.status
     });
     setSelectedTeam(team);
     setShowEditModal(true);
@@ -304,8 +281,7 @@ export default function OpenTeams() {
       maxMembers: 3,
       deadline: "",
       contact: "",
-      status: "active",
-      logo: ""
+      status: "active"
     });
   };
 
@@ -347,7 +323,6 @@ export default function OpenTeams() {
       id: `app${Date.now()}`,
       teamId: team.id,
       teamName: team.name,
-      teamAvatar: team.logo,
       message: message,
       status: "pending",
       date: new Date().toISOString().split('T')[0]
@@ -363,8 +338,8 @@ export default function OpenTeams() {
             ...t,
             applications: [...t.applications, {
               id: newApplication.id,
-              userId: "currentUserId", // Replace with actual user ID
-              userName: "Current User", // Replace with actual user name
+              userId: "currentUserId",
+              userName: "Current User",
               userAvatar: "/default-profile.png",
               message: message,
               status: "pending",
@@ -378,7 +353,6 @@ export default function OpenTeams() {
     
     setShowJoinModal(false);
     setMessage("");
-    alert(`Application to join ${team.name} submitted!`);
   };
 
   const withdrawApplication = (applicationId) => {
@@ -409,26 +383,24 @@ export default function OpenTeams() {
 
   // View profile handler
   const handleViewProfile = (userId) => {
-    // Implement profile viewing functionality
     alert(`Viewing profile of user ${userId}`);
   };
 
   // Start chat handler
   const handleStartChat = (userId) => {
-    // Implement chat functionality
     alert(`Starting chat with user ${userId}`);
   };
 
   return (
-    <div className="p-6 bg-gray-900 min-h-screen">
+    <div className="p-4 bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-white">Team Collaboration</h1>
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('applications')}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors border border-gray-700"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors border border-gray-700"
             >
               <FaInbox /> Applications
             </button>
@@ -437,7 +409,7 @@ export default function OpenTeams() {
                 resetTeamForm();
                 setShowTeamModal(true);
               }}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
               <FaPlus /> Create Team
             </button>
@@ -445,21 +417,21 @@ export default function OpenTeams() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-700 mb-6">
+        <div className="flex border-b border-gray-700 mb-6 overflow-x-auto">
           <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === "find" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === "find" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
             onClick={() => setActiveTab("find")}
           >
             Find Teams
           </button>
           <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === "my" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === "my" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
             onClick={() => setActiveTab("my")}
           >
             My Teams
           </button>
           <button
-            className={`px-4 py-2 font-medium text-sm ${activeTab === "applications" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === "applications" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
             onClick={() => setActiveTab("applications")}
           >
             Applications
@@ -494,8 +466,8 @@ export default function OpenTeams() {
                       key={skill}
                       className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                         selectedSkills.includes(skill)
-                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                          : "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                       }`}
                       onClick={() => toggleSkill(skill)}
                     >
@@ -605,12 +577,12 @@ export default function OpenTeams() {
             <div className="p-4">
               {applicationsTab === "received" ? (
                 <div>
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
                     <h3 className="text-sm font-medium text-gray-300">Applications to your teams</h3>
-                    <div className="flex gap-2">
-                      <div className="relative">
+                    <div className="flex gap-2 w-full md:w-auto">
+                      <div className="relative flex-1 md:flex-none">
                         <select
-                          className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
                           value={receivedTeamFilter}
                           onChange={(e) => setReceivedTeamFilter(e.target.value)}
                         >
@@ -623,9 +595,9 @@ export default function OpenTeams() {
                           <FaChevronDown className="text-gray-400 text-xs" />
                         </div>
                       </div>
-                      <div className="relative">
+                      <div className="relative flex-1 md:flex-none">
                         <select
-                          className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                          className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
                           value={receivedStatusFilter}
                           onChange={(e) => setReceivedStatusFilter(e.target.value)}
                         >
@@ -646,11 +618,9 @@ export default function OpenTeams() {
                       {filteredReceivedApplications.map(app => (
                         <div key={app.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
                           <div className="flex items-start gap-3 mb-3">
-                            <img
-                              src={app.userAvatar || "/default-profile.png"}
-                              alt={app.userName}
-                              className="w-10 h-10 rounded-full border border-gray-600"
-                            />
+                            <div className="bg-gray-600 rounded-full p-2">
+                              <FaUserFriends className="text-gray-300" size={16} />
+                            </div>
                             <div className="flex-1">
                               <div className="flex justify-between items-start">
                                 <div>
@@ -716,11 +686,11 @@ export default function OpenTeams() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
                     <h3 className="text-sm font-medium text-gray-300">Your sent applications</h3>
-                    <div className="relative">
+                    <div className="relative w-full md:w-auto">
                       <select
-                        className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
                         value={sentFilter}
                         onChange={(e) => setSentFilter(e.target.value)}
                       >
@@ -741,11 +711,9 @@ export default function OpenTeams() {
                       {filteredSentApplications.map(app => (
                         <div key={app.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
                           <div className="flex items-start gap-3 mb-3">
-                            <img
-                              src={app.teamAvatar || "/placeholder-team.svg"}
-                              alt={app.teamName}
-                              className="w-10 h-10 rounded-lg border border-gray-600"
-                            />
+                            <div className="bg-gray-600 rounded-lg p-2">
+                              <FaUserFriends className="text-gray-300" size={16} />
+                            </div>
                             <div className="flex-1">
                               <div className="flex justify-between items-start">
                                 <div>
@@ -773,7 +741,7 @@ export default function OpenTeams() {
                                 onClick={() => withdrawApplication(app.id)}
                                 className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded"
                               >
-                                Withdraw Application
+                                Withdraw
                               </button>
                             )}
                             <div className="flex gap-2">
@@ -788,12 +756,6 @@ export default function OpenTeams() {
                                 }}
                               >
                                 <FaLink size={10} /> View Team
-                              </button>
-                              <button
-                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1"
-                                onClick={() => handleStartChat(app.teamId)}
-                              >
-                                <FaComment size={10} /> Chat
                               </button>
                             </div>
                           </div>
@@ -892,7 +854,7 @@ export default function OpenTeams() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-400 mb-1">Max Members</label>
                       <input
@@ -917,30 +879,15 @@ export default function OpenTeams() {
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Contact Email</label>
-                      <input
-                        type="email"
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-                        value={teamForm.contact}
-                        onChange={(e) => setTeamForm({...teamForm, contact: e.target.value})}
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1">Status</label>
-                      <select
-                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-                        value={teamForm.status}
-                        onChange={(e) => setTeamForm({...teamForm, status: e.target.value})}
-                      >
-                        <option value="active">Active</option>
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Contact Email</label>
+                    <input
+                      type="email"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                      value={teamForm.contact}
+                      onChange={(e) => setTeamForm({...teamForm, contact: e.target.value})}
+                      required
+                    />
                   </div>
                 </form>
               </div>
@@ -954,13 +901,13 @@ export default function OpenTeams() {
                       setShowEditModal(false);
                       resetTeamForm();
                     }}
-                    className="px-4 py-2 text-xs text-gray-300 bg-transparent border border-gray-600 rounded hover:bg-gray-700"
+                    className="px-4 py-2 text-sm text-gray-300 bg-transparent border border-gray-600 rounded hover:bg-gray-700"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
-                    className="px-4 py-2 text-xs text-white bg-blue-600 rounded hover:bg-blue-700"
+                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
                     onClick={showEditModal ? updateTeam : handleTeamSubmit}
                   >
                     {showEditModal ? "Save Changes" : "Create Team"}
@@ -977,11 +924,9 @@ export default function OpenTeams() {
             <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
               <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={selectedTeam.logo || "/placeholder-team.svg"}
-                    alt={`${selectedTeam.name} logo`}
-                    className="w-10 h-10 rounded-lg object-cover border-2 border-blue-500/30"
-                  />
+                  <div className="bg-blue-600/20 p-2 rounded-lg">
+                    <FaUserFriends className="text-blue-400" size={20} />
+                  </div>
                   <h2 className="text-lg font-semibold text-white">{selectedTeam.name}</h2>
                 </div>
                 <button 
@@ -997,53 +942,18 @@ export default function OpenTeams() {
                   <div className="md:col-span-2 space-y-6">
                     {/* Project Section */}
                     <div>
-                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                        <FaProjectDiagram /> Project
+                      <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                        <FaProjectDiagram /> Project Details
                       </h3>
                       <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                        <h4 className="text-lg font-medium text-white mb-1">{selectedTeam.project}</h4>
+                        <h4 className="text-lg font-medium text-white mb-2">{selectedTeam.project}</h4>
                         <p className="text-sm text-gray-300">{selectedTeam.description}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Details Section */}
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                        <FaLink /> Details
-                      </h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                          <h4 className="text-xs font-medium text-gray-400 mb-1">Status</h4>
-                          <p className={`text-sm ${
-                            selectedTeam.status === "active" ? "text-green-400" :
-                            selectedTeam.status === "pending" ? "text-yellow-400" :
-                            "text-gray-400"
-                          }`}>
-                            {selectedTeam.status}
-                          </p>
-                        </div>
-                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                          <h4 className="text-xs font-medium text-gray-400 mb-1">Members</h4>
-                          <p className="text-sm text-white">
-                            {selectedTeam.members.length}/{selectedTeam.maxMembers}
-                          </p>
-                        </div>
-                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                          <h4 className="text-xs font-medium text-gray-400 mb-1">Deadline</h4>
-                          <p className="text-sm text-white">
-                            {new Date(selectedTeam.deadline).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
-                          <h4 className="text-xs font-medium text-gray-400 mb-1">Contact</h4>
-                          <p className="text-sm text-blue-400">{selectedTeam.contact}</p>
-                        </div>
                       </div>
                     </div>
                     
                     {/* Skills Section */}
                     <div>
-                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                      <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
                         <FaCheck /> Skills Needed
                       </h3>
                       <div className="flex flex-wrap gap-2">
@@ -1056,32 +966,67 @@ export default function OpenTeams() {
                     </div>
                   </div>
                   
-                  {/* Members Section */}
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
-                      <FaUsers /> Team Members
-                    </h3>
-                    <div className="bg-gray-700/50 rounded-lg border border-gray-600 overflow-hidden">
-                      {selectedTeam.members.map((member, index) => (
-                        <div key={index} className={`p-3 flex items-center gap-3 ${index !== selectedTeam.members.length - 1 ? "border-b border-gray-600" : ""}`}>
-                          <div className="relative">
-                            <img
-                              src={member.avatar || "/default-profile.png"}
-                              alt={member.name}
-                              className="w-10 h-10 rounded-full border border-gray-600"
-                            />
-                            {member.role === "Owner" && (
-                              <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                <FaUserCircle size={10} />
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-white">{member.name}</p>
-                            <p className="text-xs text-gray-400">{member.role}</p>
-                          </div>
+                  {/* Details Section */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                        <FaLink /> Team Info
+                      </h3>
+                      <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600 space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Status</p>
+                          <p className={`text-sm ${
+                            selectedTeam.status === "active" ? "text-green-400" :
+                            selectedTeam.status === "pending" ? "text-yellow-400" :
+                            "text-gray-400"
+                          }`}>
+                            {selectedTeam.status.charAt(0).toUpperCase() + selectedTeam.status.slice(1)}
+                          </p>
                         </div>
-                      ))}
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Members</p>
+                          <p className="text-sm text-white">
+                            {selectedTeam.members.length}/{selectedTeam.maxMembers}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Deadline</p>
+                          <p className="text-sm text-white">
+                            {new Date(selectedTeam.deadline).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Contact</p>
+                          <p className="text-sm text-blue-400">{selectedTeam.contact}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Members Section */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                        <FaUsers /> Team Members
+                      </h3>
+                      <div className="bg-gray-700/50 rounded-lg border border-gray-600 divide-y divide-gray-600">
+                        {selectedTeam.members.map((member, index) => (
+                          <div key={index} className="p-3 flex items-center gap-3">
+                            <div className="relative">
+                              <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center">
+                                <FaUser className="text-gray-300" />
+                              </div>
+                              {member.role === "Owner" && (
+                                <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                  <FaUserCircle size={10} />
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-white">{member.name}</p>
+                              <p className="text-xs text-gray-400">{member.role}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1089,24 +1034,34 @@ export default function OpenTeams() {
               
               <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
                 <div className="flex justify-between items-center">
-                  <button
-                    onClick={() => {
-                      if (selectedTeam.isOwner) {
-                        handleEditTeam(selectedTeam);
-                      } else {
-                        setShowJoinModal(true);
-                      }
-                    }}
-                    className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
-                  >
-                    {selectedTeam.isOwner ? "Edit Team" : "Join Team"}
-                  </button>
-                  <button
-                    onClick={() => setShowViewModal(false)}
-                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                  >
-                    Close
-                  </button>
+                  {selectedTeam.isOwner && (
+                    <button
+                      onClick={() => deleteTeam(selectedTeam.id)}
+                      className="px-4 py-2 text-sm text-red-400 bg-transparent hover:bg-gray-700 rounded-lg"
+                    >
+                      Delete Team
+                    </button>
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (selectedTeam.isOwner) {
+                          handleEditTeam(selectedTeam);
+                        } else {
+                          setShowJoinModal(true);
+                        }
+                      }}
+                      className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+                    >
+                      {selectedTeam.isOwner ? "Edit Team" : "Join Team"}
+                    </button>
+                    <button
+                      onClick={() => setShowViewModal(false)}
+                      className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1116,9 +1071,14 @@ export default function OpenTeams() {
         {/* Join Team Modal */}
         {showJoinModal && selectedTeam && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-white">Join {selectedTeam.name}</h2>
+            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full">
+              <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-600/20 p-2 rounded-lg">
+                    <FaUserFriends className="text-blue-400" size={18} />
+                  </div>
+                  <h2 className="text-lg font-bold text-white">Join {selectedTeam.name}</h2>
+                </div>
                 <button 
                   onClick={() => setShowJoinModal(false)}
                   className="text-gray-400 hover:text-white"
@@ -1127,30 +1087,33 @@ export default function OpenTeams() {
                 </button>
               </div>
               
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-300 mb-1">Message</label>
-                <textarea
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Tell them why you'd be a good fit..."
-                />
-              </div>
-              
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  onClick={() => setShowJoinModal(false)}
-                  className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleSendApplication(selectedTeam)}
-                  className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                >
-                  Send Application
-                </button>
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Message to Team</label>
+                  <textarea
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-3 text-white text-sm"
+                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Tell them why you'd be a good fit for their team..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">This will be sent to the team owner</p>
+                </div>
+                
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowJoinModal(false)}
+                    className="px-4 py-2 text-sm text-gray-300 bg-transparent border border-gray-600 rounded-lg hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleSendApplication(selectedTeam)}
+                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  >
+                    Send Application
+                  </button>
+                </div>
               </div>
             </div>
           </div>

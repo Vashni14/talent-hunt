@@ -33,7 +33,9 @@ app.use("/uploads", express.static("uploads"));
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
-  
+  // In your main server file (app.js or server.js)
+const sdgRoutes = require('./routes/sdg');
+app.use('/api/sdgs', sdgRoutes);
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
 app.use('/api/teams', teamsRouter);
