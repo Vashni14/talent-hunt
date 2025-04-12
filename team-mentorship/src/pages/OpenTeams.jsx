@@ -1,140 +1,239 @@
 "use client"
-
 import { useState } from "react";
 import {
-  FaCalendarAlt,
-  FaFilter,
-  FaSearch,
-  FaUserPlus,
-  FaUsers,
-  FaPlus,
-  FaEnvelope,
-  FaCheck,
-  FaTimes,
-  FaChevronDown,
-  FaChevronUp,
-  FaUser,
-  FaProjectDiagram,
-  FaEye,
-  FaTrash
+  FaSearch, FaFilter, FaUserPlus, FaTimes, FaChevronDown,
+  FaUsers, FaEnvelope, FaCheck, FaClock, FaPlus, FaCalendarAlt,
+  FaProjectDiagram, FaTrash, FaEdit, FaUser, FaChevronRight, FaComment,
+  FaInbox, FaPaperPlane, FaLink, FaUserCircle
 } from "react-icons/fa";
+
+function TeamCard({ team, onView, onEdit, onJoin, isOwner }) {
+  return (
+    <div className="bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-500/30 transition-all duration-300 w-[320px] h-[280px] flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex items-center gap-3">
+          <img
+            src={team.logo || "/placeholder-team.svg"}
+            alt={`${team.name} logo`}
+            className="w-12 h-12 rounded-lg object-cover border-2 border-blue-500/30 flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-center">
+              <div className="min-w-0">
+                <h3 className="font-medium text-white truncate">{team.name}</h3>
+                <p className="text-sm text-blue-400 truncate">{team.project}</p>
+              </div>
+              {isOwner && (
+                <button 
+                  className="text-gray-400 hover:text-blue-400 p-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(team);
+                  }}
+                >
+                  <FaEdit size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-4 flex-1 flex flex-col overflow-hidden">
+        {/* Description */}
+        <div className="mb-3 flex-1 overflow-y-auto pr-2">
+          <p className="text-sm text-gray-300">{team.description}</p>
+        </div>
+
+        {/* Skills */}
+        <div className="mb-3 overflow-x-auto whitespace-nowrap pb-1">
+          {team.skillsNeeded?.map((skill, index) => (
+            <span key={index} className="inline-block px-2 py-1 bg-gray-700 rounded-full text-xs text-gray-300 mr-2 last:mr-0">
+              {skill}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 border-t border-gray-700 bg-gray-800/50 flex justify-between items-center">
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="flex items-center gap-1">
+            <FaUsers size={12} />
+            {team.members?.length || 0}/{team.maxMembers}
+          </span>
+          <span className="flex items-center gap-1">
+            <FaCalendarAlt size={12} />
+            {new Date(team.deadline).toLocaleDateString()}
+          </span>
+        </div>
+        
+        <div className="flex gap-2">
+          <button 
+            className="text-xs text-gray-300 hover:text-blue-400 px-2 py-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onView(team);
+            }}
+          >
+            Details
+          </button>
+          {!isOwner && (
+            <button 
+              className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onJoin(team);
+              }}
+            >
+              Join
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function OpenTeams() {
   // State management
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkills, setSelectedSkills] = useState([]);
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
-  const [selectedApplicant, setSelectedApplicant] = useState(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showApplyModal, setShowApplyModal] = useState(false);
-  const [showPostTeamModal, setShowPostTeamModal] = useState(false);
-  const [showReceivedApplicationsModal, setShowReceivedApplicationsModal] = useState(false);
-  const [showSentApplicationsModal, setShowSentApplicationsModal] = useState(false);
-  const [showApplicantProfileModal, setShowApplicantProfileModal] = useState(false);
-  const [expandedTeamId, setExpandedTeamId] = useState(null);
+  const [activeTab, setActiveTab] = useState("find");
+  const [message, setMessage] = useState("");
   
-  // Form states
-  const [newTeamForm, setNewTeamForm] = useState({
+  // Application states
+  const [applicationsTab, setApplicationsTab] = useState("received");
+  const [sentFilter, setSentFilter] = useState("all");
+  const [receivedTeamFilter, setReceivedTeamFilter] = useState("all");
+  const [receivedStatusFilter, setReceivedStatusFilter] = useState("all");
+
+  // Form state
+  const [teamForm, setTeamForm] = useState({
     name: "",
     project: "",
     description: "",
-    skills: [],
-    members: 1,
+    skillsNeeded: [],
     maxMembers: 3,
     deadline: "",
-    contact: ""
-  });
-  
-  const [applicationForm, setApplicationForm] = useState({
-    message: "",
-    skills: ""
+    contact: "",
+    status: "active",
+    logo: ""
   });
 
-  // Data - would normally come from API
+  // Sample data
   const allSkills = [
     "JavaScript", "React", "Node.js", "Python", "Data Science",
     "UI/UX Design", "Machine Learning", "Mobile Development", "DevOps"
   ];
 
-  // Sample data - in a real app, this would come from your backend
-  const [publicTeams, setPublicTeams] = useState([
+  const [teams, setTeams] = useState([
     {
       id: "1",
       name: "Web Wizards",
-      isMyTeam: true, // This is a team I own
+      isOwner: true,
       logo: "/placeholder-team.svg",
       project: "E-commerce Platform",
       description: "Building a modern e-commerce platform with React, Node.js, and MongoDB.",
-      skills: ["JavaScript", "React", "Node.js"],
-      members: 3,
+      skillsNeeded: ["JavaScript", "React", "Node.js"],
+      members: [{ id: "u1", name: "You", role: "Owner", avatar: "/default-profile.png" }],
       maxMembers: 5,
-      deadline: "Apr 30, 2025",
+      deadline: "2023-12-31",
       contact: "webwizards@example.com",
+      status: "active",
       applications: [
         {
           id: "app1",
-          applicant: "Alex Chen",
-          email: "alex.chen@example.com",
-          message: "I have 3 years of React experience and would love to contribute!",
+          userId: "u2",
+          userName: "Alex Johnson",
+          userAvatar: "/default-profile.png",
+          message: "I'm a full-stack developer with 3 years of React experience.",
           status: "pending",
-          date: "Apr 5, 2025",
-          skills: ["React", "JavaScript", "UI/UX"],
-          bio: "Full-stack developer with experience in building scalable web applications."
+          date: "2023-10-15"
+        },
+        {
+          id: "app3",
+          userId: "u3",
+          userName: "Sam Wilson",
+          userAvatar: "/default-profile.png",
+          message: "Frontend specialist looking to contribute.",
+          status: "accepted",
+          date: "2023-10-16"
         }
       ]
     },
     {
       id: "2",
       name: "Data Dynamos",
-      isMyTeam: false, // This is someone else's team
+      isOwner: false,
       logo: "/placeholder-team.svg",
       project: "Predictive Analytics Tool",
       description: "Creating machine learning models for healthcare analytics.",
-      skills: ["Python", "Machine Learning", "Data Science"],
-      members: 2,
+      skillsNeeded: ["Python", "Machine Learning", "Data Science"],
+      members: [{ id: "u2", name: "Sarah Lee", role: "Lead", avatar: "/default-profile.png" }],
       maxMembers: 4,
-      deadline: "May 15, 2025",
+      deadline: "2024-01-15",
       contact: "datadynamos@example.com",
-      applications: []
-    },
-    {
-      id: "3",
-      name: "Mobile Mavericks",
-      isMyTeam: false,
-      logo: "/placeholder-team.svg",
-      project: "Fitness Tracking App",
-      description: "Developing a cross-platform mobile app for fitness tracking.",
-      skills: ["React Native", "Mobile Development", "UI/UX"],
-      members: 2,
-      maxMembers: 4,
-      deadline: "May 10, 2025",
-      contact: "mobilemavericks@example.com",
+      status: "active",
       applications: []
     }
   ]);
 
-  const [mySentApplications, setMySentApplications] = useState([
+  // Sent applications
+  const [sentApplications, setSentApplications] = useState([
     {
-      id: "sent1",
+      id: "app2",
       teamId: "2",
-      team: "Data Dynamos",
-      project: "Predictive Analytics Tool",
-      message: "I have strong Python skills for your ML project",
+      teamName: "Data Dynamos",
+      teamAvatar: "/placeholder-team.svg",
+      message: "I have experience with Python and ML and would love to contribute.",
       status: "pending",
-      date: "Apr 1, 2025",
-      skills: ["Python", "Data Science"]
+      date: "2023-10-18"
     },
     {
-      id: "sent2",
+      id: "app4",
       teamId: "3",
-      team: "Mobile Mavericks",
-      project: "Fitness Tracking App",
-      message: "I'm experienced with React Native development",
-      status: "pending",
-      date: "Apr 3, 2025",
-      skills: ["React Native", "JavaScript"]
+      teamName: "AI Innovators",
+      teamAvatar: "/placeholder-team.svg",
+      message: "I'd like to join your AI research team.",
+      status: "rejected",
+      date: "2023-10-19"
+    },
+    {
+      id: "app5",
+      teamId: "4",
+      teamName: "Mobile Masters",
+      teamAvatar: "/placeholder-team.svg",
+      message: "React Native developer interested in your project.",
+      status: "withdrawn",
+      date: "2023-10-20"
     }
   ]);
+
+  // Filter sent applications
+  const filteredSentApplications = sentApplications.filter(app => {
+    if (sentFilter === "all") return true;
+    return app.status === sentFilter;
+  });
+
+  // Filter received applications
+  const filteredReceivedApplications = teams.flatMap(team => {
+    if (receivedTeamFilter !== "all" && team.id !== receivedTeamFilter) return [];
+    
+    return team.applications
+      .filter(app => receivedStatusFilter === "all" || app.status === receivedStatusFilter)
+      .map(app => ({ ...app, teamId: team.id, teamName: team.name }));
+  });
+
+  // Get my teams
+  const myTeams = teams.filter(team => team.isOwner);
 
   // Helper functions
   const toggleSkill = (skill) => {
@@ -143,751 +242,916 @@ export default function OpenTeams() {
     );
   };
 
-  const toggleTeamExpand = (teamId) => {
-    setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
-  };
-
-  // Filter teams to show only others' teams that I haven't applied to
-  const filteredTeams = publicTeams.filter(team => {
-    // Only show teams that are not mine
-    const isNotMyTeam = !team.isMyTeam;
-    
-    const matchesSearch = 
-      team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.project.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      team.description.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesSkills = 
-      selectedSkills.length === 0 || 
-      selectedSkills.some(skill => team.skills.includes(skill));
-
-    return isNotMyTeam && matchesSearch && matchesSkills;
-  });
-
   const clearFilters = () => {
-    setSearchTerm("");
+    setSearchQuery("");
     setSelectedSkills([]);
-  };
-
-  // Application handlers
-  const handleApplySubmit = (e) => {
-    e.preventDefault();
-    const newApplication = {
-      id: `sent${mySentApplications.length + 1}`,
-      teamId: selectedTeam.id,
-      team: selectedTeam.name,
-      project: selectedTeam.project,
-      message: applicationForm.message,
-      skills: applicationForm.skills.split(",").map(s => s.trim()),
-      status: "pending",
-      date: new Date().toLocaleDateString()
-    };
-    
-    setMySentApplications([...mySentApplications, newApplication]);
-    setShowApplyModal(false);
-    setApplicationForm({ message: "", skills: "" });
-  };
-
-  const handleApplicationAction = (teamId, applicationId, action) => {
-    setPublicTeams(publicTeams.map(team => {
-      if (team.id === teamId) {
-        return {
-          ...team,
-          applications: team.applications.map(app => 
-            app.id === applicationId ? { ...app, status: action } : app
-          )
-        };
-      }
-      return team;
-    }));
-  };
-
-  const handleWithdrawApplication = (applicationId) => {
-    setMySentApplications(mySentApplications.filter(app => app.id !== applicationId));
   };
 
   const handleTeamSubmit = (e) => {
     e.preventDefault();
     const newTeam = {
-      id: `team${publicTeams.length + 1}`,
-      isMyTeam: true,
-      logo: "/placeholder-team.svg",
-      ...newTeamForm,
+      id: `team${Date.now()}`,
+      isOwner: true,
+      logo: teamForm.logo || "/placeholder-team.svg",
+      ...teamForm,
+      members: [{ id: "u1", name: "You", role: "Owner", avatar: "/default-profile.png" }],
       applications: []
     };
     
-    setPublicTeams([...publicTeams, newTeam]);
-    setShowPostTeamModal(false);
-    setNewTeamForm({
+    setTeams([...teams, newTeam]);
+    setShowTeamModal(false);
+    resetTeamForm();
+  };
+
+  const handleEditTeam = (team) => {
+    setTeamForm({
+      name: team.name,
+      project: team.project,
+      description: team.description,
+      skillsNeeded: team.skillsNeeded,
+      maxMembers: team.maxMembers,
+      deadline: team.deadline,
+      contact: team.contact,
+      status: team.status,
+      logo: team.logo
+    });
+    setSelectedTeam(team);
+    setShowEditModal(true);
+  };
+
+  const updateTeam = (e) => {
+    e.preventDefault();
+    const updatedTeams = teams.map(t => 
+      t.id === selectedTeam.id ? { ...t, ...teamForm } : t
+    );
+    setTeams(updatedTeams);
+    setShowEditModal(false);
+    resetTeamForm();
+  };
+
+  const deleteTeam = (teamId) => {
+    if (window.confirm("Are you sure you want to delete this team?")) {
+      setTeams(teams.filter(t => t.id !== teamId));
+    }
+  };
+
+  const resetTeamForm = () => {
+    setTeamForm({
       name: "",
       project: "",
       description: "",
-      skills: [],
-      members: 1,
+      skillsNeeded: [],
       maxMembers: 3,
       deadline: "",
-      contact: ""
+      contact: "",
+      status: "active",
+      logo: ""
     });
   };
 
-  // Get teams I own
-  const myTeams = publicTeams.filter(team => team.isMyTeam);
+  const handleApplicationAction = (teamId, applicationId, action) => {
+    setTeams(teams.map(team => {
+      if (team.id === teamId) {
+        const updatedApplications = team.applications.map(app => {
+          if (app.id === applicationId) {
+            return { ...app, status: action };
+          }
+          return app;
+        }).filter(app => app.id !== applicationId || action !== "rejected");
+        
+        // If accepted, add to members
+        if (action === "accepted") {
+          const application = team.applications.find(app => app.id === applicationId);
+          if (application && team.members.length < team.maxMembers) {
+            return {
+              ...team,
+              applications: updatedApplications,
+              members: [...team.members, { 
+                id: application.userId, 
+                name: application.userName,
+                role: "Member",
+                avatar: application.userAvatar
+              }]
+            };
+          }
+        }
+        
+        return { ...team, applications: updatedApplications };
+      }
+      return team;
+    }));
+  };
+
+  const handleSendApplication = (team) => {
+    const newApplication = {
+      id: `app${Date.now()}`,
+      teamId: team.id,
+      teamName: team.name,
+      teamAvatar: team.logo,
+      message: message,
+      status: "pending",
+      date: new Date().toISOString().split('T')[0]
+    };
+    
+    setSentApplications([...sentApplications, newApplication]);
+    
+    // Also add to the team's applications if it's not your own team
+    if (!team.isOwner) {
+      setTeams(teams.map(t => {
+        if (t.id === team.id) {
+          return {
+            ...t,
+            applications: [...t.applications, {
+              id: newApplication.id,
+              userId: "currentUserId", // Replace with actual user ID
+              userName: "Current User", // Replace with actual user name
+              userAvatar: "/default-profile.png",
+              message: message,
+              status: "pending",
+              date: new Date().toISOString().split('T')[0]
+            }]
+          };
+        }
+        return t;
+      }));
+    }
+    
+    setShowJoinModal(false);
+    setMessage("");
+    alert(`Application to join ${team.name} submitted!`);
+  };
+
+  const withdrawApplication = (applicationId) => {
+    setSentApplications(sentApplications.map(app => 
+      app.id === applicationId ? { ...app, status: "withdrawn" } : app
+    ));
+    
+    // Also remove from team's applications if it exists
+    setTeams(teams.map(team => ({
+      ...team,
+      applications: team.applications.filter(app => app.id !== applicationId)
+    })));
+  };
+
+  // Filter teams based on search and selected skills
+  const filteredTeams = teams.filter(team => {
+    const matchesSearch = 
+      team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      team.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      team.description.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesSkills = 
+      selectedSkills.length === 0 || 
+      selectedSkills.some(skill => team.skillsNeeded.includes(skill));
+
+    return matchesSearch && matchesSkills && !team.isOwner;
+  });
+
+  // View profile handler
+  const handleViewProfile = (userId) => {
+    // Implement profile viewing functionality
+    alert(`Viewing profile of user ${userId}`);
+  };
+
+  // Start chat handler
+  const handleStartChat = (userId) => {
+    // Implement chat functionality
+    alert(`Starting chat with user ${userId}`);
+  };
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-white">Open Teams</h1>
+          <h1 className="text-2xl font-bold text-white">Team Collaboration</h1>
           <div className="flex gap-3">
             <button
-              onClick={() => setShowReceivedApplicationsModal(true)}
+              onClick={() => setActiveTab('applications')}
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors border border-gray-700"
+            >
+              <FaInbox /> Applications
+            </button>
+            <button
+              onClick={() => {
+                resetTeamForm();
+                setShowTeamModal(true);
+              }}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              <FaEnvelope /> Received Apps
-            </button>
-            <button
-              onClick={() => setShowSentApplicationsModal(true)}
-              className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <FaEnvelope /> Sent Apps
-            </button>
-            <button
-              onClick={() => setShowPostTeamModal(true)}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <FaPlus /> Post Team
+              <FaPlus /> Create Team
             </button>
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="flex flex-col md:flex-row gap-6 mb-8">
-          <div className="w-full md:w-1/3 lg:w-1/4 space-y-4">
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search teams..."
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <FaSearch className="absolute left-3 top-2.5 text-gray-400" />
-              </div>
-            </div>
+        {/* Tabs */}
+        <div className="flex border-b border-gray-700 mb-6">
+          <button
+            className={`px-4 py-2 font-medium text-sm ${activeTab === "find" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            onClick={() => setActiveTab("find")}
+          >
+            Find Teams
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${activeTab === "my" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            onClick={() => setActiveTab("my")}
+          >
+            My Teams
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${activeTab === "applications" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+            onClick={() => setActiveTab("applications")}
+          >
+            Applications
+          </button>
+        </div>
 
-            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-              <div className="flex items-center mb-4">
-                <FaFilter className="text-gray-400 mr-2" />
-                <h2 className="text-white font-medium">Filter by Skills</h2>
+        {/* Find Teams Tab */}
+        {activeTab === "find" && (
+          <div className="flex flex-col md:flex-row gap-6 mb-8">
+            <div className="w-full md:w-1/3 lg:w-1/4 space-y-4">
+              <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search teams..."
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <FaSearch className="absolute left-3 top-2.5 text-gray-400" />
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {allSkills.map(skill => (
+
+              <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <div className="flex items-center mb-4">
+                  <FaFilter className="text-gray-400 mr-2" />
+                  <h2 className="text-white font-medium">Filter by Skills</h2>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {allSkills.map(skill => (
+                    <button
+                      key={skill}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        selectedSkills.includes(skill)
+                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                          : "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
+                      }`}
+                      onClick={() => toggleSkill(skill)}
+                    >
+                      {skill}
+                    </button>
+                  ))}
+                </div>
+                {selectedSkills.length > 0 && (
                   <button
-                    key={skill}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      selectedSkills.includes(skill)
-                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                        : "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
-                    }`}
-                    onClick={() => toggleSkill(skill)}
-                  >
-                    {skill}
-                  </button>
-                ))}
-              </div>
-              {selectedSkills.length > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="mt-3 text-xs text-blue-400 hover:text-blue-300"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Teams List - Showing only others' teams */}
-          <div className="w-full md:w-2/3 lg:w-3/4">
-            <div className="space-y-4">
-              {filteredTeams.length > 0 ? (
-                filteredTeams.map(team => (
-                  <div
-                    key={team.id}
-                    className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/5"
-                  >
-                    <div className="p-5">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-start gap-4">
-                          <img
-                            src={team.logo}
-                            alt={`${team.name} logo`}
-                            className="w-14 h-14 rounded-lg object-cover border-2 border-blue-500/30"
-                          />
-                          <div>
-                            <h3 className="font-medium text-white text-lg">{team.name}</h3>
-                            <p className="text-sm text-blue-400">{team.project}</p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => toggleTeamExpand(team.id)}
-                          className="text-gray-400 hover:text-white"
-                        >
-                          {expandedTeamId === team.id ? <FaChevronUp /> : <FaChevronDown />}
-                        </button>
-                      </div>
-
-                      {expandedTeamId === team.id && (
-                        <>
-                          <p className="mt-4 text-sm text-gray-300">{team.description}</p>
-
-                          <div className="mt-4">
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {team.skills.map(skill => (
-                                <span 
-                                  key={skill} 
-                                  className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300"
-                                >
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-400 mt-3">
-                              <div className="flex items-center">
-                                <FaUsers className="mr-1" />
-                                <span>
-                                  {team.members}/{team.maxMembers} members
-                                </span>
-                              </div>
-                              <div className="flex items-center">
-                                <FaCalendarAlt className="mr-1" />
-                                <span>Deadline: {team.deadline}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                    <div className="border-t border-gray-700 p-3 flex justify-between items-center">
-                      <button 
-                        className="text-xs text-gray-300 hover:text-white"
-                        onClick={() => {
-                          setSelectedTeam(team);
-                          setShowDetailsModal(true);
-                        }}
-                      >
-                        View Details
-                      </button>
-                      <button
-                        className="flex items-center gap-1 text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                        onClick={() => {
-                          setSelectedTeam(team);
-                          setShowApplyModal(true);
-                        }}
-                      >
-                        <FaUserPlus className="text-xs" />
-                        Apply to Join
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
-                  <p className="text-gray-400">No teams found matching your criteria.</p>
-                  <button
-                    className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
                     onClick={clearFilters}
+                    className="mt-3 text-xs text-blue-400 hover:text-blue-300"
                   >
                     Clear filters
                   </button>
+                )}
+              </div>
+            </div>
+
+            {/* Teams List */}
+            <div className="w-full md:w-2/3 lg:w-3/4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTeams.length > 0 ? (
+                  filteredTeams.map(team => (
+                    <TeamCard 
+                      key={team.id}
+                      team={team}
+                      onView={(team) => {
+                        setSelectedTeam(team);
+                        setShowViewModal(true);
+                      }}
+                      onJoin={(team) => {
+                        setSelectedTeam(team);
+                        setShowJoinModal(true);
+                      }}
+                      isOwner={false}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
+                    <p className="text-gray-400">No teams found matching your criteria.</p>
+                    <button
+                      onClick={clearFilters}
+                      className="mt-4 text-blue-400 hover:text-blue-300 text-sm"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* My Teams Tab */}
+        {activeTab === "my" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myTeams.length > 0 ? (
+              myTeams.map(team => (
+                <TeamCard 
+                  key={team.id}
+                  team={team}
+                  onView={(team) => {
+                    setSelectedTeam(team);
+                    setShowViewModal(true);
+                  }}
+                  onEdit={(team) => {
+                    handleEditTeam(team);
+                  }}
+                  isOwner={true}
+                />
+              ))
+            ) : (
+              <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
+                <p className="text-gray-400">You haven't created any teams yet.</p>
+                <button
+                  onClick={() => {
+                    resetTeamForm();
+                    setShowTeamModal(true);
+                  }}
+                  className="mt-4 flex items-center gap-1 mx-auto text-blue-400 hover:text-blue-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
+                >
+                  <FaPlus /> Create Your First Team
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Applications Tab */}
+        {activeTab === "applications" && (
+          <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+            <div className="flex border-b border-gray-700">
+              <button
+                className={`px-4 py-3 font-medium text-sm flex-1 text-center ${applicationsTab === "received" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+                onClick={() => setApplicationsTab("received")}
+              >
+                <FaInbox className="inline mr-2" /> Received
+              </button>
+              <button
+                className={`px-4 py-3 font-medium text-sm flex-1 text-center ${applicationsTab === "sent" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
+                onClick={() => setApplicationsTab("sent")}
+              >
+                <FaPaperPlane className="inline mr-2" /> Sent
+              </button>
+            </div>
+            
+            <div className="p-4">
+              {applicationsTab === "received" ? (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-medium text-gray-300">Applications to your teams</h3>
+                    <div className="flex gap-2">
+                      <div className="relative">
+                        <select
+                          className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                          value={receivedTeamFilter}
+                          onChange={(e) => setReceivedTeamFilter(e.target.value)}
+                        >
+                          <option value="all">All Teams</option>
+                          {myTeams.map(team => (
+                            <option key={team.id} value={team.id}>{team.name}</option>
+                          ))}
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <FaChevronDown className="text-gray-400 text-xs" />
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <select
+                          className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                          value={receivedStatusFilter}
+                          onChange={(e) => setReceivedStatusFilter(e.target.value)}
+                        >
+                          <option value="all">All Status</option>
+                          <option value="pending">Pending</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                          <FaChevronDown className="text-gray-400 text-xs" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {filteredReceivedApplications.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredReceivedApplications.map(app => (
+                        <div key={app.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                          <div className="flex items-start gap-3 mb-3">
+                            <img
+                              src={app.userAvatar || "/default-profile.png"}
+                              alt={app.userName}
+                              className="w-10 h-10 rounded-full border border-gray-600"
+                            />
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-white">{app.userName}</p>
+                                  <p className="text-xs text-gray-400">
+                                    {app.teamName} • {new Date(app.date).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  app.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                  app.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                                  "bg-gray-500/20 text-gray-400"
+                                }`}>
+                                  {app.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-300 mt-1">{app.message}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            {app.status === "pending" && (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleApplicationAction(app.teamId, app.id, "rejected")}
+                                  className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded"
+                                >
+                                  Reject
+                                </button>
+                                <button
+                                  onClick={() => handleApplicationAction(app.teamId, app.id, "accepted")}
+                                  className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded"
+                                  disabled={teams.find(t => t.id === app.teamId)?.members.length >= teams.find(t => t.id === app.teamId)?.maxMembers}
+                                >
+                                  Accept
+                                </button>
+                              </div>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1"
+                                onClick={() => handleViewProfile(app.userId)}
+                              >
+                                <FaUser size={10} /> Profile
+                              </button>
+                              <button
+                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1"
+                                onClick={() => handleStartChat(app.userId)}
+                              >
+                                <FaComment size={10} /> Chat
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FaInbox className="mx-auto text-gray-500 text-3xl mb-3" />
+                      <p className="text-gray-400">No applications found matching your criteria</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-medium text-gray-300">Your sent applications</h3>
+                    <div className="relative">
+                      <select
+                        className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-white text-xs appearance-none pr-7"
+                        value={sentFilter}
+                        onChange={(e) => setSentFilter(e.target.value)}
+                      >
+                        <option value="all">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="withdrawn">Withdrawn</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                        <FaChevronDown className="text-gray-400 text-xs" />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {filteredSentApplications.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredSentApplications.map(app => (
+                        <div key={app.id} className="bg-gray-700/50 rounded-lg p-3 border border-gray-600">
+                          <div className="flex items-start gap-3 mb-3">
+                            <img
+                              src={app.teamAvatar || "/placeholder-team.svg"}
+                              alt={app.teamName}
+                              className="w-10 h-10 rounded-lg border border-gray-600"
+                            />
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-white">{app.teamName}</p>
+                                  <p className="text-xs text-gray-400">
+                                    {new Date(app.date).toLocaleDateString()}
+                                  </p>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                  app.status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                                  app.status === "accepted" ? "bg-green-500/20 text-green-400" :
+                                  app.status === "rejected" ? "bg-red-500/20 text-red-400" :
+                                  "bg-gray-500/20 text-gray-400"
+                                }`}>
+                                  {app.status}
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-300 mt-1">{app.message}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-between items-center">
+                            {app.status === "pending" && (
+                              <button
+                                onClick={() => withdrawApplication(app.id)}
+                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded"
+                              >
+                                Withdraw Application
+                              </button>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1"
+                                onClick={() => {
+                                  const team = teams.find(t => t.id === app.teamId);
+                                  if (team) {
+                                    setSelectedTeam(team);
+                                    setShowViewModal(true);
+                                  }
+                                }}
+                              >
+                                <FaLink size={10} /> View Team
+                              </button>
+                              <button
+                                className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1"
+                                onClick={() => handleStartChat(app.teamId)}
+                              >
+                                <FaComment size={10} /> Chat
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FaPaperPlane className="mx-auto text-gray-500 text-3xl mb-3" />
+                      <p className="text-gray-400">No applications found matching your criteria</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Team Details Modal */}
-        {showDetailsModal && selectedTeam && (
+        {/* Create/Edit Team Modal */}
+        {(showTeamModal || showEditModal) && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-white">{selectedTeam.name}</h2>
+            <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
+                <h2 className="text-lg font-semibold text-white">
+                  {showEditModal ? "Edit Team" : "Create New Team"}
+                </h2>
                 <button 
-                  onClick={() => setShowDetailsModal(false)}
+                  onClick={() => {
+                    setShowTeamModal(false);
+                    setShowEditModal(false);
+                    resetTeamForm();
+                  }}
                   className="text-gray-400 hover:text-white"
                 >
-                  ✕
+                  <FaTimes size={18} />
                 </button>
               </div>
               
-              <div className="flex items-start gap-4 mb-6">
-                <img
-                  src={selectedTeam.logo}
-                  alt={`${selectedTeam.name} logo`}
-                  className="w-16 h-16 rounded-lg object-cover border-2 border-blue-500/30"
-                />
-                <div>
-                  <p className="text-blue-400 font-medium">{selectedTeam.project}</p>
-                  <p className="text-gray-300 mt-2">{selectedTeam.description}</p>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-white font-medium mb-2">Required Skills</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedTeam.skills.map(skill => (
-                    <span key={skill} className="px-3 py-1 bg-gray-700 rounded-full text-sm text-gray-300">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <p className="text-gray-400 text-sm">Team Size</p>
-                  <p className="text-white">{selectedTeam.members}/{selectedTeam.maxMembers} members</p>
-                </div>
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <p className="text-gray-400 text-sm">Deadline</p>
-                  <p className="text-white">{selectedTeam.deadline}</p>
-                </div>
-              </div>
-
-              <div className="bg-gray-700 p-3 rounded-lg">
-                <p className="text-gray-400 text-sm">Contact</p>
-                <p className="text-white">{selectedTeam.contact}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Apply to Team Modal */}
-        {showApplyModal && selectedTeam && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-white">Apply to {selectedTeam.name}</h2>
-                <button 
-                  onClick={() => setShowApplyModal(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleApplySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">Your Message</label>
-                  <textarea
-                    rows={4}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={applicationForm.message}
-                    onChange={(e) => setApplicationForm({...applicationForm, message: e.target.value})}
-                    required
-                    placeholder="Why do you want to join this team?"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">Your Skills</label>
-                  <input
-                    type="text"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={applicationForm.skills}
-                    onChange={(e) => setApplicationForm({...applicationForm, skills: e.target.value})}
-                    required
-                    placeholder="List your relevant skills (comma separated)"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg mt-4"
-                >
-                  Submit Application
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* Received Applications Modal */}
-        {showReceivedApplicationsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-bold text-white">Received Applications</h2>
-                  <button 
-                    onClick={() => setShowReceivedApplicationsModal(false)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {myTeams.length > 0 ? (
-                  myTeams.map(team => (
-                    team.applications.length > 0 ? (
-                      <div key={team.id} className="mb-8">
-                        <div className="flex items-center gap-3 mb-3">
-                          <FaProjectDiagram className="text-blue-400" />
-                          <h3 className="text-blue-400 font-medium">{team.name} - {team.project}</h3>
-                        </div>
-                        <div className="space-y-3">
-                          {team.applications.map(app => (
-                            <div key={app.id} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <FaUser className="text-gray-400" />
-                                    <h4 className="font-medium text-white">{app.applicant}</h4>
-                                  </div>
-                                  <p className="text-sm text-blue-400 mt-1">{app.email}</p>
-                                </div>
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  app.status === "accepted" 
-                                    ? "bg-green-500/20 text-green-400" 
-                                    : app.status === "rejected" 
-                                      ? "bg-red-500/20 text-red-400" 
-                                      : "bg-yellow-500/20 text-yellow-400"
-                                }`}>
-                                  {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                                </span>
-                              </div>
-                              <p className="text-gray-300 text-sm mb-3">{app.message}</p>
-                              <div className="flex justify-between items-center text-xs text-gray-400">
-                                <span>Applied: {app.date}</span>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedApplicant(app);
-                                      setShowApplicantProfileModal(true);
-                                    }}
-                                    className="px-2 py-1 bg-gray-600 hover:bg-gray-700 rounded text-xs flex items-center gap-1"
-                                  >
-                                    <FaEye /> View Profile
-                                  </button>
-                                  {app.status === "pending" && (
-                                    <>
-                                      <button
-                                        onClick={() => handleApplicationAction(team.id, app.id, "reject")}
-                                        className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-1 text-xs"
-                                      >
-                                        <FaTimes /> Reject
-                                      </button>
-                                      <button
-                                        onClick={() => handleApplicationAction(team.id, app.id, "accept")}
-                                        className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1 text-xs"
-                                      >
-                                        <FaCheck /> Accept
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div key={team.id} className="text-gray-400 text-sm mb-4">
-                        No applications received for {team.name} yet.
-                      </div>
-                    )
-                  ))
-                ) : (
-                  <div className="text-gray-400 text-center py-4">
-                    You don't own any teams yet. Post a team to receive applications.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Applicant Profile Modal */}
-        {showApplicantProfileModal && selectedApplicant && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-white">{selectedApplicant.applicant}'s Profile</h2>
-                <button 
-                  onClick={() => setShowApplicantProfileModal(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-2xl">
-                    <FaUser className="text-gray-400" />
-                  </div>
+              <div className="overflow-y-auto p-4 flex-1">
+                <form onSubmit={showEditModal ? updateTeam : handleTeamSubmit} className="space-y-4">
                   <div>
-                    <h3 className="font-medium text-white">{selectedApplicant.applicant}</h3>
-                    <p className="text-sm text-blue-400">{selectedApplicant.email}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-white font-medium mb-2">Skills</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {(selectedApplicant.skills || []).map((skill, i) => (
-                      <span key={i} className="px-3 py-1 bg-gray-700 rounded-full text-sm text-gray-300">
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="text-white font-medium mb-2">Bio</h4>
-                  <p className="text-gray-300">{selectedApplicant.bio || "No bio provided"}</p>
-                </div>
-
-                <div className="pt-4 border-t border-gray-700">
-                  <h4 className="text-white font-medium mb-2">Application Details</h4>
-                  <p className="text-gray-300 text-sm mb-1">Status: 
-                    <span className={`ml-2 ${
-                      selectedApplicant.status === "accepted" 
-                        ? "text-green-400" 
-                        : selectedApplicant.status === "rejected" 
-                          ? "text-red-400" 
-                          : "text-yellow-400"
-                    }`}>
-                      {selectedApplicant.status.charAt(0).toUpperCase() + selectedApplicant.status.slice(1)}
-                    </span>
-                  </p>
-                  <p className="text-gray-300 text-sm">Applied: {selectedApplicant.date}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sent Applications Modal */}
-        {showSentApplicationsModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-bold text-white">Sent Applications</h2>
-                  <button 
-                    onClick={() => setShowSentApplicationsModal(false)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                {mySentApplications.length > 0 ? (
-                  <div className="space-y-3">
-                    {mySentApplications.map(app => {
-                      const team = publicTeams.find(t => t.id === app.teamId);
-                      return (
-                        <div key={app.id} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <FaProjectDiagram className="text-purple-400" />
-                                <h4 className="font-medium text-white">{app.team} - {app.project}</h4>
-                              </div>
-                              {team && (
-                                <p className="text-sm text-gray-400 mt-1">
-                                  Team contact: {team.contact}
-                                </p>
-                              )}
-                            </div>
-                            <span className={`px-2 py-1 rounded-full text-xs ${
-                              app.status === "accepted" 
-                                ? "bg-green-500/20 text-green-400" 
-                                : app.status === "rejected" 
-                                  ? "bg-red-500/20 text-red-400" 
-                                  : "bg-yellow-500/20 text-yellow-400"
-                            }`}>
-                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                            </span>
-                          </div>
-                          <p className="text-gray-300 text-sm mb-3">{app.message}</p>
-                          <div className="flex justify-between items-center">
-                            <div className="flex flex-wrap gap-1 text-xs">
-                              {(app.skills || []).map((skill, i) => (
-                                <span key={i} className="px-2 py-0.5 bg-gray-700 rounded-full">
-                                  {skill}
-                                </span>
-                              ))}
-                            </div>
-                            <div className="flex gap-2">
-                              {app.status === "pending" && (
-                                <button
-                                  onClick={() => handleWithdrawApplication(app.id)}
-                                  className="flex items-center gap-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs"
-                                >
-                                  <FaTrash /> Withdraw
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-xs text-gray-400 mt-2">
-                            Applied: {app.date}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-gray-400 text-center py-4">
-                    You haven't applied to any teams yet.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Post Team Modal */}
-        {showPostTeamModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-2xl w-full p-6">
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-white">Post New Team</h2>
-                <button 
-                  onClick={() => setShowPostTeamModal(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleTeamSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-300 text-sm mb-1">Team Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={newTeamForm.name}
-                      onChange={(e) => setNewTeamForm({...newTeamForm, name: e.target.value})}
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Team Name</label>
+                    <input
+                      type="text"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                      value={teamForm.name}
+                      onChange={(e) => setTeamForm({...teamForm, name: e.target.value})}
                       required
                     />
                   </div>
-
+                  
                   <div>
-                    <label className="block text-gray-300 text-sm mb-1">Project Name</label>
-                    <input 
-                      type="text" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={newTeamForm.project}
-                      onChange={(e) => setNewTeamForm({...newTeamForm, project: e.target.value})}
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Project Name</label>
+                    <input
+                      type="text"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                      value={teamForm.project}
+                      onChange={(e) => setTeamForm({...teamForm, project: e.target.value})}
                       required
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">Project Description</label>
-                  <textarea 
-                    rows={3}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newTeamForm.description}
-                    onChange={(e) => setNewTeamForm({...newTeamForm, description: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">Required Skills</label>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {allSkills.map(skill => (
-                      <button
-                        key={skill}
-                        type="button"
-                        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                          newTeamForm.skills.includes(skill)
-                            ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                            : "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
-                        }`}
-                        onClick={() => setNewTeamForm({
-                          ...newTeamForm,
-                          skills: newTeamForm.skills.includes(skill)
-                            ? newTeamForm.skills.filter(s => s !== skill)
-                            : [...newTeamForm.skills, skill]
-                        })}
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Description</label>
+                    <textarea
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                      rows={3}
+                      value={teamForm.description}
+                      onChange={(e) => setTeamForm({...teamForm, description: e.target.value})}
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">Skills Needed</label>
+                    <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto py-1">
+                      {allSkills.map(skill => (
+                        <button
+                          type="button"
+                          key={skill}
+                          className={`px-2.5 py-1 rounded text-xs ${
+                            teamForm.skillsNeeded.includes(skill)
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          }`}
+                          onClick={() => setTeamForm({
+                            ...teamForm,
+                            skillsNeeded: teamForm.skillsNeeded.includes(skill)
+                              ? teamForm.skillsNeeded.filter(s => s !== skill)
+                              : [...teamForm.skillsNeeded, skill]
+                          })}
+                        >
+                          {skill}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Max Members</label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                        value={teamForm.maxMembers}
+                        onChange={(e) => setTeamForm({...teamForm, maxMembers: parseInt(e.target.value) || 1})}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Deadline</label>
+                      <input
+                        type="date"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                        value={teamForm.deadline}
+                        onChange={(e) => setTeamForm({...teamForm, deadline: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Contact Email</label>
+                      <input
+                        type="email"
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                        value={teamForm.contact}
+                        onChange={(e) => setTeamForm({...teamForm, contact: e.target.value})}
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-400 mb-1">Status</label>
+                      <select
+                        className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+                        value={teamForm.status}
+                        onChange={(e) => setTeamForm({...teamForm, status: e.target.value})}
                       >
-                        {skill}
-                      </button>
-                    ))}
+                        <option value="active">Active</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-gray-300 text-sm mb-1">Current Members</label>
-                    <input 
-                      type="number" 
-                      min="1"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={newTeamForm.members}
-                      onChange={(e) => setNewTeamForm({...newTeamForm, members: parseInt(e.target.value)})}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-300 text-sm mb-1">Max Members Needed</label>
-                    <input 
-                      type="number" 
-                      min="1"
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={newTeamForm.maxMembers}
-                      onChange={(e) => setNewTeamForm({...newTeamForm, maxMembers: parseInt(e.target.value)})}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-300 text-sm mb-1">Project Deadline</label>
-                    <input 
-                      type="date" 
-                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={newTeamForm.deadline}
-                      onChange={(e) => setNewTeamForm({...newTeamForm, deadline: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-300 text-sm mb-1">Contact Email</label>
-                  <input 
-                    type="email" 
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newTeamForm.contact}
-                    onChange={(e) => setNewTeamForm({...newTeamForm, contact: e.target.value})}
-                    required
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-4">
+                </form>
+              </div>
+              
+              <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
+                <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setShowPostTeamModal(false)}
-                    className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700"
+                    onClick={() => {
+                      setShowTeamModal(false);
+                      setShowEditModal(false);
+                      resetTeamForm();
+                    }}
+                    className="px-4 py-2 text-xs text-gray-300 bg-transparent border border-gray-600 rounded hover:bg-gray-700"
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    type="button"
+                    className="px-4 py-2 text-xs text-white bg-blue-600 rounded hover:bg-blue-700"
+                    onClick={showEditModal ? updateTeam : handleTeamSubmit}
                   >
-                    Post Team
+                    {showEditModal ? "Save Changes" : "Create Team"}
                   </button>
                 </div>
-              </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Team Modal */}
+        {showViewModal && selectedTeam && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={selectedTeam.logo || "/placeholder-team.svg"}
+                    alt={`${selectedTeam.name} logo`}
+                    className="w-10 h-10 rounded-lg object-cover border-2 border-blue-500/30"
+                  />
+                  <h2 className="text-lg font-semibold text-white">{selectedTeam.name}</h2>
+                </div>
+                <button 
+                  onClick={() => setShowViewModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <FaTimes size={18} />
+                </button>
+              </div>
+              
+              <div className="overflow-y-auto p-6 flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-6">
+                    {/* Project Section */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                        <FaProjectDiagram /> Project
+                      </h3>
+                      <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                        <h4 className="text-lg font-medium text-white mb-1">{selectedTeam.project}</h4>
+                        <p className="text-sm text-gray-300">{selectedTeam.description}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Details Section */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                        <FaLink /> Details
+                      </h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-xs font-medium text-gray-400 mb-1">Status</h4>
+                          <p className={`text-sm ${
+                            selectedTeam.status === "active" ? "text-green-400" :
+                            selectedTeam.status === "pending" ? "text-yellow-400" :
+                            "text-gray-400"
+                          }`}>
+                            {selectedTeam.status}
+                          </p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-xs font-medium text-gray-400 mb-1">Members</h4>
+                          <p className="text-sm text-white">
+                            {selectedTeam.members.length}/{selectedTeam.maxMembers}
+                          </p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-xs font-medium text-gray-400 mb-1">Deadline</h4>
+                          <p className="text-sm text-white">
+                            {new Date(selectedTeam.deadline).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+                          <h4 className="text-xs font-medium text-gray-400 mb-1">Contact</h4>
+                          <p className="text-sm text-blue-400">{selectedTeam.contact}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Skills Section */}
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                        <FaCheck /> Skills Needed
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTeam.skillsNeeded.map((skill, index) => (
+                          <span key={index} className="px-3 py-1.5 bg-gray-700 rounded-full text-xs font-medium text-gray-300">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Members Section */}
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                      <FaUsers /> Team Members
+                    </h3>
+                    <div className="bg-gray-700/50 rounded-lg border border-gray-600 overflow-hidden">
+                      {selectedTeam.members.map((member, index) => (
+                        <div key={index} className={`p-3 flex items-center gap-3 ${index !== selectedTeam.members.length - 1 ? "border-b border-gray-600" : ""}`}>
+                          <div className="relative">
+                            <img
+                              src={member.avatar || "/default-profile.png"}
+                              alt={member.name}
+                              className="w-10 h-10 rounded-full border border-gray-600"
+                            />
+                            {member.role === "Owner" && (
+                              <span className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                <FaUserCircle size={10} />
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{member.name}</p>
+                            <p className="text-xs text-gray-400">{member.role}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={() => {
+                      if (selectedTeam.isOwner) {
+                        handleEditTeam(selectedTeam);
+                      } else {
+                        setShowJoinModal(true);
+                      }
+                    }}
+                    className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+                  >
+                    {selectedTeam.isOwner ? "Edit Team" : "Join Team"}
+                  </button>
+                  <button
+                    onClick={() => setShowViewModal(false)}
+                    className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Join Team Modal */}
+        {showJoinModal && selectedTeam && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Join {selectedTeam.name}</h2>
+                <button 
+                  onClick={() => setShowJoinModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-1">Message</label>
+                <textarea
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  rows={4}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Tell them why you'd be a good fit..."
+                />
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={() => setShowJoinModal(false)}
+                  className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSendApplication(selectedTeam)}
+                  className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                >
+                  Send Application
+                </button>
+              </div>
             </div>
           </div>
         )}

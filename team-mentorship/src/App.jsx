@@ -12,6 +12,7 @@ import FindTeammates from "./pages/FindTeammates";
 import OpenTeams  from "./pages/OpenTeams";
 import Chat from "./pages/Chat";
 import MyTeams from "./pages/MyTeams";
+import SDGMapping from "./pages/SDGMapping";
 
 function App() {
   const { user } = useAuth(); // Get the authenticated user
@@ -30,7 +31,7 @@ function App() {
           <Route path="open-teams" element={<OpenTeams />} />
           <Route path="chats" element={<Chat />} />
           <Route path="my-teams" element={<MyTeams />} />
-
+          <Route path="sdg" element={<SDGMapping />} />
           {/* 🎓 Student Landing Page */}
           <Route
             path="/student/dashboard"

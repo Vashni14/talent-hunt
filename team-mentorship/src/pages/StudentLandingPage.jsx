@@ -657,7 +657,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'sdg-tracker' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('sdg-tracker')}
+              onClick={() => navigate("/sdg")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-teal-500 to-teal-600 shadow-md">
                 <FaGlobe className="text-xl" />

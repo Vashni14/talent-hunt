@@ -248,7 +248,85 @@ router.put('/:teamId/members/:memberId', async (req, res) => {
 });
 
 // Remove a member from a team
-router.delete('/:teamId/members/:memberId', async (req, res) => {
+// Updated DELETE route in your backend
+router.delete('/:teamId/members/:userId', async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { teamId, userId } = req.params;
+
+    // 1. Validate team exists
+    const team = await Team.findById(teamId).session(session);
+    if (!team) {
+      await session.abortTransaction();
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Team not found' 
+      });
+    }
+
+    // 2. Find user by UID (not ID)
+    const user = await User.findOne({ uid: userId }).session(session);
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    // 3. Remove from team's members array
+    const memberIndex = team.members.findIndex(m => 
+      m.user.equals(user._id) || m.user === userId
+    );
+    
+    if (memberIndex === -1) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User not in team' 
+      });
+    }
+
+    team.members.splice(memberIndex, 1);
+    team.currentMembers = team.members.length;
+
+    // 4. Remove team from user's teams array
+    user.teams = user.teams.filter(t => !t.equals(team._id));
+
+    // 5. Save both documents
+    await team.save({ session });
+    await user.save({ session });
+
+    await session.commitTransaction();
+
+    res.status(200).json({ 
+      success: true,
+      remainingMembers: team.members.length 
+    });
+
+  } catch (error) {
+    await session.abortTransaction();
+    console.error('Removal error:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.params.userId,
+      teamId: req.params.teamId
+    });
+    res.status(500).json({ 
+      success: false,
+      message: process.env.NODE_ENV === 'development' 
+        ? error.message 
+        : 'Server error during removal'
+    });
+  } finally {
+    session.endSession();
+  }
+}); 
+
+// Remove a member from a team
+router.delete('/:teamId/delete/:memberId', async (req, res) => {
   try {
     const team = await Team.findById(req.params.teamId);
     if (!team) {
@@ -261,6 +339,26 @@ router.delete('/:teamId/members/:memberId', async (req, res) => {
     res.status(200).json(updatedTeam);
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+// Add this to your backend routes
+router.get('/:teamId/verify-member/:userId', async (req, res) => {
+  try {
+    const { teamId, userId } = req.params;
+    
+    const team = await Team.findById(teamId)
+      .populate('members.user', 'uid');
+    
+    const isMember = team?.members.some(m => 
+      m.user?.uid === userId || m.user?._id.toString() === userId
+    );
+    
+    res.json({ isMember });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      message: 'Verification failed' 
+    });
   }
 });
 
@@ -721,51 +819,6 @@ router.put('/invitations/:id', async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'Server error updating invitation',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
-  }
-});
-
-// In your backend routes
-router.delete('/invitations/:id', async (req, res) => {
-  try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid invitation ID format' 
-      });
-    }
-
-    const invitation = await Invitation.findById(req.params.id);
-    
-    if (!invitation) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Invitation not found' 
-      });
-    }
-
-    console.log('Current invitation status:', invitation.status);
-    
-    if (invitation.status === 'accepted') {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Cannot withdraw an accepted invitation' 
-      });
-    }
-
-    invitation.status = 'withdrawn';
-    await invitation.save();
-    res.status(200).json({
-      success: true,
-      data: invitation
-    });
-  } catch (error) {
-    console.error('SERVER ERROR:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during withdrawal',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
