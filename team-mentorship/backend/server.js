@@ -36,6 +36,7 @@ app.use("/uploads", express.static("uploads"));
   // In your main server file (app.js or server.js)
 const sdgRoutes = require('./routes/sdg');
 app.use('/api/sdgs', sdgRoutes);
+app.use("/api/invitations", require("./routes/teamOpenings"));
 // Student Profile Routes
 app.use("/api/student", require("./routes/studentRoutes"));
 app.use('/api/teams', teamsRouter);
