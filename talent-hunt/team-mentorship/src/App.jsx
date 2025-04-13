@@ -13,12 +13,25 @@ import OpenTeams from "./pages/OpenTeams";
 import Chat from "./pages/Chat";
 import MyTeams from "./pages/MyTeams";
 import SDGMapping from "./pages/SDGMapping";
-
-// Mentor routes - imported components from your mentor-section
-// Use these exact imports:
+import SDGMap from "./pages/mentor/pages/SDGMap"
 import MentorProfile from "./pages/mentor/pages/MentorProfile";
-import TeamProgress from "./pages/mentor/components/TeamProgress";
-import TeamSessions from "./pages/mentor/components/TeamSessions";
+import MentorTeams from "./pages/mentor/components/Teams";
+import MentorSessions from "./pages/mentor/components/TeamSessions";
+import MentorProgress from "./pages/mentor/components/TeamProgress";
+import MentorChat from "./pages/mentor/pages/Chat";
+import MentorNavbar from "./pages/mentor/components/MentorNavbar";
+
+// Wrapper component for mentor routes
+const MentorLayout = ({ children }) => {
+  return (
+    <>
+      <MentorNavbar />
+      <div className="min-h-screen bg-gray-900 text-white pt-16">
+        {children}
+      </div>
+    </>
+  );
+};
 
 function App() {
   const { user } = useAuth();
@@ -33,37 +46,69 @@ function App() {
           {/* 🔐 Authentication Page */}
           <Route path="/auth" element={<Auth />} />
 
-          {/* 👨‍🏫 Mentor Routes */}
+          <Route 
+            path="/mentor-dashboard" 
+            element={user ? (
+              <MentorLayout>
+                <MentorDashboard />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
           
-          {/* 👨‍🏫 Mentor Routes */}
-<Route
-  path="/mentor/dashboard"
-  element={user ? <MentorDashboard /> : <Navigate to="/auth" />}
-/>
-<Route
-  path="/mentor/profile"
-  element={user ? <MentorProfile /> : <Navigate to="/auth" />}
-/>
-<Route
-  path="/mentor/progress"
-  element={user ? <TeamProgress /> : <Navigate to="/auth" />}
-/>
-<Route
-  path="/mentor/sessions"
-  element={user ? <TeamSessions /> : <Navigate to="/auth" />}
-/>
-
-          {/* Other routes */}
-<Route path="/mentor/teams" element={user ? <Teams /> : <Navigate to="/auth" />} />
-<Route path="/mentor/chat" element={user ? <Chat /> : <Navigate to="/auth" />} />
-
-          {/* Other existing routes... */}
-          <Route path="dashboard" element={<FindTeammates />} />
-          <Route path="open-teams" element={<OpenTeams />} />
-          <Route path="chats" element={<Chat />} />
-          <Route path="my-teams" element={<MyTeams />} />
-          <Route path="sdg" element={<SDGMapping />} />
+          <Route 
+            path="/mentor/teams" 
+            element={user ? (
+              <MentorLayout>
+                <MentorTeams />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
           
+          <Route 
+            path="/mentor/sessions" 
+            element={user ? (
+              <MentorLayout>
+                <MentorSessions />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
+          
+          <Route 
+            path="/mentor/progress" 
+            element={user ? (
+              <MentorLayout>
+                <MentorProgress />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
+          
+          <Route 
+            path="/mentor/sdg" 
+            element={user ? (
+              <MentorLayout>
+                <SDGMap />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
+          
+          <Route 
+            path="/mentor/chat" 
+            element={user ? (
+              <MentorLayout>
+                <MentorChat />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
+          
+          <Route 
+            path="/mentor/profile" 
+            element={user ? (
+              <MentorLayout>
+                <MentorProfile />
+              </MentorLayout>
+            ) : <Navigate to="/auth" />}
+          />
+
           {/* 🎓 Student Routes */}
           <Route
             path="/student/dashboard"
@@ -91,6 +136,13 @@ function App() {
             path="/find-teammates"
             element={user ? <FindTeammatesPage /> : <Navigate to="/student/dashboard" />}
           />
+
+          {/* Other existing routes */}
+          <Route path="dashboard" element={<FindTeammates />} />
+          <Route path="open-teams" element={<OpenTeams />} />
+          <Route path="chats" element={<Chat />} />
+          <Route path="my-teams" element={<MyTeams />} />
+          <Route path="sdg" element={<SDGMapping />} />
 
           {/* 🚨 Default Redirect to Landing */}
           <Route path="*" element={<LandingPage />} />

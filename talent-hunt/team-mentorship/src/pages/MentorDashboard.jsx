@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 // Import your mentor components
 // Use these exact imports:
 // Use these exact imports:
-import TeamProgress from "../components/TeamProgress";
-import TeamSessions from "../components/TeamSessions";
-import MentorProfile from "./MentorProfile"; 
-import MentorNavbar from "../components/MentorNavbar";
+import TeamProgress from "./mentor/components/TeamProgress";
+import TeamSessions from "./mentor/components/TeamSessions";
+import MentorProfile from "./mentor/pages/MentorProfile"; 
+import MentorNavbar from "./mentor/components/MentorNavbar";
 function MentorDashboard() {
   const navigate = useNavigate();
 

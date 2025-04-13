@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link as RouterLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -12,7 +12,6 @@ import {
   MenuItem,
   Divider,
   Tooltip,
-  Badge,
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -30,8 +29,9 @@ import {
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 
-const MentorNavbar = ({ mode, setMode }) => {
+const MentorNavbar = ({ mode, setMode, onLogout }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleMenuOpen = (event) => {
@@ -46,8 +46,14 @@ const MentorNavbar = ({ mode, setMode }) => {
     setMode(mode === 'dark' ? 'light' : 'dark');
   };
 
+  const handleLogout = () => {
+    handleMenuClose();
+    onLogout();
+    navigate('/login');
+  };
+
   const navItems = [
-    { path: '/mentor/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
+    { path: '/mentor-dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
     { path: '/mentor/teams', label: 'Teams', icon: <GroupIcon /> },
     { path: '/mentor/sessions', label: 'Sessions', icon: <EventIcon /> },
     { path: '/mentor/progress', label: 'Progress', icon: <TrendingUpIcon /> },
@@ -64,55 +70,39 @@ const MentorNavbar = ({ mode, setMode }) => {
         px: { xs: 2, md: 4 },
         py: 1,
       }}>
+        {/* Logo and Brand */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Typography
               variant="h6"
               component={RouterLink}
               to="/mentor/dashboard"
               sx={{
                 textDecoration: 'none',
-                color: 'text.primary',
+                color: 'inherit',
                 fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 1,
               }}
             >
-              <Avatar
-                sx={{
-                  bgcolor: 'primary.main',
-                  width: 32,
-                  height: 32,
-                }}
-              >
-                M
-              </Avatar>
+              <Avatar sx={{ bgcolor: 'primary.main', width: 32, height: 32 }}>M</Avatar>
               Mentor Portal
             </Typography>
           </motion.div>
         </Box>
 
-        <Box sx={{ 
-          display: { xs: 'none', md: 'flex' },
-          gap: 1,
-        }}>
+        {/* Navigation Links */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
           {navItems.map((item) => (
-            <motion.div
-              key={item.path}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.div key={item.path} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 component={RouterLink}
                 to={item.path}
                 startIcon={item.icon}
                 sx={{
-                  color: location.pathname === item.path ? 'primary.main' : 'text.secondary',
-                  fontWeight: location.pathname === item.path ? 600 : 400,
+                  color: location.pathname.startsWith(item.path) ? 'primary.main' : 'text.secondary',
+                  fontWeight: location.pathname.startsWith(item.path) ? 600 : 400,
                   '&:hover': {
                     color: 'primary.main',
                     backgroundColor: 'rgba(37, 99, 235, 0.04)',
@@ -125,67 +115,28 @@ const MentorNavbar = ({ mode, setMode }) => {
           ))}
         </Box>
 
+        {/* Right-side icons */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Tooltip title={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}>
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <IconButton
-                onClick={toggleTheme}
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: 'rgba(37, 99, 235, 0.04)',
-                  },
-                }}
-              >
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <IconButton onClick={toggleTheme} color="inherit">
                 {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
             </motion.div>
           </Tooltip>
 
           <Tooltip title="Notifications">
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <IconButton
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: 'rgba(37, 99, 235, 0.04)',
-                  },
-                }}
-              >
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <IconButton color="inherit">
                 <NotificationsIcon />
               </IconButton>
             </motion.div>
           </Tooltip>
 
           <Tooltip title="Account Settings">
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-            >
-              <IconButton
-                onClick={handleMenuOpen}
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: 'rgba(37, 99, 235, 0.04)',
-                  },
-                }}
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: 'primary.main',
-                  }}
-                >
-                  A
-                </Avatar>
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <IconButton onClick={handleMenuOpen} color="inherit">
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>A</Avatar>
               </IconButton>
             </motion.div>
           </Tooltip>
@@ -208,18 +159,10 @@ const MentorNavbar = ({ mode, setMode }) => {
               Settings
             </MenuItem>
             <Divider />
-            // Update the logout MenuItem to:
-            // Update the logout MenuItem
-<MenuItem 
-  onClick={() => {
-    handleMenuClose();
-    onLogout(); // Make sure you're passing onLogout prop
-  }}
-  sx={{ color: 'error.main' }}
->
-  <LogoutIcon sx={{ mr: 2 }} />
-  Logout
-</MenuItem>
+            <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
+              <LogoutIcon sx={{ mr: 2 }} />
+              Logout
+            </MenuItem>
           </Menu>
         </Box>
       </Toolbar>
@@ -227,4 +170,4 @@ const MentorNavbar = ({ mode, setMode }) => {
   );
 };
 
-export default MentorNavbar; 
+export default MentorNavbar;

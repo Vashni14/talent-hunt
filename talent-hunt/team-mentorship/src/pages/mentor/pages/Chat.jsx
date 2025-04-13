@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, Grid, Typography, useTheme } from '@mui/material';
-import ChatList from '../../components/mentor/ChatList';
-import ChatInterface from '../../components/mentor/ChatInterface';
+import ChatList from '../components/ChatList';
+import ChatInterface from '../components/ChatInterface';
 
 const Chat = () => {
   const theme = useTheme();
