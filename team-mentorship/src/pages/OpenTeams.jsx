@@ -1,4 +1,5 @@
 "use client"
+import ProfileModal from "../components/ProfileModal";
 import { useState, useEffect, useCallback } from "react";
 import {
   FaSearch, FaFilter, FaUserPlus, FaTimes, FaChevronDown,
@@ -113,102 +114,182 @@ function TeamOpeningCard({ opening, onView, onApply, isOwner }) {
 }
 
 // ApplicationCard Component (unchanged)
-function ApplicationCard({ application, onAction, isReceived = false }) {
+// Updated ApplicationCard component for received applications
+function ApplicationCard({ 
+  application, 
+  onAction, 
+  isReceived = false, 
+  onViewOpening,
+  onViewProfile 
+}) {
   const statusIcons = {
-    [APPLICATION_STATUS.PENDING]: <FaClock className="text-yellow-400" />,
-    [APPLICATION_STATUS.ACCEPTED]: <FaRegCheckCircle className="text-green-400" />,
-    [APPLICATION_STATUS.REJECTED]: <FaRegTimesCircle className="text-red-400" />,
-    [APPLICATION_STATUS.WITHDRAWN]: <FaInfoCircle className="text-gray-400" />
+    [APPLICATION_STATUS.PENDING]: <FaClock className="text-yellow-400" aria-label="Pending" />,
+    [APPLICATION_STATUS.ACCEPTED]: <FaRegCheckCircle className="text-green-400" aria-label="Accepted" />,
+    [APPLICATION_STATUS.REJECTED]: <FaRegTimesCircle className="text-red-400" aria-label="Rejected" />,
+    [APPLICATION_STATUS.WITHDRAWN]: <FaInfoCircle className="text-gray-400" aria-label="Withdrawn" />
+  };
+  const statusColors = {
+    [APPLICATION_STATUS.PENDING]: "bg-yellow-500/20 text-yellow-400",
+    [APPLICATION_STATUS.ACCEPTED]: "bg-green-500/20 text-green-400",
+    [APPLICATION_STATUS.REJECTED]: "bg-red-500/20 text-red-400",
+    [APPLICATION_STATUS.WITHDRAWN]: "bg-gray-500/20 text-gray-400"
   };
 
-  return (
-    <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors">
-      <div className="flex items-start gap-3 mb-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <div className="truncate">
-              <p className="font-medium text-white truncate">
-                {isReceived ? application.applicant?.name : application.opening?.team?.name}
-              </p>
-              <p className="text-xs text-gray-400">
-                Applied {new Date(application.appliedAt).toLocaleDateString()}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {statusIcons[application.status]}
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                application.status === APPLICATION_STATUS.PENDING ? "bg-yellow-500/20 text-yellow-400" :
-                application.status === APPLICATION_STATUS.ACCEPTED ? "bg-green-500/20 text-green-400" :
-                application.status === APPLICATION_STATUS.REJECTED ? "bg-red-500/20 text-red-400" :
-                "bg-gray-500/20 text-gray-400"
-              }`}>
-                {application.status}
-              </span>
-            </div>
-          </div>
-          <p className="text-sm text-gray-300 mt-1 line-clamp-2">{application.message}</p>
-          
-          {application.skills?.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {application.skills.slice(0, 3).map((skill, index) => (
-                <span key={index} className="text-xs px-2 py-0.5 bg-gray-600 rounded-full text-gray-300">
-                  {skill}
-                </span>
-              ))}
-              {application.skills.length > 3 && (
-                <span className="text-xs px-2 py-0.5 bg-gray-600 rounded-full text-gray-300">
-                  +{application.skills.length - 3} more
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+  const handleAction = (status) => {
+    if (onAction) {
+      onAction(application._id, status);
+    }
+  };
+
+  const handleStartChat = (userId) => {
+    console.log(`Starting chat with user ${userId}`);
+    // Implement your chat functionality here
+  };
+
+  const renderMainInfo = () => (
+    <div className="flex justify-between items-start">
+      <div className="truncate">
+        <h3 className="font-medium text-white truncate">
+          {isReceived ? application.applicant?.name : application.opening?.team?.name}
+        </h3>
+        <time 
+          dateTime={new Date(application.appliedAt).toISOString()} 
+          className="text-xs text-gray-400"
+        >
+          Applied {new Date(application.appliedAt).toLocaleDateString()}
+        </time>
       </div>
-      
-      <div className="flex justify-between items-center">
-        {isReceived && application.status === APPLICATION_STATUS.PENDING && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => onAction(application._id, APPLICATION_STATUS.REJECTED)}
-              className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
-            >
-              Reject
-            </button>
-            <button
-              onClick={() => onAction(application._id, APPLICATION_STATUS.ACCEPTED)}
-              className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors"
-            >
-              Accept
-            </button>
-          </div>
+      <div className="flex items-center gap-1">
+        {statusIcons[application.status]}
+        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[application.status]}`}>
+          {application.status}
+        </span>
+      </div>
+    </div>
+  );
+
+  const renderSkills = () => (
+    application.skills?.length > 0 && (
+      <div className="mt-2 flex flex-wrap gap-1" aria-label="Applicant skills">
+        {application.skills.slice(0, 3).map((skill, index) => (
+          <span key={index} className="text-xs px-2 py-0.5 bg-gray-600 rounded-full text-gray-300">
+            {skill}
+          </span>
+        ))}
+        {application.skills.length > 3 && (
+          <span className="text-xs px-2 py-0.5 bg-gray-600 rounded-full text-gray-300">
+            +{application.skills.length - 3} more
+          </span>
         )}
-        
-        {!isReceived && application.status === APPLICATION_STATUS.PENDING && (
-          <button
-            onClick={() => onAction(application._id)}
-            className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
-          >
-            Withdraw
-          </button>
-        )}
-        
+      </div>
+    )
+  );
+
+  const renderReceivedActions = () => {
+    if (application.status === APPLICATION_STATUS.PENDING) {
+      return (
         <div className="flex gap-2">
           <button
-            className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1 transition-colors"
-            onClick={() => handleViewProfile(isReceived ? application.applicant?._id : application.opening?.team)}
+            onClick={() => handleAction(APPLICATION_STATUS.REJECTED)}
+            className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+            aria-label="Reject application"
+          >
+            Reject
+          </button>
+          <button
+            onClick={() => handleAction(APPLICATION_STATUS.ACCEPTED)}
+            className="text-xs px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+            aria-label="Accept application"
+          >
+            Accept
+          </button>
+        </div>
+      );
+    }
+    return <div />;
+  };
+
+  const renderSentActions = () => {
+    if (application.status === APPLICATION_STATUS.PENDING) {
+      return (
+        // In your sent applications actions:
+<button
+  onClick={() => onAction(application._id, 'withdrawn')}
+  className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
+>
+  Withdraw
+</button>
+      );
+    }
+    return <div />;
+  };
+
+  const renderUtilityButtons = () => {
+    // For received applications - Always show Profile button
+    if (isReceived) {
+      return (
+        <div className="flex gap-2">
+          <button
+            onClick={() => onViewProfile(application.applicant)}
+            className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded flex items-center gap-1 transition-colors"
+            aria-label="View profile"
           >
             <FaUser size={10} /> Profile
           </button>
+          
           <button
-            className="text-xs px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white rounded flex items-center gap-1 transition-colors"
-            onClick={() => handleStartChat(isReceived ? application.applicant?._id : application.opening?.createdBy)}
+            onClick={() => handleStartChat(application.applicant?._id)}
+            className="text-xs px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded flex items-center gap-1 transition-colors"
+            aria-label="Start chat"
           >
             <FaComment size={10} /> Chat
           </button>
         </div>
+      );
+    }
+    
+    // For sent applications - Always show Details button
+    return (
+      <div className="flex gap-2">
+        <button
+          onClick={() => onViewOpening(application.opening)}
+          className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded flex items-center gap-1 transition-colors"
+          aria-label="View opening details"
+        >
+          <FaInfoCircle size={10} /> Details
+        </button>
+        
+        <button
+          onClick={() => handleStartChat(application.opening?.createdBy)}
+          className="text-xs px-3 py-1 bg-teal-600 hover:bg-teal-700 text-white rounded flex items-center gap-1 transition-colors"
+          aria-label="Start chat"
+        >
+          <FaComment size={10} /> Chat
+        </button>
       </div>
-    </div>
+    );
+  };
+
+  return (
+    <article className="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="flex-1 min-w-0">
+          {renderMainInfo()}
+          <p className="text-sm text-gray-300 mt-1 line-clamp-2">{application.message}</p>
+          {renderSkills()}
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center">
+        {isReceived 
+          ? renderReceivedActions() 
+          : renderSentActions()}
+        
+        {renderUtilityButtons()}
+      </div>
+    </article>
   );
+  
 }
 
 // TeamCard Component (modified to show openings count)
@@ -350,6 +431,8 @@ export default function OpenTeams() {
   });
   
   // Data states
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [myTeams, setMyTeams] = useState([]);
   const [myOpenings, setMyOpenings] = useState([]); // New state for user's posted openings
   const [openings, setOpenings] = useState([]);
@@ -363,6 +446,10 @@ export default function OpenTeams() {
   const [receivedTeamFilter, setReceivedTeamFilter] = useState("all");
   const [receivedStatusFilter, setReceivedStatusFilter] = useState("all");
   const [userId, setUserId] = useState(null);
+   const [creator, setCreator] = useState({
+      name: "",
+      profilePicture:""
+   })
 
   // Team creation form state
   const [teamForm, setTeamForm] = useState({
@@ -502,7 +589,6 @@ useEffect(() => {
     setLoading(prev => ({ ...prev, myOpenings: false }));
   }
 };
-
 const fetchSentApplications = useCallback(async () => {
   try {
     if (!userId) {
@@ -526,7 +612,45 @@ const fetchSentApplications = useCallback(async () => {
       }
     );
     
-    setSentApplications(response.data || []);
+    // Enhance applications with creator info
+    const applicationsWithCreators = await Promise.all(
+      response.data.map(async app => {
+        try {
+          const creatorResponse = await axios.get(
+            `http://localhost:5000/api/student/profile/${app.opening.createdBy}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+          return {
+            ...app,
+            opening: {
+              ...app.opening,
+              creator: {
+                name: creatorResponse.data.name,
+                profilePicture: creatorResponse.data.profilePicture
+              }
+            }
+          };
+        } catch (error) {
+          console.error('Error fetching creator info:', error);
+          return {
+            ...app,
+            opening: {
+              ...app.opening,
+              creator: {
+                name: 'Unknown',
+                profilePicture: '/default-profile.png'
+              }
+            }
+          };
+        }
+      })
+    );
+    
+    setSentApplications(applicationsWithCreators);
   } catch (error) {
     console.error("Fetch error:", error);
     setError(error.response?.data?.error || error.message);
@@ -534,7 +658,7 @@ const fetchSentApplications = useCallback(async () => {
   } finally {
     setLoading(prev => ({ ...prev, applications: false }));
   }
-}, [userId]); // Add userId as dependency
+}, [userId]);
 
 const fetchReceivedApplications = useCallback(async () => {
   try {
@@ -583,34 +707,58 @@ useEffect(() => {
   }
 }, [authInitialized, userId]); // Only run when these change
 
-  const fetchOpenings = useCallback(async () => {
-    setLoading(prev => ({ ...prev, openings: true }));
-    try {
-      const params = {};
-      if (searchQuery) params.search = searchQuery;
-      if (selectedSkills.length) params.skills = selectedSkills.join(',');
-      
-      const response = await axios.get('http://localhost:5000/api/invitations/openings', { params });
-      
-      // Filter out openings created by the current user
-      const filteredOpenings = Array.isArray(response?.data) 
-        ? response.data.filter(opening => {
-            // Handle both string and object createdBy formats
-            const createdById = typeof opening.createdBy === 'object' 
-              ? opening.createdBy._id 
-              : opening.createdBy;
-            return createdById !== userId;
-          })
-        : [];
-      
-      setOpenings(filteredOpenings);
-    } catch (error) {
-      handleApiError(error, setError);
-      setOpenings([]);
-    } finally {
-      setLoading(prev => ({ ...prev, openings: false }));
-    }
-  }, [searchQuery, selectedSkills, userId]); // Added userId to dependencies
+const fetchOpenings = useCallback(async () => {
+  setLoading(prev => ({ ...prev, openings: true }));
+  try {
+    const params = {};
+    if (searchQuery) params.search = searchQuery;
+    if (selectedSkills.length) params.skills = selectedSkills.join(',');
+    
+    const response = await axios.get('http://localhost:5000/api/invitations/openings', { params });
+    
+    // Filter out openings created by the current user
+    const filteredOpenings = Array.isArray(response?.data) 
+      ? await Promise.all(
+          response.data
+            .filter(opening => {
+              // Handle both string and object createdBy formats
+              const createdById = typeof opening.createdBy === 'object' 
+                ? opening.createdBy._id 
+                : opening.createdBy;
+              return createdById !== userId;
+            })
+            .map(async opening => {
+              try {
+                const creatorResponse = await axios.get(`http://localhost:5000/api/student/profile/${opening.createdBy}`);
+                return {
+                  ...opening,
+                  creator: {
+                    name: creatorResponse.data.name,
+                    profilePicture:creatorResponse.data.profilePicture
+                    // Add other creator fields you need
+                  }
+                };
+              } catch (error) {
+                console.error('Error fetching creator info:', error);
+                return {
+                  ...opening,
+                  creator: {
+                    name: 'Unknown',
+                  }
+                };
+              }
+            })
+        )
+      : [];
+    
+    setOpenings(filteredOpenings);
+  } catch (error) {
+    handleApiError(error, setError);
+    setOpenings([]);
+  } finally {
+    setLoading(prev => ({ ...prev, openings: false }));
+  }
+}, [searchQuery, selectedSkills, userId]);
 
   // Create new team opening
   const saveTeamOpening = async () => {
@@ -759,17 +907,50 @@ useEffect(() => {
 
   // Withdraw application
   const withdrawApplication = async (applicationId) => {
+    console.log('[withdrawApplication] Starting withdrawal for:', applicationId);
+    
     try {
-      await axios.delete(`http://localhost:5000/api/invitations/api/applications/${applicationId}`);
-      setSentApplications(prev => prev.filter(app => app._id !== applicationId));
-      toast.success('Application withdrawn');
-      return true;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        toast.error('Authentication required');
+        return false;
+      }
+  
+      console.log('[withdrawApplication] Making DELETE request...');
+      const response = await axios.delete(
+        `http://localhost:5000/api/invitations/applications/${applicationId}/withdraw`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+  
+      console.log('[withdrawApplication] Response:', response.data);
+      
+      if (response.data?.success) {
+        // Update local state
+        setSentApplications(prev => prev.filter(app => app._id !== applicationId));
+        toast.success('Application withdrawn successfully');
+        return true;
+      } else {
+        throw new Error(response.data?.error || 'Withdrawal failed');
+      }
     } catch (error) {
-      handleApiError(error, setError);
+      console.error('[withdrawApplication] Error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
+  
+      const errorMessage = error.response?.data?.error || 
+                         'Failed to withdraw application';
+      
+      toast.error(errorMessage);
       return false;
     }
   };
-
   // Handle application submission
   const handleApply = async (opening) => {
     setSelectedOpening(opening);
@@ -792,16 +973,67 @@ useEffect(() => {
 
   // Handle application action (accept/reject/withdraw)
   const handleApplicationAction = async (applicationId, action) => {
-    if (action) {
-      await updateApplicationStatus(applicationId, action);
-    } else {
-      await withdrawApplication(applicationId);
+    try {
+      let result;
+      
+      if (action === 'withdrawn') {
+        // Use the dedicated DELETE endpoint for withdrawals
+        result = await withdrawApplication(applicationId);
+      } else {
+        // Use PUT for other status changes
+        result = await updateApplicationStatus(applicationId, action);
+      }
+  
+      if (result) {
+        // Refresh the appropriate list
+        if (action === 'withdrawn') {
+          await fetchSentApplications();
+        } else {
+          await fetchReceivedApplications();
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Action failed:', error);
+      return false;
     }
   };
 
   // View profile handler
-  const handleViewProfile = (userId) => {
-    console.log(`Viewing profile of user ${userId}`);
+  const handleViewProfile = async (applicant) => {
+    console.log("[handleViewProfile] Applicant received:",applicant);
+    
+    try {
+      // Handle both direct UID string and object reference
+      const userId = applicant.uid;
+      console.log(userId)
+      
+      if (!userId) {
+        console.error("No user ID could be extracted");
+        toast.error("Profile information not available");
+        return;
+      }
+  
+      console.log("[handleViewProfile] Extracted user ID:", userId);
+      
+  
+      console.log("[handleViewProfile] Making API call...");
+      const response = await axios.get(
+        `http://localhost:5000/api/student/profile/${userId}`,
+      );
+  
+      console.log("[handleViewProfile] API response:", response.data);
+      setSelectedProfile(response.data);
+      setShowProfileModal(true);
+      
+    } catch (error) {
+      console.error("[handleViewProfile] Error:", {
+        error: error.response?.data || error.message,
+        config: error.config
+      });
+      toast.error(error.response?.data?.message || "Failed to load profile");
+    }
   };
 
   // Start chat handler
@@ -1176,14 +1408,16 @@ useEffect(() => {
                   
                   {filteredReceivedApplications.length > 0 ? (
                     <div className="space-y-3">
-                      {filteredReceivedApplications.map(app => (
-                        <ApplicationCard 
-                          key={app._id}
-                          application={app}
-                          onAction={handleApplicationAction}
-                          isReceived={true}
-                        />
-                      ))}
+    {filteredReceivedApplications.map(app => (
+  <ApplicationCard 
+    key={app._id}
+    application={app}
+    onAction={handleApplicationAction}
+    isReceived={true}
+    onViewOpening={handleViewOpening}
+    onViewProfile={handleViewProfile}
+  />
+))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -1222,13 +1456,15 @@ useEffect(() => {
                   
                   {filteredSentApplications.length > 0 ? (
                     <div className="space-y-3">
-                      {filteredSentApplications.map(app => (
-                        <ApplicationCard 
-                          key={app._id}
-                          application={app}
-                          onAction={handleApplicationAction}
-                        />
-                      ))}
+                     {filteredSentApplications.map(app => (
+  <ApplicationCard 
+    key={app._id}
+    application={app}
+    onAction={handleApplicationAction}
+    onViewOpening={handleViewOpening}
+    onViewProfile={handleViewProfile}
+  />
+))}
                     </div>
                   ) : (
                     <div className="text-center py-8">
@@ -1306,12 +1542,12 @@ useEffect(() => {
                       <h4 className="text-xs font-medium text-gray-400 mb-1">Posted By</h4>
                       <div className="flex items-center gap-2">
                         <img
-                          src={selectedOpening.createdBy?.profilePicture || "/default-profile.png"}
-                          alt={selectedOpening.createdBy?.name}
+                          src={selectedOpening.creator?.profilePicture ? `http://localhost:5000${selectedOpening.creator.profilePicture}` : "/default-profile.png"}
+                          alt={selectedOpening.creator?.name}
                           className="w-6 h-6 rounded-full"
                         />
                         <p className="text-sm text-white">
-                          {selectedOpening.createdBy?.name || "Team Owner"}
+                          {selectedOpening.creator?.name || "Team Owner"}
                         </p>
                       </div>
                     </div>
@@ -1340,7 +1576,7 @@ useEffect(() => {
                 <div className="flex justify-between items-center">
                   <button
                     onClick={() => {
-                      window.open(`/teams/${selectedOpening.team?._id}`, '_blank');
+                      navigate('/my-teams')
                     }}
                     className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
                   >
@@ -1665,6 +1901,15 @@ useEffect(() => {
           </div>
         )}
       </div>
+      {showProfileModal && selectedProfile && (
+  <ProfileModal 
+    profile={selectedProfile} 
+    onClose={() => {
+      setShowProfileModal(false);
+      setSelectedProfile(null);
+    }} 
+  />
+)}
     </div>
   );
 }

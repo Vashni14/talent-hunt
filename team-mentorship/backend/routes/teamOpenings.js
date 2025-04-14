@@ -233,7 +233,7 @@ router.post('/openings/:openingId/apply', async (req, res) => {
     // 7. Return success response with populated data
     const result = await Application.findById(newApplication._id)
       .populate('opening', 'title team')
-      .populate('applicant', 'name contact') // Populate user details
+      .populate('applicant', 'name contact uid') // Populate user details
       .lean();
 
     res.status(201).json({
@@ -319,7 +319,7 @@ router.get('/applications/received/:userId', async (req, res) => {
     const applications = await Application.find({
       opening: { $in: openings.map(o => o._id) }
     })
-      .populate('applicant', 'name profilePicture')
+      .populate('applicant', 'name profilePicture uid')
       .populate({
         path: 'opening',
         select: 'title team',
@@ -357,7 +357,7 @@ router.put('/applications/:applicationId', async (req, res) => {
     const validTransitions = {
       pending: ['accepted', 'rejected'],
       accepted: [],
-      rejected: []
+      rejected: [],
     };
 
     if (!validTransitions[application.status].includes(req.body.status)) {
@@ -424,29 +424,67 @@ router.put('/applications/:applicationId', async (req, res) => {
 });
 
 // DELETE /api/applications/:applicationId - Withdraw application
-router.delete('/applications/:applicationId', async (req, res) => {
-  try {
-    const application = await Application.findOneAndDelete({
-      _id: req.params.applicationId,
-      applicant: req.user.id,
-      status: 'pending'
-    });
 
-    if (!application) {
-      return res.status(404).json({ 
-        error: 'Application not found or cannot be withdrawn' 
+// Add new dedicated DELETE route for withdrawals
+router.delete('/applications/:applicationId/withdraw', async (req, res) => {
+  console.log('[WITHDRAW] Request received:', req.params);
+  
+  try {
+    const { applicationId } = req.params;
+
+    // Validate application ID
+    if (!mongoose.Types.ObjectId.isValid(applicationId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid application ID'
       });
     }
 
-    // Remove from team's applications array
-    await Team.updateOne(
-      { _id: application.opening.team },
-      { $pull: { applications: { _id: req.params.applicationId } } }
+    // Find and update the application
+    const updatedApp = await Application.findOneAndUpdate(
+      {
+        _id: applicationId,
+        status: 'pending' // Only allow withdrawal of pending applications
+      },
+      {
+        status: 'withdrawn',
+        withdrawnAt: new Date()
+      },
+      { new: true }
     );
 
-    res.json({ message: 'Application withdrawn' });
+    if (!updatedApp) {
+      return res.status(404).json({
+        success: false,
+        error: 'Application not found or cannot be withdrawn'
+      });
+    }
+
+    // Update team's applications array
+    const opening = await TeamOpening.findById(updatedApp.opening);
+    if (opening) {
+      await Team.updateOne(
+        { _id: opening.team },
+        { 
+          $pull: { applications: { _id: applicationId } },
+          $push: { withdrawnApplications: applicationId }
+        }
+      );
+    }
+
+    console.log('[WITHDRAW] Success:', updatedApp._id);
+    res.json({
+      success: true,
+      message: 'Application withdrawn successfully',
+      application: updatedApp
+    });
+
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('[WITHDRAW] Error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Server error during withdrawal'
+    });
   }
 });
 
@@ -482,7 +520,7 @@ router.get('/openings/:openingId', async (req, res) => {
   try {
     const opening = await TeamOpening.findById(req.params.openingId)
       .populate('team', 'name logo description createdBy')
-      .populate('createdBy', 'name profilePicture');
+      .populate('createdBy', 'name profilePicture uid');
 
     if (!opening) {
       return res.status(404).json({ error: 'Opening not found' });
