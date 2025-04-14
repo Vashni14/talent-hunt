@@ -19,9 +19,7 @@ function MentorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Add your mentor navbar */}
-      <MentorNavbar onLogout={logout} />
-      
+
       <div className="container mx-auto p-4">
         {/* Your dashboard content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

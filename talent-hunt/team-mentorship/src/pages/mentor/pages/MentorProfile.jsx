@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSnackbar } from 'notistack'; 
+import { MenuItem } from '@mui/material';
 import {
   Box,
   Card,
@@ -102,8 +103,8 @@ const MentorProfile = () => {
     expertise: ['Machine Learning', 'Data Science', 'AI Ethics'],
     education: 'Ph.D. in Computer Science, Stanford University',
     experience: '10+ years in AI research and mentoring',
-    languages: ['English', 'Spanish', 'French'],
-    rating: 4.8,
+    branch: 'Computer Branch',
+    linkedin: 'https://linkedin.com/in/example',
     bio: 'Experienced mentor with a passion for guiding students...',
     achievements: [
       'Mentored 50+ successful projects',
@@ -115,7 +116,7 @@ const MentorProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch('http://localhost:5001/api/mentors/1');
+        const response = await fetch('http://localhost:5001/api/mentor-profile/1');
         if (response.ok) {
           const data = await response.json();
           setProfile(data);
@@ -138,11 +139,26 @@ const MentorProfile = () => {
 
   const handleSave = async () => {
     try {
+      // Prepare data with proper formatting
       const dataToSend = {
         ...profile,
+        // Ensure branch is valid or default to Computer Branch
+        branch: ['Computer Branch', 'AIDS Branch', 'ECS Branch', 'Mechanical Branch'].includes(profile.branch) 
+          ? profile.branch 
+          : 'Computer Branch',
+        // Clean LinkedIn URL (remove trailing slashes, etc.)
+        linkedin: profile.linkedin ? profile.linkedin.trim() : '',
+        // Format expertise as array if needed
+        expertise: Array.isArray(profile.expertise) 
+          ? profile.expertise 
+          : profile.expertise.split(',').map(s => s.trim()),
+        // Format achievements as array if needed
+        achievements: Array.isArray(profile.achievements) 
+          ? profile.achievements 
+          : profile.achievements.split('\n').filter(a => a.trim())
       };
   
-      const response = await fetch(`http://localhost:5001/api/mentors/${profile._id}`, {
+      const response = await fetch(`http://localhost:5001/api/mentor-profile/${profile._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dataToSend)
@@ -154,18 +170,21 @@ const MentorProfile = () => {
       }
   
       const data = await response.json();
-  
+   
+      // Update profile with formatted data from server
       setProfile({
         ...data,
-        expertise: Array.isArray(data.expertise) ? data.expertise : data.expertise.split(',').map(s => s.trim()),
-        languages: Array.isArray(data.languages) ? data.languages : data.languages.split(',').map(s => s.trim()),
-        achievements: Array.isArray(data.achievements) ? data.achievements : data.achievements.split('\n').filter(a => a.trim())
+        branch: data.branch || 'Computer Branch', // Ensure branch always has a value
+        linkedin: data.linkedin || '', // Ensure linkedin exists even if empty
+        expertise: Array.isArray(data.expertise) ? data.expertise : [],
+        achievements: Array.isArray(data.achievements) ? data.achievements : []
       });
   
       setIsEditing(false);
+      enqueueSnackbar('Profile updated successfully!', { variant: 'success' });
     } catch (err) {
       console.error('Save error:', err);
-      alert(`Failed to save: ${err.message}`);
+      enqueueSnackbar(`Failed to save: ${err.message}`, { variant: 'error' });
     }
   };
 
@@ -191,7 +210,7 @@ const MentorProfile = () => {
       formData.append('profilePicture', file);
   
       const response = await fetch(
-        `http://localhost:5001/api/mentors/${profile._id}/upload`,
+        `http://localhost:5001/api/mentor-profile/${profile._id}/upload`,
         {
           method: 'POST',
           body: formData,
@@ -371,30 +390,27 @@ const MentorProfile = () => {
                       </Typography>
                     )}
                     
+                    {/* Replace the rating section (~line 400) with: */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                      <StarIcon sx={{ color: 'warning.main' }} />
                       {isEditing ? (
                         <TextField
-                          type="number"
-                          label="Rating (0-5)"
-                          value={profile.rating}
-                          onChange={(e) => handleInputChange('rating', e.target.value)}
-                          onBlur={(e) => {
-                            const value = parseFloat(e.target.value) || 0;
-                            handleInputChange('rating', Math.min(5, Math.max(0, value)));
-                          }}
-                          inputProps={{
-                            min: 0,
-                            max: 5,
-                            step: 0.1
-                          }}
+                          select
+                          label="Branch"
+                          value={profile.branch || 'Computer Branch'}
+                          onChange={(e) => handleInputChange('branch', e.target.value)}
                           variant="outlined"
                           size="small"
-                          sx={{ width: 120 }}
-                        />
+                          sx={{ width: 200 }}
+                        >
+                          {['Computer Branch', 'AIDS Branch', 'ECS Branch', 'Mechanical Branch'].map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
                       ) : (
                         <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          {profile.rating}/5
+                          {profile.branch || 'Computer Branch'}
                         </Typography>
                       )}
                     </Box>
@@ -471,7 +487,7 @@ const MentorProfile = () => {
       {/* Main Content */}
       <Grid container spacing={4}>
         {/* Left Column */}
-        <Grid item xs={12} md={8}>
+        <Grid item xs={12} md={6}>
           <MotionCard variants={itemVariants}>
             <ProfileCard>
               <CardContent sx={{ p: 4 }}>
@@ -535,42 +551,41 @@ const MentorProfile = () => {
                   </Box>
                 )}
 
-                <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                  Languages
-                </Typography>
-                {isEditing ? (
-                  <TextField
-                    fullWidth
-                    label="Languages (comma separated)"
-                    value={(profile.languages || []).join(', ')}
-                    onChange={(e) => handleArrayChange('languages', e.target.value)}
-                    disabled={!isEditing}
-                    variant="outlined"
-                    sx={{ mb: 2 }}
-                  />
-                ) : (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {(profile.languages || []).map((language, index) => (
-                      <Chip
-                        key={index}
-                        label={language}
-                        icon={<LanguageIcon />}
-                        sx={{
-                          borderRadius: '8px',
-                          backgroundColor: 'secondary.main',
-                          color: 'white',
-                        }}
-                      />
-                    ))}
-                  </Box>
-                )}
+                {/* Replace languages section (~line 500) with: */}
+<Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+  LinkedIn
+</Typography>
+{isEditing ? (
+  <TextField
+    fullWidth
+    label="LinkedIn URL"
+    value={profile.linkedin || ''}
+    onChange={(e) => handleInputChange('linkedin', e.target.value)}
+    disabled={!isEditing}
+    variant="outlined"
+    sx={{ mb: 2 }}
+  />
+) : (
+  <Button
+    variant="text"
+    color="primary"
+    href={profile.linkedin}
+    target="_blank"
+    rel="noopener noreferrer"
+    sx={{ textTransform: 'none' }}
+  >
+    View LinkedIn Profile
+  </Button>
+)}
               </CardContent>
             </ProfileCard>
           </MotionCard>
         </Grid>
 
         {/* Right Column */}
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={4} sx={{ 
+  width: { md: '40%' } // Increase from default 33% to 40
+}}>
           <MotionCard variants={itemVariants}>
             <ProfileCard>
               <CardContent sx={{ p: 4 }}>
