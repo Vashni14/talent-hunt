@@ -10,6 +10,7 @@ import {
 import axios from "axios";
 import { toast } from 'react-hot-toast';
 import { auth } from "../config/firebase";
+import MyTeams from "./MyTeams";
 
 // Constants
 const ALL_SKILLS = [
@@ -34,7 +35,7 @@ const handleApiError = (error, setError) => {
   return null;
 };
 
-// TeamOpeningCard Component
+// TeamOpeningCard Component (unchanged)
 function TeamOpeningCard({ opening, onView, onApply, isOwner }) {
   const deadline = new Date(opening.deadline);
   const isExpired = new Date() > deadline;
@@ -43,11 +44,6 @@ function TeamOpeningCard({ opening, onView, onApply, isOwner }) {
     <div className={`bg-gray-800 rounded-lg border ${isExpired ? 'border-red-500/30' : 'border-gray-700 hover:border-blue-500/30'} transition-all duration-300 w-full h-full flex flex-col`}>
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center gap-3">
-          <img
-            src={opening.team?.logo || "/placeholder-team.svg"}
-            alt={`${opening.team?.name} logo`}
-            className="w-12 h-12 rounded-lg object-cover border-2 border-blue-500/30 flex-shrink-0"
-          />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-medium text-white truncate">{opening.team?.name}</h3>
@@ -116,7 +112,7 @@ function TeamOpeningCard({ opening, onView, onApply, isOwner }) {
   );
 }
 
-// ApplicationCard Component
+// ApplicationCard Component (unchanged)
 function ApplicationCard({ application, onAction, isReceived = false }) {
   const statusIcons = {
     [APPLICATION_STATUS.PENDING]: <FaClock className="text-yellow-400" />,
@@ -128,15 +124,6 @@ function ApplicationCard({ application, onAction, isReceived = false }) {
   return (
     <div className="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hover:border-gray-500 transition-colors">
       <div className="flex items-start gap-3 mb-3">
-        <img
-          src={isReceived ? 
-            application.applicant?.profilePicture || "/default-profile.png" : 
-            application.opening?.team?.logo || "/placeholder-team.svg"}
-          alt={isReceived ? 
-            application.applicant?.name : 
-            application.opening?.team?.name}
-          className="w-10 h-10 rounded-full border border-gray-600 object-cover"
-        />
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start">
             <div className="truncate">
@@ -224,18 +211,13 @@ function ApplicationCard({ application, onAction, isReceived = false }) {
   );
 }
 
-// TeamCard Component
+// TeamCard Component (modified to show openings count)
 function TeamCard({ team, onManage }) {
   const memberPercentage = Math.round((team.currentMembers / team.maxMembers) * 100);
   
   return (
     <div className="bg-gray-800 rounded-lg border border-gray-700 hover:border-blue-500/30 transition-colors p-4 h-full flex flex-col">
       <div className="flex items-center gap-3 mb-3">
-        <img
-          src={team.logo || "/placeholder-team.svg"}
-          alt={`${team.name} logo`}
-          className="w-10 h-10 rounded-lg object-cover border-2 border-blue-500/30"
-        />
         <div className="flex-1 min-w-0">
           <h3 className="font-medium text-white truncate">{team.name}</h3>
           <div className="flex items-center gap-2">
@@ -285,6 +267,70 @@ function TeamCard({ team, onManage }) {
   );
 }
 
+// New component for TeamOpeningItem
+function TeamOpeningItem({ opening, onView, onEdit, onDelete }) {
+  const deadline = new Date(opening.deadline);
+  const isExpired = new Date() > deadline;
+  
+  return (
+    <div className="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:border-blue-500/30 transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <h3 className="font-medium text-white">{opening.title}</h3>
+          <p className="text-xs text-gray-400">
+            Posted {new Date(opening.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => onEdit(opening)}
+            className="text-gray-400 hover:text-blue-400 p-1"
+          >
+            <FaEdit size={14} />
+          </button>
+          <button 
+            onClick={() => onDelete(opening._id)}
+            className="text-gray-400 hover:text-red-400 p-1"
+          >
+            <FaTrash size={14} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="mb-3">
+        <p className="text-sm text-gray-300 line-clamp-2">{opening.description}</p>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 mb-3">
+        {opening.skillsNeeded?.map((skill, index) => (
+          <span key={index} className="text-xs px-2 py-0.5 bg-gray-700 rounded-full text-gray-300">
+            {skill}
+          </span>
+        ))}
+      </div>
+      
+      <div className="flex justify-between items-center text-xs">
+        <div className="flex items-center gap-3 text-gray-400">
+          <span className="flex items-center gap-1">
+            <FaUsers size={10} />
+            {opening.seatsAvailable} seat{opening.seatsAvailable !== 1 ? 's' : ''}
+          </span>
+          <span className={`flex items-center gap-1 ${isExpired ? 'text-red-400' : ''}`}>
+            <FaCalendarAlt size={10} />
+            {deadline.toLocaleDateString()}
+          </span>
+        </div>
+        <button 
+          onClick={() => onView(opening)}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          View Details
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function OpenTeams() {
   // State management
   const [searchQuery, setSearchQuery] = useState("");
@@ -299,11 +345,13 @@ export default function OpenTeams() {
   const [loading, setLoading] = useState({
     teams: false,
     openings: false,
-    applications: false
+    applications: false,
+    myOpenings: false
   });
   
   // Data states
   const [myTeams, setMyTeams] = useState([]);
+  const [myOpenings, setMyOpenings] = useState([]); // New state for user's posted openings
   const [openings, setOpenings] = useState([]);
   const [sentApplications, setSentApplications] = useState([]);
   const [receivedApplications, setReceivedApplications] = useState([]);
@@ -314,44 +362,96 @@ export default function OpenTeams() {
   const [sentFilter, setSentFilter] = useState("all");
   const [receivedTeamFilter, setReceivedTeamFilter] = useState("all");
   const [receivedStatusFilter, setReceivedStatusFilter] = useState("all");
-  const[userId,setUserId]=useState("null");
+  const [userId, setUserId] = useState(null);
+
   // Team creation form state
   const [teamForm, setTeamForm] = useState({
-  team: "",
-  title: "",
-  description: "",
-  skillsNeeded: [],
-  seatsAvailable: 1,
-  deadline: "",
-  contactEmail: "",
-  status: "open" // default status
+    team: "",
+    title: "",
+    description: "",
+    skillsNeeded: [],
+    seatsAvailable: 1,
+    deadline: "",
+    contactEmail: "",
+    status: "open"
   });
 
-  // Updated fetchMyTeams function
+  const user = auth.currentUser;
+  // At the top of your component
+const [authInitialized, setAuthInitialized] = useState(false);
 
-const user = auth.currentUser;
+// Auth state listener
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    if (user) {
+      console.log("User authenticated:", user.uid);
+      setUserId(user.uid); // Make sure this is setting properly
+    } else {
+      console.log("No user authenticated");
+      setUserId(null);
+    }
+    setAuthInitialized(true);
+  });
+  
+  return () => unsubscribe();
+}, []);
 
   useEffect(() => {
     if (user) {
-      setUserId(user.uid)
-      fetchMyTeams()
+      setUserId(user.uid);
+      fetchMyTeams();
+      fetchMyOpenings(); // Fetch user's posted openings
     }
   }, [user]);
 
+  // Fetch user's teams (for dropdown in create opening form)
   const fetchMyTeams = async () => {
     try {
-      if (!userId) return;
-      
+      if (!userId) {
+        console.log('No user ID available');
+        return;
+      }
+  
       setIsLoading(true);
       setError(null);
+      
       const response = await fetch(`http://localhost:5000/api/teams/user/${userId}`);
+  
+      console.log('Response status:', response.status);
       
-      const result = await response.json();
-      setMyTeams(result.data || []);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch teams');
+      }
+  
+      const responseData = await response.json();
+      console.log("data from backend", responseData);
+  
+      // Handle both direct array response and success/data pattern
+      let teamsData = [];
+      if (Array.isArray(responseData)) {
+        teamsData = responseData;
+      } else if (responseData.success && Array.isArray(responseData.data)) {
+        teamsData = responseData.data;
+      }
+  
+      // More robust filtering
+      const myTeams = teamsData.filter(team => {
+        // Handle both string and object createdBy formats
+        const createdById = typeof team.createdBy === 'object' 
+          ? team.createdBy._id 
+          : team.createdBy;
+        
+        return createdById === userId;
+      });
+  
+      console.log("filtered teams", myTeams);
+      setMyTeams(myTeams);
       
-      console.log('Teams data:', result.data);
     } catch (err) {
+      console.error('Error in fetchMyTeams:', err);
       setError(err.message);
+      setMyTeams([]);
     } finally {
       setIsLoading(false);
     }
@@ -359,71 +459,176 @@ const user = auth.currentUser;
   useEffect(() => {
     fetchMyTeams();
   }, [userId]);
-
-// Updated fetchSentApplications function
-const fetchSentApplications = useCallback(async () => {
-  setLoading(prev => ({ ...prev, applications: true }));
-  try {
-    const response = await axios.get('/api/applications/sent');
-    // Ensure we're working with an array
-    setSentApplications(Array.isArray(response?.data) ? response.data : []);
-  } catch (error) {
-    handleApiError(error, setError);
-    setSentApplications([]); // Ensure we set an empty array on error
-  } finally {
-    setLoading(prev => ({ ...prev, applications: false }));
+  // Fetch user's posted openings (for My Teams tab)
+ // In the fetchMyOpenings function:
+ const fetchMyOpenings = async () => {
+  console.log("Current userId when fetching:", userId);
+  
+  if (!userId) {
+    console.warn("Skipping fetch - no userId available");
+    return; // Exit gracefully
   }
-}, []);
 
-// Updated fetchReceivedApplications function
-const fetchReceivedApplications = useCallback(async () => {
-  setLoading(prev => ({ ...prev, applications: true }));
   try {
-    const response = await axios.get('/api/applications/received');
-    // Ensure we're working with an array
-    setReceivedApplications(Array.isArray(response?.data) ? response.data : []);
-  } catch (error) {
-    handleApiError(error, setError);
-    setReceivedApplications([]); // Ensure we set an empty array on error
-  } finally {
-    setLoading(prev => ({ ...prev, applications: false }));
-  }
-}, []);
-
-// Updated fetchOpenings function
-const fetchOpenings = useCallback(async () => {
-  setLoading(prev => ({ ...prev, openings: true }));
-  try {
-    const params = {};
-    if (searchQuery) params.search = searchQuery;
-    if (selectedSkills.length) params.skills = selectedSkills.join(',');
+    setLoading(prev => ({ ...prev, myOpenings: true }));
+    setError(null);
     
-    const response = await axios.get('/api/openings', { params });
-    // Ensure we're working with an array
-    setOpenings(Array.isArray(response?.data) ? response.data : []);
-  } catch (error) {
-    handleApiError(error, setError);
-    setOpenings([]); // Ensure we set an empty array on error
-  } finally {
-    setLoading(prev => ({ ...prev, openings: false }));
-  }
-}, [searchQuery, selectedSkills]);
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      throw new Error("No authentication token available");
+    }
 
-  // Create new team
-  const createTeam = async () => {
+    const response = await axios.get(
+      `http://localhost:5000/api/invitations/openings/user/${userId}`, 
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        }
+      }
+    );
+
+    console.log("API response:", response.data);
+    setMyOpenings(Array.isArray(response.data) ? response.data : []);
+    
+  } catch (error) {
+    console.error("API Error:", error.response?.data || error.message);
+    setError(error.response?.data?.error || error.message);
+    setMyOpenings([]);
+    if (!error.message.includes("User ID")) {
+      toast.error("Failed to load openings");
+    }
+  } finally {
+    setLoading(prev => ({ ...prev, myOpenings: false }));
+  }
+};
+
+const fetchSentApplications = useCallback(async () => {
+  try {
+    if (!userId) {
+      console.warn("No userId - skipping fetch");
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, applications: true }));
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      throw new Error("No authentication token available");
+    }
+
+    const response = await axios.get(
+      `http://localhost:5000/api/invitations/applications/sent/${userId}`, 
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        }
+      }
+    );
+    
+    setSentApplications(response.data || []);
+  } catch (error) {
+    console.error("Fetch error:", error);
+    setError(error.response?.data?.error || error.message);
+    setSentApplications([]);
+  } finally {
+    setLoading(prev => ({ ...prev, applications: false }));
+  }
+}, [userId]); // Add userId as dependency
+
+const fetchReceivedApplications = useCallback(async () => {
+  try {
+    if (!userId) {
+      console.warn("No userId - skipping fetch");
+      return;
+    }
+
+    setLoading(prev => ({ ...prev, applications: true }));
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      throw new Error("No authentication token available");
+    }
+
+    const response = await axios.get(
+      `http://localhost:5000/api/invitations/applications/received/${userId}`, 
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        }
+      }
+    );
+    
+    setReceivedApplications(response.data || []);
+  } catch (error) {
+    console.error("Fetch error:", error);
+    setError(error.response?.data?.error || error.message);
+    setReceivedApplications([]);
+  } finally {
+    setLoading(prev => ({ ...prev, applications: false }));
+  }
+}, [userId]); // Add userId as dependency
+useEffect(() => {
+  if (authInitialized && userId) {
+    console.log("Fetching data for user:", userId);
+    fetchMyOpenings();
+    fetchSentApplications();
+    fetchReceivedApplications();
+    // Add other fetch calls here if needed
+  } else if (authInitialized) {
+    console.log("User not authenticated - clearing data");
+    setMyOpenings([]);
+    setSentApplications([])
+    setReceivedApplications([])
+  }
+}, [authInitialized, userId]); // Only run when these change
+
+  const fetchOpenings = useCallback(async () => {
+    setLoading(prev => ({ ...prev, openings: true }));
+    try {
+      const params = {};
+      if (searchQuery) params.search = searchQuery;
+      if (selectedSkills.length) params.skills = selectedSkills.join(',');
+      
+      const response = await axios.get('http://localhost:5000/api/invitations/openings', { params });
+      
+      // Filter out openings created by the current user
+      const filteredOpenings = Array.isArray(response?.data) 
+        ? response.data.filter(opening => {
+            // Handle both string and object createdBy formats
+            const createdById = typeof opening.createdBy === 'object' 
+              ? opening.createdBy._id 
+              : opening.createdBy;
+            return createdById !== userId;
+          })
+        : [];
+      
+      setOpenings(filteredOpenings);
+    } catch (error) {
+      handleApiError(error, setError);
+      setOpenings([]);
+    } finally {
+      setLoading(prev => ({ ...prev, openings: false }));
+    }
+  }, [searchQuery, selectedSkills, userId]); // Added userId to dependencies
+
+  // Create new team opening
+  const saveTeamOpening = async () => {
     try {
       const user = auth.currentUser;
-      
-      if (!user) {
-        throw new Error("User not authenticated");
-      }
+      if (!user) throw new Error("User not authenticated");
   
-      // Get Firebase ID token for authorization
       const token = await user.getIdToken();
-      const response = await axios.post(
-        'http://localhost:5000/api/invitations/teams/openings', // Updated endpoint
+      const endpoint = selectedOpening 
+        ? `http://localhost:5000/api/invitations/openings/${selectedOpening._id}`
+        : 'http://localhost:5000/api/invitations/teams/openings';
+  
+      const method = selectedOpening ? 'put' : 'post';
+  
+      const response = await axios[method](
+        endpoint,
         {
-          team: teamForm.team, // Team name (not ID)
+          team: teamForm.team,
           title: teamForm.title,
           description: teamForm.description,
           skillsNeeded: teamForm.skillsNeeded,
@@ -431,7 +636,7 @@ const fetchOpenings = useCallback(async () => {
           deadline: teamForm.deadline,
           contactEmail: teamForm.contactEmail,
           status: teamForm.status,
-          createdBy:userId
+          createdBy: userId
         },
         {
           headers: {
@@ -441,9 +646,8 @@ const fetchOpenings = useCallback(async () => {
         }
       );
   
-      // Check for successful response (axios uses response.status, not response.ok)
       if (response.status >= 200 && response.status < 300) {
-        toast.success('Team opening created successfully!');
+        toast.success(`Opening ${selectedOpening ? 'updated' : 'created'} successfully!`);
         setShowCreateTeamModal(false);
         setTeamForm({
           team: "",
@@ -455,48 +659,95 @@ const fetchOpenings = useCallback(async () => {
           contactEmail: "",
           status: "open"
         });
-        fetchOpenings(); // Refresh the openings list
+        setSelectedOpening(null);
+        fetchOpenings();
+        fetchMyOpenings();
       } else {
-        throw new Error(response.data?.error || 'Failed to create team opening');
+        throw new Error(response.data?.error || `Failed to ${selectedOpening ? 'update' : 'create'} opening`);
       }
     } catch (error) {
-      console.error('Error creating team opening:', error);
-      
-      // Enhanced error handling
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        const errorMessage = error.response.data?.error || 
-                           error.response.data?.message || 
-                           error.message;
-        toast.error(`Error: ${errorMessage}`);
-      } else if (error.request) {
-        // The request was made but no response was received
-        toast.error('Network error - no response from server');
-      } else {
-        // Something happened in setting up the request
-        toast.error(`Error: ${error.message}`);
-      }
+      console.error('Error saving opening:', error);
+      const errorMessage = error.response?.data?.error || 
+                         error.response?.data?.message || 
+                         error.message;
+      toast.error(`Error: ${errorMessage}`);
     }
   };
 
-  // Apply to an opening
-  const applyToOpening = async (openingId, message) => {
+  // Delete a team opening
+  const deleteTeamOpening = async (openingId) => {
     try {
-      const response = await axios.post(`/api/openings/${openingId}/apply`, { message });
-      setSentApplications(prev => [...prev, response.data]);
-      toast.success('Application submitted successfully!');
-      return response.data;
+      console.log(openingId)
+      await axios.delete(`http://localhost:5000/api/invitations/openings/${openingId}`);
+      toast.success('Opening deleted successfully');
+      fetchMyOpenings(); // Refresh the list
     } catch (error) {
       handleApiError(error, setError);
+    }
+  };
+
+  const applyToOpening = async (openingId, message) => {
+    try {
+      if (!user) {
+        throw new Error("You must be logged in to apply");
+      }
+  
+      const token = await user.getIdToken();
+      console.log("Sending application with:", { 
+        openingId, 
+        message,
+        userId,
+        token: token ? "exists" : "missing"
+      });
+  
+      const response = await axios.post(
+        `http://localhost:5000/api/invitations/openings/${openingId}/apply`, // Fixed endpoint
+        { 
+          message,
+          userId
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+  
+      console.log("Application successful:", response.data);
+      setSentApplications(prev => [...prev, response.data.application]);
+      toast.success(`Application submitted!`);
+      return response.data;
+  
+    } catch (error) {
+      console.error("Full error details:", {
+        error: error.response?.data || error.message,
+        config: error.config
+      });
+      
+      const errorMessage = error.response?.data?.error || 
+                         error.message || 
+                         'Failed to submit application';
+      
+      toast.error(errorMessage);
+      setError(errorMessage);
       return null;
     }
   };
-
   // Update application status
   const updateApplicationStatus = async (applicationId, status) => {
     try {
-      const response = await axios.put(`/api/applications/${applicationId}`, { status });
+      if (!user) throw new Error("User not authenticated");
+      const token = await user.getIdToken();
+  
+      const response = await axios.put(`http://localhost:5000/api/invitations/applications/${applicationId}`, { status },
+     {
+             headers: {
+               'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+             }
+           });
       fetchReceivedApplications();
       toast.success(`Application ${status}`);
       return response.data;
@@ -509,7 +760,7 @@ const fetchOpenings = useCallback(async () => {
   // Withdraw application
   const withdrawApplication = async (applicationId) => {
     try {
-      await axios.delete(`/api/applications/${applicationId}`);
+      await axios.delete(`http://localhost:5000/api/invitations/api/applications/${applicationId}`);
       setSentApplications(prev => prev.filter(app => app._id !== applicationId));
       toast.success('Application withdrawn');
       return true;
@@ -550,13 +801,11 @@ const fetchOpenings = useCallback(async () => {
 
   // View profile handler
   const handleViewProfile = (userId) => {
-    // Implement profile viewing functionality
     console.log(`Viewing profile of user ${userId}`);
   };
 
   // Start chat handler
   const handleStartChat = (userId) => {
-    // Implement chat functionality
     console.log(`Starting chat with user ${userId}`);
   };
 
@@ -564,6 +813,25 @@ const fetchOpenings = useCallback(async () => {
   const handleViewOpening = (opening) => {
     setSelectedOpening(opening);
     setShowViewModal(true);
+  };
+
+  // Edit opening handler
+  const handleEditOpening = (opening) => {
+    console.log("Editing opening:", opening); // Debug log
+    console.log("Contact email from opening:", opening.contactEmail); // Debug contact email
+    
+    setSelectedOpening(opening);
+    setTeamForm({
+      team: opening.team?._id || opening.team || "",
+      title: opening.title,
+      description: opening.description,
+      skillsNeeded: opening.skillsNeeded || [],
+      seatsAvailable: opening.seatsAvailable,
+      deadline: opening.deadline ? new Date(opening.deadline).toISOString().slice(0, 16) : "",
+      contactEmail: opening.contactEmail || "", // Explicit fallback
+      status: opening.status || "open"
+    });
+    setShowCreateTeamModal(true);
   };
 
   // Toggle skill selection
@@ -581,9 +849,7 @@ const fetchOpenings = useCallback(async () => {
   // Initialize data
   useEffect(() => {
     fetchOpenings();
-    fetchSentApplications();
-    fetchReceivedApplications();
-  }, [ fetchOpenings, fetchSentApplications, fetchReceivedApplications]);
+  }, [fetchOpenings]);
 
   // Filter applications
   const filteredSentApplications = sentApplications.filter(app => {
@@ -633,7 +899,7 @@ const fetchOpenings = useCallback(async () => {
               onClick={() => setShowCreateTeamModal(true)}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
             >
-              <FaPlus /> Create Team
+              <FaPlus /> Create Opening
             </button>
           </div>
         </div>
@@ -658,7 +924,7 @@ const fetchOpenings = useCallback(async () => {
             className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === "my" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
             onClick={() => setActiveTab("my")}
           >
-            <FaUsers className="inline mr-2" /> My Teams
+            <FaUsers className="inline mr-2" /> My Openings
           </button>
           <button
             className={`px-4 py-2 font-medium text-sm whitespace-nowrap ${activeTab === "applications" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
@@ -782,73 +1048,82 @@ const fetchOpenings = useCallback(async () => {
           </div>
         )}
 
-        {/* My Teams Tab */}
+        {/* My Openings Tab */}
         {activeTab === "my" && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-white">
-                My Teams ({myTeams.length})
+                My Posted Openings ({myOpenings.length})
               </h2>
-              <button
-                className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
-                disabled={loading.teams}
-              >
-                {loading.teams ? (
-                  <FaSpinner className="animate-spin" />
-                ) : (
-                  <FaSearch size={10} />
-                )}
-                Refresh
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={fetchMyOpenings}
+                  className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+                  disabled={loading.myOpenings}
+                >
+                  {loading.myOpenings ? (
+                    <FaSpinner className="animate-spin" />
+                  ) : (
+                    <FaSearch size={10} />
+                  )}
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowCreateTeamModal(true)}
+                  className="text-xs text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded flex items-center gap-1"
+                >
+                  <FaPlus size={10} /> New Opening
+                </button>
+              </div>
             </div>
             
-            {loading.teams ? (
-              <div className="flex justify-center items-center h-64">
-                <FaSpinner className="animate-spin text-blue-400 text-2xl" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myTeams.length > 0 ? (
-                  myTeams.map(team => (
-                    <TeamCard 
-                      key={team._id}
-                      team={team}
-                      onManage={() => {
-                        // Navigate to team management page
-                        console.log(`Manage team ${team.name}`);
-                      }}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
-                    <FaUsers className="mx-auto text-gray-500 text-3xl mb-3" />
-                    <p className="text-gray-400">You haven't created any teams yet.</p>
-                    <button
-                      onClick={() => setShowCreateTeamModal(true)}
-                      className="mt-4 flex items-center gap-1 mx-auto text-blue-400 hover:text-blue-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
-                    >
-                      <FaPlus /> Create Your First Team
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
+{loading.myOpenings ? (
+  <div className="flex justify-center items-center h-64">
+    <FaSpinner className="animate-spin text-blue-400 text-2xl" />
+  </div>
+) : (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {/* Safely handle myOpenings even if it's not an array */}
+    {Array.isArray(myOpenings) && myOpenings.length > 0 ? (
+      myOpenings.map(opening => (
+        <TeamOpeningItem 
+          key={opening._id}
+          opening={opening}
+          onView={handleViewOpening}
+          onEdit={handleEditOpening}
+          onDelete={deleteTeamOpening}
+        />
+      ))
+    ) : (
+      <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
+        <FaProjectDiagram className="mx-auto text-gray-500 text-3xl mb-3" />
+        <p className="text-gray-400">You haven't posted any openings yet.</p>
+        <button
+          onClick={() => setShowCreateTeamModal(true)}
+          className="mt-4 flex items-center gap-1 mx-auto text-blue-400 hover:text-blue-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
+        >
+          <FaPlus /> Create Your First Opening
+        </button>
+      </div>
+    )}
+  </div>
+)}
           </div>
         )}
 
-        {/* Applications Tab */}
+        {/* Applications Tab (unchanged) */}
         {activeTab === "applications" && (
           <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
             <div className="flex border-b border-gray-700">
               <button
                 className={`px-4 py-3 font-medium text-sm flex-1 text-center ${applicationsTab === "received" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                onClick={() => setApplicationsTab("received")}
+                onClick={() => (setApplicationsTab("received"), fetchReceivedApplications())}
               >
                 <FaInbox className="inline mr-2" /> Received ({receivedApplications.length})
               </button>
               <button
                 className={`px-4 py-3 font-medium text-sm flex-1 text-center ${applicationsTab === "sent" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-400 hover:text-white"}`}
-                onClick={() => setApplicationsTab("sent")}
+                onClick={() => (setApplicationsTab("sent"), fetchSentApplications())}
               >
                 <FaPaperPlane className="inline mr-2" /> Sent ({sentApplications.length})
               </button>
@@ -971,17 +1246,12 @@ const fetchOpenings = useCallback(async () => {
           </div>
         )}
 
-        {/* View Opening Modal */}
+        {/* View Opening Modal (unchanged) */}
         {showViewModal && selectedOpening && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
               <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={selectedOpening.team?.logo || "/placeholder-team.svg"}
-                    alt={`${selectedOpening.team?.name} logo`}
-                    className="w-10 h-10 rounded-lg object-cover border-2 border-blue-500/30"
-                  />
                   <div>
                     <h2 className="text-lg font-semibold text-white">{selectedOpening.title}</h2>
                     <p className="text-xs text-gray-400">{selectedOpening.team?.name}</p>
@@ -1102,7 +1372,7 @@ const fetchOpenings = useCallback(async () => {
           </div>
         )}
 
-        {/* Join Team Modal */}
+        {/* Join Team Modal (unchanged) */}
         {showJoinModal && selectedOpening && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-gray-800 rounded-xl border border-gray-700 max-w-md w-full p-6">
@@ -1174,198 +1444,226 @@ const fetchOpenings = useCallback(async () => {
           </div>
         )}
 
-        {/* Create Team Modal */}
+        {/* Create Team Opening Modal */}
         {showCreateTeamModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
-      <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
-        <h2 className="text-lg font-semibold text-white">Create New Team Opening</h2>
-        <button 
-          onClick={() => setShowCreateTeamModal(false)}
-          className="text-gray-400 hover:text-white"
-        >
-          <FaTimes size={18} />
-        </button>
-      </div>
-      
-      <div className="overflow-y-auto p-4 flex-1">
-        <form className="space-y-4">
-          {/* Team Selection Dropdown */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Team <span className="text-red-400">*</span>
-            </label>
-            <select
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.team}
-              onChange={(e) => setTeamForm({...teamForm, team: e.target.value})}
-              required
-            >
-              <option value="">Select a team</option>
-              {myTeams.map(team => (
-                <option key={team._id} value={team._id}>{team.name}</option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Opening Title */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Opening Title <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="text"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.title}
-              onChange={(e) => setTeamForm({...teamForm, title: e.target.value})}
-              required
-              maxLength={100}
-              placeholder="e.g., Frontend Developer Needed"
-            />
-          </div>
-          
-          {/* Description */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Description <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={4}
-              value={teamForm.description}
-              onChange={(e) => setTeamForm({...teamForm, description: e.target.value})}
-              required
-              maxLength={500}
-              placeholder="Describe the position, responsibilities, and requirements..."
-            />
-            <p className="text-xs text-gray-500 text-right">
-              {teamForm.description.length}/500 characters
-            </p>
-          </div>
-          
-          {/* Skills Needed */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Skills Needed
-            </label>
-            <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto py-1">
-              {ALL_SKILLS.map(skill => (
-                <button
-                  type="button"
-                  key={skill}
-                  className={`px-2.5 py-1 rounded text-xs transition-colors ${
-                    teamForm.skillsNeeded.includes(skill)
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
-                  onClick={() => setTeamForm({
-                    ...teamForm,
-                    skillsNeeded: teamForm.skillsNeeded.includes(skill)
-                      ? teamForm.skillsNeeded.filter(s => s !== skill)
-                      : [...teamForm.skillsNeeded, skill]
-                  })}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-2xl max-h-[90vh] flex flex-col">
+              <div className="p-4 border-b border-gray-700 flex justify-between items-center sticky top-0 bg-gray-800 z-10">
+                <h2 className="text-lg font-semibold text-white">
+                  {selectedOpening ? "Edit Team Opening" : "Create New Team Opening"}
+                </h2>
+                <button 
+                  onClick={() => {
+                    setShowCreateTeamModal(false);
+                    setSelectedOpening(null);
+                    setTeamForm({
+                      team: "",
+                      title: "",
+                      description: "",
+                      skillsNeeded: [],
+                      seatsAvailable: 1,
+                      deadline: "",
+                      contactEmail: "",
+                      status: "open"
+                    });
+                  }}
+                  className="text-gray-400 hover:text-white"
                 >
-                  {skill}
+                  <FaTimes size={18} />
                 </button>
-              ))}
+              </div>
+              
+              <div className="overflow-y-auto p-4 flex-1">
+                <form className="space-y-4">
+                  {/* Team Selection Dropdown */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Team <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.team}
+                      onChange={(e) => setTeamForm({...teamForm, team: e.target.value})}
+                      required
+                    >
+                      <option value="">Select a team</option>
+                      {myTeams.map(team => (
+                        <option key={team._id} value={team._id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Opening Title */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Opening Title <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.title}
+                      onChange={(e) => setTeamForm({...teamForm, title: e.target.value})}
+                      required
+                      maxLength={100}
+                      placeholder="e.g., Frontend Developer Needed"
+                    />
+                  </div>
+                  
+                  {/* Description */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Description <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={4}
+                      value={teamForm.description}
+                      onChange={(e) => setTeamForm({...teamForm, description: e.target.value})}
+                      required
+                      maxLength={500}
+                      placeholder="Describe the position, responsibilities, and requirements..."
+                    />
+                    <p className="text-xs text-gray-500 text-right">
+                      {teamForm.description.length}/500 characters
+                    </p>
+                  </div>
+                  
+                  {/* Skills Needed */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Skills Needed
+                    </label>
+                    <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto py-1">
+                      {ALL_SKILLS.map(skill => (
+                        <button
+                          type="button"
+                          key={skill}
+                          className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                            teamForm.skillsNeeded.includes(skill)
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                          }`}
+                          onClick={() => setTeamForm({
+                            ...teamForm,
+                            skillsNeeded: teamForm.skillsNeeded.includes(skill)
+                              ? teamForm.skillsNeeded.filter(s => s !== skill)
+                              : [...teamForm.skillsNeeded, skill]
+                          })}
+                        >
+                          {skill}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Seats Available */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Seats Available <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.seatsAvailable}
+                      onChange={(e) => setTeamForm({
+                        ...teamForm, 
+                        seatsAvailable: Math.min(20, Math.max(1, parseInt(e.target.value) )|| 1)
+                      })}
+                      required
+                    />
+                  </div>
+                  
+                  {/* Deadline */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Deadline <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.deadline}
+                      onChange={(e) => setTeamForm({...teamForm, deadline: e.target.value})}
+                      required
+                      min={new Date().toISOString().slice(0, 16)}
+                    />
+                  </div>
+                  
+                  {/* Contact Email */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Contact Email <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.contactEmail || ""} // Ensure fallback to empty string
+    onChange={(e) => setTeamForm({...teamForm, contactEmail: e.target.value})}
+                      required
+                      placeholder="team@example.com"
+                    />
+                  </div>
+                  
+                  {/* Status */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-400 mb-1">
+                      Status <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      value={teamForm.status}
+                      onChange={(e) => setTeamForm({...teamForm, status: e.target.value})}
+                      required
+                    >
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                </form>
+              </div>
+              
+              <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs text-gray-400">
+                    All fields marked with <span className="text-red-400">*</span> are required
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateTeamModal(false);
+                        setSelectedOpening(null);
+                        setTeamForm({
+                          team: "",
+                          title: "",
+                          description: "",
+                          skillsNeeded: [],
+                          seatsAvailable: 1,
+                          deadline: "",
+                          contactEmail: "",
+                          status: "open"
+                        });
+                      }}
+                      className="px-4 py-2 text-xs text-gray-300 bg-transparent border border-gray-600 rounded hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+  type="button"
+  className="px-4 py-2 text-xs text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+  onClick={saveTeamOpening}
+  disabled={!teamForm.team || !teamForm.title || !teamForm.description || !teamForm.deadline || !teamForm.contactEmail}
+>
+  {selectedOpening ? "Update Opening" : "Create Opening"}
+</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          
-          {/* Seats Available */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Seats Available <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.seatsAvailable}
-              onChange={(e) => setTeamForm({
-                ...teamForm, 
-                seatsAvailable: Math.min(20, Math.max(1, parseInt(e.target.value) )|| 1)
-              })}
-              required
-            />
-          </div>
-          
-          {/* Deadline */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Deadline <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="datetime-local"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.deadline}
-              onChange={(e) => setTeamForm({...teamForm, deadline: e.target.value})}
-              required
-              min={new Date().toISOString().slice(0, 16)}
-            />
-          </div>
-          
-          {/* Contact Email */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Contact Email <span className="text-red-400">*</span>
-            </label>
-            <input
-              type="email"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.contactEmail}
-              onChange={(e) => setTeamForm({...teamForm, contactEmail: e.target.value})}
-              required
-              placeholder="team@example.com"
-            />
-          </div>
-          
-          {/* Status */}
-          <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">
-              Status <span className="text-red-400">*</span>
-            </label>
-            <select
-              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={teamForm.status}
-              onChange={(e) => setTeamForm({...teamForm, status: e.target.value})}
-              required
-            >
-              <option value="open">Open</option>
-              <option value="closed">Closed</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-        </form>
-      </div>
-      
-      <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-400">
-            All fields marked with <span className="text-red-400">*</span> are required
-          </p>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setShowCreateTeamModal(false)}
-              className="px-4 py-2 text-xs text-gray-300 bg-transparent border border-gray-600 rounded hover:bg-gray-700 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 text-xs text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
-              onClick={createTeam}
-              disabled={!teamForm.team || !teamForm.title || !teamForm.description || !teamForm.deadline || !teamForm.contactEmail}
-            >
-              Create Opening
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        )}
       </div>
     </div>
   );

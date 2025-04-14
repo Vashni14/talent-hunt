@@ -26,6 +26,10 @@ const TeamOpeningSchema = new mongoose.Schema({
     type: Date,
     required: true 
   },
+  contactEmail: { 
+    type: String,
+    required: true 
+  },
   status: { 
     type: String, 
     enum: ['open', 'closed'], 

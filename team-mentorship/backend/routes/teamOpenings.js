@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { Team } = require('../models/Team');
+const Team = require('../models/Team');
 const TeamOpening  = require('../models/TeamOpening');
-const { Application } = require('../models/Application');
-const { StudentProfile } = require('../models/StudentProfile');
-
+const Application = require('../models/Application');
+const StudentProfile = require('../models/StudentProfile');
+const mongoose = require('mongoose')
 // 1. Team Opening Management Routes
 
 // GET /api/teams/my - List teams I own
@@ -63,7 +63,32 @@ router.post('/teams/openings', async (req, res) => {
     });
   }
 });
+// Get all openings posted by a specific user
+router.get('/openings/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
 
+    // Validate userId
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // Find all openings where createdBy matches the userId
+    const openings = await TeamOpening.find({ createdBy: userId })
+      .populate('team', 'name') // Populate team name and logo
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    // If no openings found, return empty array rather than 404
+    res.status(200).json(openings || []);
+
+  } catch (err) {
+    console.error('Error fetching user openings:', err);
+    res.status(500).json({ 
+      error: 'Server error while fetching openings',
+      details: err.message
+    });
+  }
+});
 // GET /api/teams/:teamId/openings - List team's openings
 router.get('/teams/:teamId/openings', async (req, res) => {
   try {
@@ -76,31 +101,29 @@ router.get('/teams/:teamId/openings', async (req, res) => {
   }
 });
 
-// PUT /api/openings/:openingId - Update opening
-router.put('/openings/:openingId', async (req, res) => {
+
+router.put('/openings/:id', async (req, res) => {
   try {
-    const opening = await TeamOpening.findOne({
-      _id: req.params.openingId,
-      createdBy: req.user.id
-    }).populate('team');
+    const { id } = req.params;
+    const updates = req.body;
 
-    if (!opening) return res.status(404).json({ error: 'Opening not found' });
+    const updatedOpening = await TeamOpening.findByIdAndUpdate(
+      id, 
+      updates,
+      { new: true, runValidators: true }
+    );
 
-    // Validate seat changes
-    if (req.body.seatsAvailable) {
-      const availableSeats = opening.team.maxMembers - opening.team.currentMembers;
-      if (req.body.seatsAvailable > availableSeats + opening.seatsAvailable) {
-        return res.status(400).json({ 
-          error: `Only ${availableSeats + opening.seatsAvailable} total seats available` 
-        });
-      }
+    if (!updatedOpening) {
+      return res.status(404).json({ error: 'Opening not found' });
     }
 
-    Object.assign(opening, req.body);
-    await opening.save();
-    res.json(opening);
+    res.json(updatedOpening);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('Error updating opening:', err);
+    res.status(400).json({ 
+      error: err.message,
+      details: err.errors
+    });
   }
 });
 
@@ -109,7 +132,6 @@ router.delete('/openings/:openingId', async (req, res) => {
   try {
     const opening = await TeamOpening.findOneAndDelete({
       _id: req.params.openingId,
-      createdBy: req.user.id
     });
 
     if (!opening) return res.status(404).json({ error: 'Opening not found' });
@@ -139,84 +161,161 @@ router.delete('/openings/:openingId', async (req, res) => {
 // POST /api/openings/:openingId/apply - Apply to opening
 router.post('/openings/:openingId/apply', async (req, res) => {
   try {
+    // 1. Validate input
+    if (!req.body.userId || !req.body.message) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['userId', 'message']
+      });
+    }
+
+    // 2. Find user by Firebase UID (now properly imported)
+    const user = await StudentProfile.findOne({ uid: req.body.userId });
+    console.log(user); // Debug log
+
+    if (!user) {
+      return res.status(404).json({ 
+        error: 'User not found',
+        userId: req.body.userId
+      });
+    }
+
+    // 3. Verify opening exists and is open
     const opening = await TeamOpening.findOne({
       _id: req.params.openingId,
       status: 'open'
     });
-    
-    if (!opening) return res.status(404).json({ error: 'Opening not available' });
 
-    // Check if already applied
-    const existingApp = await Application.findOne({
-      opening: req.params.openingId,
-      applicant: req.user.id
-    });
-    
-    if (existingApp) {
-      return res.status(400).json({ error: 'Already applied to this opening' });
+    if (!opening) {
+      return res.status(404).json({ 
+        error: 'Opening not available',
+        openingId: req.params.openingId
+      });
     }
 
-    // Get applicant skills from profile
-    const profile = await StudentProfile.findOne({ uid: req.user.id });
-    const applicantSkills = profile?.skills?.map(s => s.name) || [];
-
-    const application = new Application({
+    // 4. Check for existing application using ObjectId reference
+    const existingApp = await Application.findOne({
       opening: req.params.openingId,
-      applicant: req.user.id,
-      message: req.body.message,
-      skills: applicantSkills
+      applicant: user._id // Using MongoDB ObjectId
     });
 
-    await application.save();
-    
-    // Add to team's applications array
-    await Team.updateOne(
-      { _id: opening.team },
-      { $push: { 
-        applications: {
-          user: req.user.id,
-          message: req.body.message,
-          skills: applicantSkills,
-          status: 'pending'
+    if (existingApp) {
+      return res.status(409).json({ 
+        error: 'Already applied to this opening',
+        applicationId: existingApp._id
+      });
+    }
+
+    // 5. Create new application with ObjectId reference
+    const newApplication = await Application.create({
+      opening: req.params.openingId,
+      applicant: user._id, // MongoDB ObjectId
+      message: req.body.message,
+      status: 'pending'
+    });
+
+    // 6. Update Team's applications array
+    await Team.findByIdAndUpdate(
+      opening.team,
+      { 
+        $push: { 
+          applications: {
+            _id: newApplication._id,
+            user: user._id, // MongoDB ObjectId
+            message: req.body.message,
+            status: 'pending',
+            appliedAt: new Date()
+          }
         }
-      }}
+      }
     );
 
-    res.status(201).json(application);
+    // 7. Return success response with populated data
+    const result = await Application.findById(newApplication._id)
+      .populate('opening', 'title team')
+      .populate('applicant', 'name contact') // Populate user details
+      .lean();
+
+    res.status(201).json({
+      success: true,
+      application: result
+    });
+
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('Application Error:', {
+      params: req.params,
+      body: req.body,
+      error: err.message,
+      stack: err.stack
+    });
+
+    res.status(500).json({ 
+      error: 'Application processing failed',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
+
 // GET /api/applications/sent - Get applications I've sent
-router.get('/applications/sent', async (req, res) => {
+router.get('/applications/sent/:userId', async (req, res) => {
   try {
+    // 1. Get the Firebase UID from the URL parameter
+    const firebaseUid = req.params.userId;
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // 2. Find the corresponding MongoDB user document
+    const user = await StudentProfile.findOne({ uid: firebaseUid });
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    // 3. Find applications using the MongoDB ObjectId
     const applications = await Application.find({ 
-      applicant: req.user.id 
+      applicant: user._id 
     })
-      .populate({
-        path: 'opening',
-        populate: {
-          path: 'team',
-          select: 'name logo'
-        }
-      })
-      .sort('-appliedAt');
+    .populate({
+      path: 'opening',
+      populate: {
+        path: 'team',
+        select: 'name'
+      }
+    })
+    .sort('-appliedAt');
 
     res.json(applications);
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching applications:', err);
+    res.status(500).json({ 
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
 // GET /api/applications/received - Get applications to my teams
-router.get('/applications/received', async (req, res) => {
+router.get('/applications/received/:userId', async (req, res) => {
   try {
-    // Find openings I created
+    // 1. Get the Firebase UID from URL params
+    const firebaseUid = req.params.userId;
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'User ID is required' });
+    }
+
+    // 2. Find the corresponding MongoDB user document
+    const user = await StudentProfile.findOne({ uid: firebaseUid });
+    if (!user) {
+      return res.status(404).json({ error: 'User profile not found' });
+    }
+
+    // 3. Find openings created by this user
     const openings = await TeamOpening.find({ 
-      createdBy: req.user.id 
+      createdBy: firebaseUid 
     }).select('_id');
 
+    // 4. Find applications for these openings
     const applications = await Application.find({
       opening: { $in: openings.map(o => o._id) }
     })
@@ -226,14 +325,19 @@ router.get('/applications/received', async (req, res) => {
         select: 'title team',
         populate: {
           path: 'team',
-          select: 'name'
+          select: 'name logo'
         }
       })
       .sort('-appliedAt');
 
-    res.json(applications);
+    res.json(applications || []);
+
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching received applications:', err);
+    res.status(500).json({ 
+      error: 'Server error',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
@@ -242,19 +346,11 @@ router.put('/applications/:applicationId', async (req, res) => {
   try {
     // Find application and verify ownership
     const application = await Application.findById(req.params.applicationId)
-      .populate('opening');
+      .populate('opening')
+      .populate('applicant');
 
     if (!application) {
       return res.status(404).json({ error: 'Application not found' });
-    }
-
-    const isOwner = await TeamOpening.exists({
-      _id: application.opening._id,
-      createdBy: req.user.id
-    });
-
-    if (!isOwner) {
-      return res.status(403).json({ error: 'Not authorized' });
     }
 
     // Validate status transition
@@ -283,30 +379,42 @@ router.put('/applications/:applicationId', async (req, res) => {
       { $set: { 'applications.$.status': req.body.status } }
     );
 
-    // If accepted, add to team members
+    // If status is accepted, add user to team and team to user
     if (req.body.status === 'accepted') {
-      const profile = await StudentProfile.findOne({ uid: application.applicant });
-      
+      // Add user to team members
       await Team.updateOne(
         { _id: application.opening.team },
-        { 
-          $push: { 
-            members: {
-              user: application.applicant,
-              name: profile?.name || 'New Member',
-              role: 'Member',
-              avatar: profile?.profilePicture
-            }
-          },
-          $inc: { currentMembers: 1 }
-        }
+        { $addToSet:{ members: {
+          user: application.applicant._id,
+          name: application.applicant.name,
+          role: application.applicant.rolePreference || 'Member',
+          avatar: application.applicant.profilePicture || '/default-avatar.png'
+        }} }
       );
 
-      // Reduce available seats
-      await TeamOpening.updateOne(
-        { _id: application.opening._id },
-        { $inc: { seatsAvailable: -1 } }
+      // Add team to user's teams
+      await StudentProfile.updateOne(
+        { _id: application.applicant._id },
+        { $addToSet: { teams: application.opening.team } }
       );
+
+      const populatedTeam = await Team.findById(application.opening.team)
+    .populate({
+      path: 'members',
+      select: 'name contact avatar role' // Include all fields you need
+    })
+    .populate('createdBy', 'name contact'); // Also populate other relations if needed
+
+  // 4. Include this in the response
+  application.team = populatedTeam;
+
+      // Close the opening if it's set to close on acceptance
+      if (application.opening.closeOnAccept) {
+        await TeamOpening.updateOne(
+          { _id: application.opening._id },
+          { $set: { status: 'closed' } }
+        );
+      }
     }
 
     res.json(application);
