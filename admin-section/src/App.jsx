@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminLayout from './components/admin/AdminLayout';
-import Dashboard from './components/admin/dashboard/Dashboard';
-import Competitions from './components/admin/competitions/Competitions';
-import Teams from './components/admin/teams/Teams';
-import Mentors from './components/admin/mentors/Mentors';
-import Reports from './components/admin/reports/Reports';
-import SDG from './components/admin/sdg/SDG';
+import Dashboard from './components/admin/Dashboard';
+import Competitions from './components/admin/Competitions';
+import Teams from './components/admin/Teams';
+import Mentors from './components/admin/Mentors';
+import Reports from './components/admin/Reports';
+import SDG from './components/admin/SDG';
 
 function App() {
   return (

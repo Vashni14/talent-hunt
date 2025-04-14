@@ -41,10 +41,10 @@ const Reports = () => {
         }
       },
       tooltip: {
-        backgroundColor: '#242424',
-        titleColor: '#fff',
-        bodyColor: '#9ca3af',
-        borderColor: '#404040',
+        backgroundColor: '#1f2937', // gray-800
+        titleColor: '#f9fafb', // gray-50
+        bodyColor: '#9ca3af', // gray-400
+        borderColor: '#374151', // gray-700
         borderWidth: 1,
         padding: 12,
         displayColors: true,
@@ -53,21 +53,21 @@ const Reports = () => {
     scales: {
       x: {
         grid: {
-          color: '#404040',
+          color: '#374151', // gray-700
           drawBorder: false,
         },
         ticks: {
-          color: '#9ca3af',
+          color: '#9ca3af', // gray-400
         }
       },
       y: {
         beginAtZero: true,
         grid: {
-          color: '#404040',
+          color: '#374151', // gray-700
           drawBorder: false,
         },
         ticks: {
-          color: '#9ca3af',
+          color: '#9ca3af', // gray-400
           stepSize: 5,
         }
       }
@@ -81,16 +81,16 @@ const Reports = () => {
       {
         label: 'Teams',
         data: [12, 19, 15, 25, 22, 30],
-        borderColor: '#2196F3',
-        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+        borderColor: '#3b82f6', // blue-500
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
         fill: true,
       },
       {
         label: 'Mentors',
         data: [8, 12, 10, 15, 18, 20],
-        borderColor: '#4CAF50',
-        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+        borderColor: '#10b981', // emerald-500
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         tension: 0.4,
         fill: true,
       }
@@ -147,14 +147,14 @@ const Reports = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-white">Reports & Analytics</h1>
-        <div className="flex gap-4">
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold text-white">Reports & Analytics</h1>
+        <div className="flex gap-3">
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-[#2a2a2a] text-white rounded-lg px-4 py-2 border border-[#404040]"
+            className="bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
           >
             <option value="week">Last Week</option>
             <option value="month">Last Month</option>
@@ -164,7 +164,7 @@ const Reports = () => {
           <select
             value={selectedReport}
             onChange={(e) => setSelectedReport(e.target.value)}
-            className="bg-[#2a2a2a] text-white rounded-lg px-4 py-2 border border-[#404040]"
+            className="bg-gray-800 text-white rounded-lg px-3 py-2 border border-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
           >
             <option value="overview">Overview</option>
             <option value="competitions">Competitions</option>
@@ -175,13 +175,13 @@ const Reports = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-[#242424] rounded-lg p-6">
+          <div key={index} className="bg-gray-800 rounded-xl p-4 border border-gray-700 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
             <p className="text-gray-400 text-sm">{stat.title}</p>
-            <div className="flex items-baseline mt-2">
-              <p className="text-2xl font-semibold text-white">{stat.value}</p>
-              <span className={`ml-2 text-sm ${stat.isPositive ? 'text-[#4CAF50]' : 'text-[#f44336]'}`}>
+            <div className="flex items-baseline mt-1">
+              <p className="text-xl md:text-2xl font-semibold text-white">{stat.value}</p>
+              <span className={`ml-2 text-xs ${stat.isPositive ? 'text-green-400' : 'text-red-400'}`}>
                 {stat.change}
               </span>
             </div>
@@ -190,27 +190,27 @@ const Reports = () => {
       </div>
 
       {/* Participation Trends */}
-      <div className="bg-[#242424] rounded-lg p-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Participation Trends</h2>
-        <div className="h-64">
+      <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+        <h2 className="text-lg md:text-xl font-semibold text-white mb-4">Participation Trends</h2>
+        <div className="h-64 md:h-80">
           <Line options={chartOptions} data={participationData} />
         </div>
         <div className="flex gap-4 mt-4">
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-[#2196F3] rounded-full mr-2"></div>
-            <span className="text-gray-400">Teams</span>
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
+            <span className="text-gray-400 text-sm">Teams</span>
           </div>
           <div className="flex items-center">
-            <div className="w-3 h-3 bg-[#4CAF50] rounded-full mr-2"></div>
-            <span className="text-gray-400">Mentors</span>
+            <div className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></div>
+            <span className="text-gray-400 text-sm">Mentors</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {/* Department Participation */}
-        <div className="bg-[#242424] rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Department Participation</h2>
+        <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-4">Department Participation</h2>
           <div className="space-y-4">
             {departmentParticipation.map((dept, index) => (
               <div key={index}>
@@ -218,9 +218,9 @@ const Reports = () => {
                   <span className="text-white">{dept.name}</span>
                   <span className="text-gray-400">{dept.teams} teams</span>
                 </div>
-                <div className="h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#2196F3] rounded-full"
+                    className="h-full bg-blue-500 rounded-full"
                     style={{
                       width: `${(dept.teams / Math.max(...departmentParticipation.map(d => d.teams))) * 100}%`
                     }}
@@ -232,24 +232,24 @@ const Reports = () => {
         </div>
 
         {/* Top Performing Teams */}
-        <div className="bg-[#242424] rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Top Performing Teams</h2>
-          <div className="space-y-4">
+        <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+          <h2 className="text-lg md:text-xl font-semibold text-white mb-4">Top Performing Teams</h2>
+          <div className="space-y-3">
             {topTeams.map((team, index) => (
-              <div key={index} className="bg-[#2a2a2a] rounded-lg p-4">
+              <div key={index} className="bg-gray-700/50 rounded-lg p-3 md:p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h3 className="text-white font-medium">{team.name}</h3>
-                    <p className="text-gray-400 text-sm">{team.competition}</p>
+                    <p className="text-gray-400 text-xs md:text-sm">{team.competition}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-white font-medium">{team.progress}%</p>
-                    <p className="text-gray-400 text-sm">{team.members} members</p>
+                    <p className="text-gray-400 text-xs md:text-sm">{team.members} members</p>
                   </div>
                 </div>
-                <div className="h-2 bg-[#404040] rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-600 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-[#2196F3] rounded-full"
+                    className="h-full bg-blue-500 rounded-full"
                     style={{ width: `${team.progress}%` }}
                   ></div>
                 </div>
@@ -260,14 +260,14 @@ const Reports = () => {
       </div>
 
       {/* Export Options */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Export Reports</h2>
-          <div className="space-x-2">
-            <button className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+      <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+          <h2 className="text-lg md:text-xl font-semibold text-white">Export Reports</h2>
+          <div className="flex gap-3">
+            <button className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700/50 transition-colors text-sm">
               Export as PDF
             </button>
-            <button className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
               Export as CSV
             </button>
           </div>
@@ -277,4 +277,4 @@ const Reports = () => {
   );
 };
 
-export default Reports; 
+export default Reports;
