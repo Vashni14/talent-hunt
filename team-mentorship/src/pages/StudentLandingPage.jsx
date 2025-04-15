@@ -623,7 +623,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'competitions' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('competitions')}
+              onClick={() => navigate("/competitions")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-purple-500 to-purple-600 shadow-md">
                 <FaTrophy className="text-xl" />

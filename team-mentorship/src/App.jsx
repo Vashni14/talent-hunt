@@ -13,6 +13,7 @@ import OpenTeams  from "./pages/OpenTeams";
 import Chat from "./pages/Chat";
 import MyTeams from "./pages/MyTeams";
 import SDGMapping from "./pages/SDGMapping";
+import Competitions from './pages/Competitions';
 
 function App() {
   const { user } = useAuth(); // Get the authenticated user
@@ -26,7 +27,7 @@ function App() {
 
           {/* 🔐 Authentication Page */}
           <Route path="/auth" element={<Auth />} />
-
+          <Route path="competitions" element={<Competitions />} />
           <Route path="dashboard" element={<FindTeammates />} />
           <Route path="open-teams" element={<OpenTeams />} />
           <Route path="chats" element={<Chat />} />
