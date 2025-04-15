@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import {
   FaSearch,
   FaFilter,
@@ -13,64 +12,52 @@ import {
   FaGraduationCap,
   FaBook,
   FaBriefcase,
-  FaLinkedin
+  FaLinkedin,
+  FaSpinner,
+  FaArrowLeft
 } from "react-icons/fa";
+import axios from "axios";
+import { auth } from "../config/firebase";
 
 const MentorFindingPage = () => {
-  // Sample mentor data
-  const allMentors = [
-    {
-      id: "1",
-      name: "Dr. Sarah Johnson",
-      profilePicture: "/default-profile.png",
-      domain: "Software Engineering",
-      skills: ["JavaScript", "React", "Node.js", "AWS"],
-      bio: "Senior Software Engineer with 10+ years of experience. Passionate about mentoring new developers.",
-      currentPosition: "Senior Engineering Manager at TechCorp",
-      education: "PhD in Computer Science, Stanford University",
-      linkedin: "sarah-johnson-tech",
-      experience: "12 years at TechCorp, 5 years at StartupInc"
-    },
-    {
-      id: "2",
-      name: "Alex Chen",
-      profilePicture: "/default-profile.png",
-      domain: "UX Design",
-      skills: ["Figma", "User Research", "Prototyping", "UI/UX"],
-      bio: "UX Designer with 8 years of experience in product design and user research.",
-      currentPosition: "Lead UX Designer at DesignCo",
-      education: "MSc in Human-Computer Interaction, CMU",
-      linkedin: "alex-chen-ux",
-      experience: "5 years at DesignCo, 3 years at Creative Agency"
-    },
-    {
-      id: "3",
-      name: "Michael Rodriguez",
-      profilePicture: "/default-profile.png",
-      domain: "Data Science",
-      skills: ["Python", "Machine Learning", "TensorFlow", "SQL"],
-      bio: "Data Scientist specializing in machine learning and AI applications.",
-      currentPosition: "Principal Data Scientist at DataWorks",
-      education: "PhD in Artificial Intelligence, MIT",
-      linkedin: "michael-rodriguez-ds",
-      experience: "7 years at DataWorks, 4 years at Research Lab"
-    },
-    {
-      id: "4",
-      name: "Priya Patel",
-      profilePicture: "/default-profile.png",
-      domain: "Product Management",
-      skills: ["Agile", "Scrum", "Product Strategy", "Market Research"],
-      bio: "Product leader with experience building successful SaaS products.",
-      currentPosition: "Director of Product at SaaS Corp",
-      education: "MBA, Harvard Business School",
-      linkedin: "priya-patel-pm",
-      experience: "10 years in product management roles"
-    }
-  ];
-
-  // Sample applications data
-  const allApplications = [
+  // State management
+  const [activeTab, setActiveTab] = useState("find");
+  const [mentors, setMentors] = useState([]);
+  const [filteredMentors, setFilteredMentors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [myTeams, setMyTeams] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [teamsError, setTeamsError] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const user = auth.currentUser;
+    // At the top of your component
+  const [authInitialized, setAuthInitialized] = useState(false);
+  
+  // Auth state listener
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("User authenticated:", user.uid);
+        setUserId(user.uid); // Make sure this is setting properly
+      } else {
+        console.log("No user authenticated");
+        setUserId(null);
+      }
+      setAuthInitialized(true);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+  
+    useEffect(() => {
+      if (user) {
+        setUserId(user.uid);
+        fetchMyTeams();
+      }
+    }, [user]);
+  // Static data for applications
+  const [applications] = useState([
     {
       id: "1",
       mentorId: "1",
@@ -88,22 +75,12 @@ const MentorFindingPage = () => {
       message: "Need help with UX research for our capstone project.",
       status: "accepted",
       date: "2023-06-10"
-    },
-    {
-      id: "3",
-      mentorId: "3",
-      mentorName: "Michael Rodriguez",
-      teamName: "Data Explorers",
-      message: "Looking for guidance on implementing ML models.",
-      status: "rejected",
-      date: "2023-06-05"
     }
-  ];
+  ]);
 
-  // State management
-  const [activeTab, setActiveTab] = useState("find");
-  const [mentors, setMentors] = useState(allMentors);
-  const [applications, setApplications] = useState(allApplications);
+  // Sample user ID - replace with your actual user ID from auth context
+
+  // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
     domain: "",
@@ -111,80 +88,169 @@ const MentorFindingPage = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [applicationFilter, setApplicationFilter] = useState("all");
+
+  // Modal states
   const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [currentMentor, setCurrentMentor] = useState(null);
+  const [mentorDetails, setMentorDetails] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
   const [requestData, setRequestData] = useState({
     team: "",
     message: ""
   });
-  const [teams, setTeams] = useState([
-    { id: "1", name: "Code Warriors" },
-    { id: "2", name: "Design Innovators" },
-    { id: "3", name: "Data Explorers" }
-  ]);
+
+  // Fetch all mentors from backend
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/mentor/mentors');
+        setMentors(response.data);
+        setFilteredMentors(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+
+    fetchMentors();
+  }, []);
+
+  // Fetch user's teams from backend
+  const fetchMyTeams = async () => {
+    try {
+      if (!userId) {
+        console.log('No user ID available');
+        return;
+      }
+  
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`http://localhost:5000/api/teams/user/${userId}`);
+  
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch teams');
+      }
+  
+      const responseData = await response.json();
+      console.log("data from backend", responseData);
+  
+      // Handle both direct array response and success/data pattern
+      let teamsData = [];
+      if (Array.isArray(responseData)) {
+        teamsData = responseData;
+      } else if (responseData.success && Array.isArray(responseData.data)) {
+        teamsData = responseData.data;
+      }
+  
+      // More robust filtering
+      const myTeams = teamsData.filter(team => {
+        // Handle both string and object createdBy formats
+        const createdById = typeof team.createdBy === 'object' 
+          ? team.createdBy._id 
+          : team.createdBy;
+        
+        return createdById === userId;
+      });
+  
+      console.log("filtered teams", myTeams);
+      setMyTeams(myTeams);
+      
+    } catch (err) {
+      console.error('Error in fetchMyTeams:', err);
+      setError(err.message);
+      setMyTeams([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyTeams();
+  }, [userId]);
 
   // Filter mentors based on search and filters
   useEffect(() => {
-    let filtered = allMentors;
+    let filtered = [...mentors];
     
     if (searchTerm) {
       filtered = filtered.filter(mentor =>
         mentor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mentor.domain.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mentor.skills.some(skill => 
+        (mentor.domain && mentor.domain.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (mentor.skills && mentor.skills.some(skill => 
           skill.toLowerCase().includes(searchTerm.toLowerCase())
-      ));
-}
+        ))
+      );
+    }
     
     if (filters.domain) {
       filtered = filtered.filter(mentor => 
-        mentor.domain.toLowerCase() === filters.domain.toLowerCase());
+        mentor.domain && mentor.domain.toLowerCase() === filters.domain.toLowerCase());
     }
     
     if (filters.skill) {
       filtered = filtered.filter(mentor => 
-        mentor.skills.some(skill => 
+        mentor.skills && mentor.skills.some(skill => 
           skill.toLowerCase().includes(filters.skill.toLowerCase())));
     }
     
-    setMentors(filtered);
-  }, [searchTerm, filters]);
+    setFilteredMentors(filtered);
+  }, [searchTerm, filters, mentors]);
 
-  // Filter applications
-  useEffect(() => {
-    if (applicationFilter === "all") {
-      setApplications(allApplications);
-    } else {
-      setApplications(allApplications.filter(app => app.status === applicationFilter));
+  // Fetch detailed mentor data when profile modal is opened
+  const handleViewProfile = async (mentor) => {
+    setCurrentMentor(mentor);
+    setProfileLoading(true);
+    try {
+      const response = await axios.get(`http://localhost:5000/api/mentor/profile/${mentor.userId}`);
+      setMentorDetails(response.data);
+      setShowProfileModal(true);
+    } catch (err) {
+      console.error("Error fetching mentor details:", err);
+      alert("Failed to load mentor profile");
+    } finally {
+      setProfileLoading(false);
     }
-  }, [applicationFilter]);
+  };
 
-  // Handle request submission
+  // Handle request submission (static implementation)
   const handleSendRequest = () => {
-    if (!requestData.team || !requestData.message) return;
+    if (!requestData.team || !requestData.message || !currentMentor) return;
     
-    const newApplication = {
-      id: `${applications.length + 1}`,
-      mentorId: currentMentor.id,
-      mentorName: currentMentor.name,
-      teamName: requestData.team,
-      message: requestData.message,
-      status: "pending",
-      date: new Date().toISOString().split('T')[0]
-    };
-    
-    setApplications([...applications, newApplication]);
+    alert(`Request sent to ${currentMentor.name} from team ${requestData.team}`);
     setShowRequestModal(false);
     setRequestData({ team: "", message: "" });
   };
 
-  // Handle withdraw application
+  // Handle withdraw application (static implementation)
   const handleWithdraw = (applicationId) => {
-    setApplications(applications.filter(app => app.id !== applicationId));
+    alert(`Withdrawn application ${applicationId}`);
   };
 
   // Get unique domains for filter
-  const uniqueDomains = [...new Set(allMentors.map(mentor => mentor.domain))];
+  const uniqueDomains = [...new Set(mentors.map(mentor => mentor.domain).filter(Boolean))];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-red-500">Error loading mentors: {error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100">
@@ -279,15 +345,19 @@ const MentorFindingPage = () => {
 
             {/* Mentors Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {mentors.map(mentor => (
-                <div key={mentor.id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              {filteredMentors.map(mentor => (
+                <div key={mentor._id} className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
                   <div className="p-5">
                     <div className="flex items-start gap-4">
                       <div className="w-16 h-16 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/30 flex-shrink-0">
                         <img 
-                          src={mentor.profilePicture} 
+                          src={mentor.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"} 
                           alt={mentor.name}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "/default-profile.png";
+                          }}
                         />
                       </div>
                       <div>
@@ -297,15 +367,15 @@ const MentorFindingPage = () => {
                       </div>
                     </div>
                     <div className="mt-4">
-                      <p className="text-gray-300 text-sm line-clamp-3">{mentor.bio}</p>
+                      <p className="text-gray-300 text-sm line-clamp-3">{mentor.bio || "No bio available"}</p>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {mentor.skills.slice(0, 4).map((skill, index) => (
+                      {mentor.skills?.slice(0, 4).map((skill, index) => (
                         <span key={index} className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full text-xs">
                           {skill}
                         </span>
                       ))}
-                      {mentor.skills.length > 4 && (
+                      {mentor.skills?.length > 4 && (
                         <span className="bg-gray-700 text-gray-400 px-2 py-1 rounded-full text-xs">
                           +{mentor.skills.length - 4}
                         </span>
@@ -316,20 +386,16 @@ const MentorFindingPage = () => {
                     <div className="flex gap-3">
                       <button 
                         className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
-                        onClick={() => {
-                          setCurrentMentor(mentor);
-                          // In a real app, this would open a chat
-                          alert(`Opening chat with ${mentor.name}`);
-                        }}
+                        onClick={() => alert(`Chat with ${mentor.name} would open here`)}
                       >
                         <FaEnvelope /> Chat
                       </button>
-                      <Link 
-                        to={`/mentor-profile/${mentor.id}`}
+                      <button
                         className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
+                        onClick={() => handleViewProfile(mentor)}
                       >
                         <FaUser /> Profile
-                      </Link>
+                      </button>
                     </div>
                     <button
                       className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded-lg text-sm font-medium"
@@ -345,7 +411,7 @@ const MentorFindingPage = () => {
               ))}
             </div>
 
-            {mentors.length === 0 && (
+            {filteredMentors.length === 0 && (
               <div className="text-center py-10 text-gray-400">
                 No mentors found matching your criteria.
               </div>
@@ -412,22 +478,19 @@ const MentorFindingPage = () => {
                     <div className="mt-4 flex gap-3">
                       <button 
                         className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
-                        onClick={() => {
-                          // In a real app, this would open a chat
-                          alert(`Opening chat with ${app.mentorName}`);
-                        }}
+                        onClick={() => alert(`Chat with ${app.mentorName} would open here`)}
                       >
                         <FaEnvelope /> Chat
                       </button>
                       
                       {app.status === "pending" && (
                         <>
-                          <Link 
-                            to={`/mentor-profile/${app.mentorId}`}
+                          <button
                             className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
+                            onClick={() => alert(`View profile of ${app.mentorName}`)}
                           >
                             <FaUser /> View Profile
-                          </Link>
+                          </button>
                           <button
                             className="text-red-400 hover:text-red-300 flex items-center gap-1 text-sm"
                             onClick={() => handleWithdraw(app.id)}
@@ -456,16 +519,24 @@ const MentorFindingPage = () => {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Select Team</label>
-                <select
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
-                  value={requestData.team}
-                  onChange={(e) => setRequestData({...requestData, team: e.target.value})}
-                >
-                  <option value="">Select a team</option>
-                  {teams.map(team => (
-                    <option key={team.id} value={team.name}>{team.name}</option>
-                  ))}
-                </select>
+                {teamsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <FaSpinner className="animate-spin text-blue-400 text-xl" />
+                  </div>
+                ) : teamsError ? (
+                  <div className="text-red-400 text-sm">{teamsError}</div>
+                ) : (
+                  <select
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2"
+                    value={requestData.team}
+                    onChange={(e) => setRequestData({...requestData, team: e.target.value})}
+                  >
+                    <option value="">Select a team</option>
+                    {myTeams.map(team => (
+                      <option key={team._id} value={team.name}>{team.name}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-2">Message</label>
@@ -492,6 +563,158 @@ const MentorFindingPage = () => {
                 Send Request
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mentor Profile Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-xl border border-gray-700 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-5 border-b border-gray-700 sticky top-0 bg-gray-800 z-10 flex justify-between items-center">
+              <button 
+                className="text-gray-400 hover:text-white p-1"
+                onClick={() => setShowProfileModal(false)}
+              >
+                <FaArrowLeft className="text-xl" />
+              </button>
+              <h2 className="text-xl font-bold flex-1 text-center">
+                {mentorDetails?.name || currentMentor?.name}'s Profile
+              </h2>
+              <div className="w-6"></div> {/* Spacer for alignment */}
+            </div>
+
+            {profileLoading ? (
+              <div className="flex items-center justify-center p-10">
+                <FaSpinner className="animate-spin text-2xl text-blue-400" />
+              </div>
+            ) : (
+              <div className="p-5">
+                {/* Profile Header */}
+                <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-6">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500/30 flex-shrink-0">
+                      <img 
+                        src={mentorDetails?.profilePicture ? `http://localhost:5000${mentorDetails.profilePicture}` : "/default-profile.png"}
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/default-profile.png";
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-bold">{mentorDetails?.name || currentMentor?.name}</h2>
+                      <p className="text-blue-400">{mentorDetails?.currentPosition || currentMentor?.currentPosition}</p>
+                      <p className="text-gray-300">{mentorDetails?.domain || currentMentor?.domain}</p>
+                    </div>
+                    
+                    {mentorDetails?.linkedin && (
+                      <a 
+                        href={`https://linkedin.com/in/${mentorDetails.linkedin}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg flex items-center justify-center transition-colors"
+                      >
+                        <FaLinkedin className="text-xl" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Main Profile Sections */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {/* About Section */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <FaUser className="text-blue-400" />
+                        About
+                      </h2>
+                      <p className="text-gray-300 whitespace-pre-line">
+                        {mentorDetails?.bio || "No bio information available."}
+                      </p>
+                    </div>
+
+                    {/* Skills Section */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <FaBook className="text-blue-400" />
+                        Skills & Expertise
+                      </h2>
+                      <div className="flex flex-wrap gap-2">
+                        {mentorDetails?.skills?.length > 0 ? (
+                          mentorDetails.skills.map((skill, index) => (
+                            <span key={index} className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-sm">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <p className="text-gray-500">No skills listed</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Experience Section */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <FaBriefcase className="text-blue-400" />
+                        Professional Experience
+                      </h2>
+                      <div className="prose prose-invert max-w-none">
+                        {mentorDetails?.experience ? (
+                          <p className="whitespace-pre-line">{mentorDetails.experience}</p>
+                        ) : (
+                          <p className="text-gray-500">No experience information available.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Education Section */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <FaGraduationCap className="text-blue-400" />
+                        Education
+                      </h2>
+                      <div className="prose prose-invert max-w-none">
+                        {mentorDetails?.education ? (
+                          <p className="whitespace-pre-line">{mentorDetails.education}</p>
+                        ) : (
+                          <p className="text-gray-500">No education information available.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* LinkedIn Section */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                        <FaLinkedin className="text-blue-400" />
+                        LinkedIn Profile
+                      </h2>
+                      {mentorDetails?.linkedin ? (
+                        <a 
+                          href={`https://linkedin.com/in/${mentorDetails.linkedin}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 flex items-center"
+                        >
+                          <FaLinkedin className="mr-2" />
+                          linkedin.com/in/{mentorDetails.linkedin}
+                        </a>
+                      ) : (
+                        <p className="text-gray-500">No LinkedIn profile added</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

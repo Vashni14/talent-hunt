@@ -333,7 +333,7 @@ const MentorProfile = () => {
         {/* Profile Content */}
         <main className="flex-1 overflow-auto p-3 md:p-5 lg:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold">Professional Profile</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Mentor Profile</h1>
             <div className="flex gap-3">
               {editMode ? (
                 <>

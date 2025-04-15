@@ -54,5 +54,15 @@ router.put('/profile/:userId', upload.single('profilePicture'), async (req, res)
       res.status(500).json({ message: 'Server error' });
     }
   });
+  // Get all mentors
+router.get('/mentors', async (req, res) => {
+    try {
+      const mentors = await Mentor.find({});
+      res.json(mentors);
+    } catch (error) {
+      console.error('Error fetching mentors:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
 
 module.exports = router;
