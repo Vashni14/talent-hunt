@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaEye, FaFilter, FaPlus, FaComments } from 'react-icons/fa';
+import { FaSearch, FaEye, FaFilter, FaPlus, FaComments, FaUsers, FaTrophy } from 'react-icons/fa';
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaUserPlus, 
@@ -279,16 +279,229 @@ const ProfileModal = ({ profile, onClose }) => {
   );
 }
 
-const Students = () => {
-  const [students, setStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDomain, setFilterDomain] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const studentsPerPage = 10;
+const CompetitionParticipationModal = ({ onClose }) => {
+    // Static data for demonstration
+    const competitionStats = {
+      totalParticipations: 8,
+      wins: 3,
+      top3: 5,
+      successRatio: '62.5%'
+    };
+  
+    const competitions = [
+      {
+        name: "Hackathon 2023",
+        date: "2023-05-15",
+        result: "1st Place",
+        team: "Tech Innovators"
+      },
+      {
+        name: "AI Challenge 2022",
+        date: "2022-11-20",
+        result: "3rd Place",
+        team: "Data Wizards"
+      },
+      {
+        name: "Code Wars 2022",
+        date: "2022-08-10",
+        result: "Finalist",
+        team: "Byte Force"
+      }
+    ];
+  
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-bold text-white">My Competition Participation</h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+  
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <p className="text-sm text-gray-400">Total Participations</p>
+                <p className="text-2xl font-bold text-white">{competitionStats.totalParticipations}</p>
+              </div>
+              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <p className="text-sm text-gray-400">Wins</p>
+                <p className="text-2xl font-bold text-green-400">{competitionStats.wins}</p>
+              </div>
+              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <p className="text-sm text-gray-400">Top 3 Finishes</p>
+                <p className="text-2xl font-bold text-yellow-400">{competitionStats.top3}</p>
+              </div>
+              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+                <p className="text-sm text-gray-400">Success Ratio</p>
+                <p className="text-2xl font-bold text-blue-400">{competitionStats.successRatio}</p>
+              </div>
+            </div>
+  
+            {/* Competitions List */}
+            <div>
+              <h3 className="text-lg font-semibold text-white mb-3 pb-2 border-b border-gray-700">
+                Recent Competitions
+              </h3>
+              <div className="space-y-3">
+                {competitions.map((comp, index) => (
+                  <div key={index} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-white font-medium">{comp.name}</h4>
+                        <p className="text-gray-400 text-sm">{comp.date}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        comp.result.includes('1st') ? 'bg-yellow-500/20 text-yellow-400' :
+                        comp.result.includes('3rd') ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {comp.result}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-sm mt-2">Team: {comp.team}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+  
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+  
+  const MyTeamsModal = ({ onClose }) => {
+    // Static data for demonstration
+    const teams = [
+      {
+        name: "Tech Innovators",
+        competition: "Hackathon 2023",
+        members: [
+          { name: "John Doe", role: "Frontend Dev" },
+          { name: "Jane Smith", role: "Backend Dev" },
+          { name: "You", role: "Team Lead" }
+        ],
+        mentor: "Dr. Sarah Johnson"
+      },
+      {
+        name: "Data Wizards",
+        competition: "AI Challenge 2022",
+        members: [
+          { name: "Mike Chen", role: "Data Scientist" },
+          { name: "You", role: "ML Engineer" }
+        ],
+        mentor: "Prof. Robert Brown"
+      }
+    ];
+  
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-xl font-bold text-white">My Teams</h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+  
+            <div className="space-y-4">
+              {teams.map((team, index) => (
+                <div key={index} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{team.name}</h3>
+                      <p className="text-gray-400 text-sm">{team.competition}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400">Mentor</p>
+                      <p className="text-blue-400">{team.mentor}</p>
+                    </div>
+                  </div>
+  
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-400 mb-2">Team Members</h4>
+                    <div className="space-y-2">
+                      {team.members.map((member, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center mr-2">
+                              <FaUserTie className="text-xs text-gray-300" />
+                            </div>
+                            <span className={`${member.name === 'You' ? 'text-yellow-400' : 'text-gray-300'}`}>
+                              {member.name}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-400">{member.role}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+  
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+  
+  const Students = () => {
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterDomain, setFilterDomain] = useState('all');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCompetitionsModalOpen, setIsCompetitionsModalOpen] = useState(false);
+    const [isTeamsModalOpen, setIsTeamsModalOpen] = useState(false);
+    const studentsPerPage = 10;
 
   // Fetch all students
   const fetchStudents = async () => {
@@ -456,13 +669,6 @@ const Students = () => {
           >
             Refresh
           </button>
-          <Link 
-            to="/admin/students/add" 
-            className="flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:opacity-90 transition-opacity text-white"
-          >
-            <FaPlus className="mr-2" />
-            Add New Student
-          </Link>
         </div>
       </div>
 
@@ -505,19 +711,19 @@ const Students = () => {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-750">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Profile</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Domain</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Profile</th>
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Domain</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-700">
               {currentStudents.length > 0 ? (
                 currentStudents.map(student => (
                   <tr key={student._id} className="hover:bg-gray-750/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <img
@@ -528,31 +734,45 @@ const Students = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-300 w-24 truncate">
                       {student.uid}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-white">{student.name}</div>
                       <div className="text-sm text-gray-400">{student.contact}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
                       {student.domain || 'N/A'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         student.isPublic ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-300'
                       }`}>
                         {student.isPublic ? 'Public' : 'Private'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-1">
                         <button
                           onClick={() => openProfileModal(student)}
                           className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-900/20"
                           title="View Profile"
                         >
                           <FaEye />
+                        </button>
+                        <button
+                          onClick={() => setIsCompetitionsModalOpen(true)}
+                          className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
+                          title="View Competitions"
+                        >
+                          <FaTrophy />
+                        </button>
+                        <button
+                          onClick={() => setIsTeamsModalOpen(true)}
+                          className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
+                          title="View Teams"
+                        >
+                          <FaUsers />
                         </button>
                         <button
                           onClick={() => console.log('Initiate chat with:', student._id)}
@@ -621,11 +841,24 @@ const Students = () => {
         )}
       </div>
 
-      {/* Profile View Modal */}
       <ProfileModal 
         profile={selectedStudent} 
         onClose={closeProfileModal} 
       />
+
+      {/* Competitions Modal */}
+      {isCompetitionsModalOpen && (
+        <CompetitionParticipationModal 
+          onClose={() => setIsCompetitionsModalOpen(false)} 
+        />
+      )}
+
+      {/* Teams Modal */}
+      {isTeamsModalOpen && (
+        <MyTeamsModal 
+          onClose={() => setIsTeamsModalOpen(false)} 
+        />
+      )}
     </div>
   );
 };
