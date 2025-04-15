@@ -18,6 +18,25 @@ const StudentCompetitions = () => {
     additionalInfo: ''
   });
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
+  const allSDGs = [
+    { id: 1, name: 'No Poverty' },
+    { id: 2, name: 'Zero Hunger' },
+    { id: 3, name: 'Good Health' },
+    { id: 4, name: 'Quality Education' },
+    { id: 5, name: 'Gender Equality' },
+    { id: 6, name: 'Clean Water' },
+    { id: 7, name: 'Clean Energy' },
+    { id: 8, name: 'Economic Growth' },
+    { id: 9, name: 'Innovation' },
+    { id: 10, name: 'Reduced Inequality' },
+    { id: 11, name: 'Sustainable Cities' },
+    { id: 12, name: 'Responsible Consumption' },
+    { id: 13, name: 'Climate Action' },
+    { id: 14, name: 'Life Below Water' },
+    { id: 15, name: 'Life on Land' },
+    { id: 16, name: 'Peace & Justice' },
+    { id: 17, name: 'Partnerships' }
+  ];
 
   const allCategories = ['all', ...new Set(competitions.map(c => c.category).filter(Boolean))];
   const allStatuses = ['all', 'Active', 'Upcoming', 'Completed'];

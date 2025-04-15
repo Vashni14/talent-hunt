@@ -1,19 +1,26 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import StudentDashboard from "./pages/StudentDashboard";
-import MentorDashboard from "./pages/MentorDashboard";
+import MentorDashboard from "./pages/mentor/MentorDashboard";
+import MentorProfile from "./pages/mentor/MentorProfie";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentLandingPage from "./pages/StudentLandingPage";
 import AddGoals from "./pages/AddGoals";
 import FindTeammatesPage from "./pages/FindTeammatesPage";
 import { useAuth } from "./context/AuthContext"; // Correct import path
 import FindTeammates from "./pages/FindTeammates";
-import OpenTeams  from "./pages/OpenTeams";
+import OpenTeams from "./pages/OpenTeams";
 import Chat from "./pages/Chat";
 import MyTeams from "./pages/MyTeams";
 import SDGMapping from "./pages/SDGMapping";
-import Competitions from './pages/Competitions';
+import Competitions from "./pages/Competitions";
+import MentorFindingPage from "./pages/MentorFindingPage";
 
 function App() {
   const { user } = useAuth(); // Get the authenticated user
@@ -36,19 +43,15 @@ function App() {
           {/* 🎓 Student Landing Page */}
           <Route
             path="/student/dashboard"
-            element={user ? <StudentLandingPage /> : <Navigate to="/auth" />}
+            element={user ? <StudentLandingPage /> : <Navigate to="/student/dashboard" />}
           />
 
           {/* 🎓 Student Dashboard */}
           <Route
             path="/student-dashboard"
-            element={user ? <StudentDashboard /> : <Navigate to="/student/dashboard" />}
-          />
-
-          {/* 👨‍🏫 Mentor Dashboard */}
-          <Route
-            path="/mentor-dashboard"
-            element={user ? <MentorDashboard /> : <Navigate to="/auth" />}
+            element={
+              user ? <StudentDashboard /> : <Navigate to="/student/dashboard" />
+            }
           />
 
           {/* 🏛️ Admin Dashboard */}
@@ -66,11 +69,27 @@ function App() {
           {/* 👥 Find Teammates Page */}
           <Route
             path="/find-teammates"
-            element={user ? <FindTeammatesPage /> : <Navigate to="/student/dashboard" />}
+            element={
+              user ? (
+                <FindTeammatesPage />
+              ) : (
+                <Navigate to="/student/dashboard" />
+              )
+            }
           />
 
           {/* 🚨 Default Redirect to Landing */}
           <Route path="*" element={<LandingPage />} />
+          <Route path="mentorfind" element={<MentorFindingPage />} />
+
+          {/* Mentor Routes */}
+          <Route
+            path="/mentor-dashboard"
+            element={
+              user ? <MentorDashboard /> : <Navigate to="/mentor-dashboard" />
+            }
+          />
+          <Route path="mentor-profile" element={<MentorProfile />} />
         </Routes>
       </div>
     </Router>

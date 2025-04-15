@@ -38,7 +38,7 @@ const StudentLandingPage = () => {
       if (user) {
         fetchStudentProfile();
       } else {
-        navigate('/login');
+        navigate('/student/dashboard');
       }
     });
     return () => unsubscribe();
@@ -645,7 +645,7 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'mentorship' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('mentorship')}
+              onClick={() => navigate("/mentorfind")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-yellow-500 to-yellow-600 shadow-md">
                 <FaUserTie className="text-xl" />
