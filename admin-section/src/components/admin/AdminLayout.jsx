@@ -10,7 +10,8 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaUser
 } from 'react-icons/fa';
 
 const AdminLayout = () => {
@@ -26,6 +27,11 @@ const AdminLayout = () => {
       name: 'Competitions', 
       path: '/admin/competitions', 
       icon: <FaTrophy className="text-lg" />
+    },
+    { 
+      name: 'Students', 
+      path: '/admin/students', 
+      icon: <FaUser className="text-lg" />
     },
     { 
       name: 'Teams', 

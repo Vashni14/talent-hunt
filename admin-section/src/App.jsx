@@ -7,6 +7,7 @@ import Teams from './components/admin/Teams';
 import Mentors from './components/admin/Mentors';
 import Reports from './components/admin/Reports';
 import SDG from './components/admin/SDG';
+import Students from './components/admin/Students';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="mentors" element={<Mentors />} />
           <Route path="reports" element={<Reports />} />
           <Route path="sdg" element={<SDG />} />
+          <Route path="students" element={<Students />} />
           {/* Add other admin routes here */}
         </Route>
       </Routes>
