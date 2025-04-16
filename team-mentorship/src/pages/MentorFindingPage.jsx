@@ -17,7 +17,7 @@ import {
   FaArrowLeft
 } from "react-icons/fa";
 import axios from "axios";
-import { auth } from "../config/firebase";
+import { auth } from "/src/config/firebase";
 
 const MentorFindingPage = () => {
   // State management
@@ -29,57 +29,11 @@ const MentorFindingPage = () => {
   const [myTeams, setMyTeams] = useState([]);
   const [teamsLoading, setTeamsLoading] = useState(false);
   const [teamsError, setTeamsError] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const user = auth.currentUser;
-    // At the top of your component
+  const [userId, setUserId] = useState(null);
+  const [applications, setApplications] = useState([]);
+  const user = auth.currentUser;
   const [authInitialized, setAuthInitialized] = useState(false);
   
-  // Auth state listener
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log("User authenticated:", user.uid);
-        setUserId(user.uid); // Make sure this is setting properly
-      } else {
-        console.log("No user authenticated");
-        setUserId(null);
-      }
-      setAuthInitialized(true);
-    });
-    
-    return () => unsubscribe();
-  }, []);
-  
-    useEffect(() => {
-      if (user) {
-        setUserId(user.uid);
-        fetchMyTeams();
-      }
-    }, [user]);
-  // Static data for applications
-  const [applications] = useState([
-    {
-      id: "1",
-      mentorId: "1",
-      mentorName: "Dr. Sarah Johnson",
-      teamName: "Code Warriors",
-      message: "We're building a React application and need guidance on best practices.",
-      status: "pending",
-      date: "2023-06-15"
-    },
-    {
-      id: "2",
-      mentorId: "2",
-      mentorName: "Alex Chen",
-      teamName: "Design Innovators",
-      message: "Need help with UX research for our capstone project.",
-      status: "accepted",
-      date: "2023-06-10"
-    }
-  ]);
-
-  // Sample user ID - replace with your actual user ID from auth context
-
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({
@@ -95,11 +49,108 @@ const MentorFindingPage = () => {
   const [currentMentor, setCurrentMentor] = useState(null);
   const [mentorDetails, setMentorDetails] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [requestData, setRequestData] = useState({
     team: "",
     message: ""
   });
+
+  // Auth state listener
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        console.log("User authenticated:", user.uid);
+        setUserId(user.uid);
+        fetchMyTeams();
+        fetchApplications();
+      } else {
+        console.log("No user authenticated");
+        setUserId(null);
+      }
+      setAuthInitialized(true);
+    });
+    
+    return () => unsubscribe();
+  }, []);
+  const fetchMyTeams = async () => {
+    try {
+      if (!userId) {
+        console.log('No user ID available');
+        return;
+      }
+  
+      setTeamsLoading(true);
+      setTeamsError(null);
+      
+      const response = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+  
+      let teamsData = [];
+      if (Array.isArray(response.data)) {
+        teamsData = response.data;
+      } else if (response.data.success && Array.isArray(response.data.data)) {
+        teamsData = response.data.data;
+      }
+  
+      const myTeams = teamsData.filter(team => {
+        const createdById = typeof team.createdBy === 'object' 
+          ? team.createdBy._id 
+          : team.createdBy;
+        return createdById === userId;
+      });
+  
+      console.log("filtered teams", myTeams);
+      setMyTeams(myTeams);
+      
+    } catch (err) {
+      console.error('Error in fetchMyTeams:', err);
+      setTeamsError(err.message);
+      setMyTeams([]);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    fetchMyTeams();
+  }, [userId]);
+
+  const fetchApplications = async () => {
+    try {
+      if (!myTeams.length) {
+        console.log('No teams available');
+        setApplications([]);
+        return;
+      }
+      
+      const allApplications = [];
+      for (const team of myTeams) {
+        try {
+          const appsResponse = await axios.get(
+            `http://localhost:5000/api/mentor/applications/team/${team._id}`
+          );
+          if (appsResponse.data.applications) {
+            allApplications.push(...appsResponse.data.applications);
+          }
+        } catch (err) {
+          console.error(`Error fetching applications for team ${team._id}:`, err);
+        }
+      }
+      
+      console.log("Fetched applications:", allApplications);
+      setApplications(allApplications);
+    } catch (err) {
+      console.error("Error in fetchApplications:", err);
+      setApplications([]);
+    }
+  };
+  
+  // Update the useEffect hook
+  useEffect(() => {
+    if (myTeams.length > 0) {
+      fetchApplications();
+    }
+  }, [myTeams]); // Only run when myTeams changes
+
 
   // Fetch all mentors from backend
   useEffect(() => {
@@ -119,62 +170,7 @@ const MentorFindingPage = () => {
   }, []);
 
   // Fetch user's teams from backend
-  const fetchMyTeams = async () => {
-    try {
-      if (!userId) {
-        console.log('No user ID available');
-        return;
-      }
-  
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await fetch(`http://localhost:5000/api/teams/user/${userId}`);
-  
-      console.log('Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch teams');
-      }
-  
-      const responseData = await response.json();
-      console.log("data from backend", responseData);
-  
-      // Handle both direct array response and success/data pattern
-      let teamsData = [];
-      if (Array.isArray(responseData)) {
-        teamsData = responseData;
-      } else if (responseData.success && Array.isArray(responseData.data)) {
-        teamsData = responseData.data;
-      }
-  
-      // More robust filtering
-      const myTeams = teamsData.filter(team => {
-        // Handle both string and object createdBy formats
-        const createdById = typeof team.createdBy === 'object' 
-          ? team.createdBy._id 
-          : team.createdBy;
-        
-        return createdById === userId;
-      });
-  
-      console.log("filtered teams", myTeams);
-      setMyTeams(myTeams);
-      
-    } catch (err) {
-      console.error('Error in fetchMyTeams:', err);
-      setError(err.message);
-      setMyTeams([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMyTeams();
-  }, [userId]);
-
+ 
   // Filter mentors based on search and filters
   useEffect(() => {
     let filtered = [...mentors];
@@ -219,22 +215,61 @@ const MentorFindingPage = () => {
     }
   };
 
-  // Handle request submission (static implementation)
-  const handleSendRequest = () => {
+  // Handle request submission
+  const handleSendRequest = async () => {
     if (!requestData.team || !requestData.message || !currentMentor) return;
     
-    alert(`Request sent to ${currentMentor.name} from team ${requestData.team}`);
-    setShowRequestModal(false);
-    setRequestData({ team: "", message: "" });
+    try {
+      const selectedTeam = myTeams.find(team => team.name === requestData.team);
+      
+      if (!selectedTeam) {
+        throw new Error("Selected team not found");
+      }
+      
+      const response = await axios.post('http://localhost:5000/api/mentor/applications', {
+        mentor: currentMentor._id,
+        team: selectedTeam._id,
+        message: requestData.message
+      });
+      
+      if (response.data.success) {
+        alert(`Request sent to ${currentMentor.name} from team ${requestData.team}`);
+        setShowRequestModal(false);
+        setRequestData({ team: "", message: "" });
+        fetchApplications(userId);
+      } else {
+        alert(response.data.message || "Failed to send request");
+      }
+    } catch (err) {
+      console.error("Error sending request:", err);
+      alert(err.response?.data?.message || "Failed to send request");
+    }
   };
 
-  // Handle withdraw application (static implementation)
-  const handleWithdraw = (applicationId) => {
-    alert(`Withdrawn application ${applicationId}`);
+  // Handle withdraw application
+  const handleWithdraw = async (applicationId) => {
+    try {
+      const response = await axios.delete(`http://localhost:5000/api/mentor/applications/${applicationId}`);
+      
+      if (response.data.success) {
+        alert(`Application withdrawn successfully`);
+        fetchApplications(userId);
+      } else {
+        alert(response.data.message || "Failed to withdraw application");
+      }
+    } catch (err) {
+      console.error("Error withdrawing application:", err);
+      alert(err.response?.data?.message || "Failed to withdraw application");
+    }
   };
 
   // Get unique domains for filter
   const uniqueDomains = [...new Set(mentors.map(mentor => mentor.domain).filter(Boolean))];
+
+  // Filter applications based on status
+  const filteredApplications = applications.filter(app => 
+    applicationFilter === "all" || app.status === applicationFilter
+  );
 
   if (loading) {
     return (
@@ -451,19 +486,21 @@ const MentorFindingPage = () => {
 
             {/* Applications List */}
             <div className="space-y-4">
-              {applications.length === 0 ? (
+              {filteredApplications.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
                   No applications found.
                 </div>
               ) : (
-                applications.map(app => (
-                  <div key={app.id} className="bg-gray-800 rounded-xl border border-gray-700 p-5">
+                filteredApplications.map(app => (
+                  <div key={app._id} className="bg-gray-800 rounded-xl border border-gray-700 p-5">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-lg">{app.mentorName}</h3>
-                        <p className="text-gray-400 text-sm">Team: {app.teamName}</p>
+                        <h3 className="font-bold text-lg">{app.mentor?.name || "Unknown Mentor"}</h3>
+                        <p className="text-gray-400 text-sm">Team: {app.team?.name || "Unknown Team"}</p>
                         <p className="text-gray-300 mt-2">{app.message}</p>
-                        <p className="text-gray-500 text-sm mt-2">Submitted: {app.date}</p>
+                        <p className="text-gray-500 text-sm mt-2">
+                          Submitted: {new Date(app.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
                       <div className="flex flex-col items-end">
                         <span className={`px-3 py-1 rounded-full text-sm ${
@@ -478,7 +515,7 @@ const MentorFindingPage = () => {
                     <div className="mt-4 flex gap-3">
                       <button 
                         className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
-                        onClick={() => alert(`Chat with ${app.mentorName} would open here`)}
+                        onClick={() => alert(`Chat with ${app.mentor?.name || "mentor"} would open here`)}
                       >
                         <FaEnvelope /> Chat
                       </button>
@@ -487,13 +524,16 @@ const MentorFindingPage = () => {
                         <>
                           <button
                             className="text-gray-300 hover:text-white flex items-center gap-1 text-sm"
-                            onClick={() => alert(`View profile of ${app.mentorName}`)}
+                            onClick={() => {
+                              const mentor = mentors.find(m => m._id === app.mentor?._id);
+                              if (mentor) handleViewProfile(mentor);
+                            }}
                           >
                             <FaUser /> View Profile
                           </button>
                           <button
                             className="text-red-400 hover:text-red-300 flex items-center gap-1 text-sm"
-                            onClick={() => handleWithdraw(app.id)}
+                            onClick={() => handleWithdraw(app._id)}
                           >
                             <FaTimes /> Withdraw
                           </button>
@@ -581,7 +621,7 @@ const MentorFindingPage = () => {
               <h2 className="text-xl font-bold flex-1 text-center">
                 {mentorDetails?.name || currentMentor?.name}'s Profile
               </h2>
-              <div className="w-6"></div> {/* Spacer for alignment */}
+              <div className="w-6"></div>
             </div>
 
             {profileLoading ? (

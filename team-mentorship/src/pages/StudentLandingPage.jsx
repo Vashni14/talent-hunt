@@ -393,8 +393,8 @@ const StudentLandingPage = () => {
                   <button className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
                                                     onClick={() => {
                                                                  // Add your logout logic here
-                                                                 auth.signOut();
-                                                                 navigate('/login');}}>
+                                      
+                                                                 navigate("/login")}}>
                     <FaSignOutAlt className="text-gray-400" />
                     Logout
                   </button>

@@ -6,7 +6,7 @@ const connectDB = require("./config/db");
 const StudentProfile = require("./models/StudentProfile"); 
 const goalRoutes = require("./routes/goals");
 const teamsRouter = require('./routes/team');
-
+const mentorApplicationRoutes = require('./routes/mentorApplicationRoutes');
 
 dotenv.config();
 connectDB();
@@ -44,5 +44,6 @@ app.use('/api/teams', teamsRouter);
 app.use("/api/goals", goalRoutes);
 //Mentor Routes
 app.use("/api/mentor", require("./routes/mentorRoutes"));
+app.use('/api/mentor', mentorApplicationRoutes);
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
