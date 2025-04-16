@@ -114,42 +114,42 @@ const MentorFindingPage = () => {
     fetchMyTeams();
   }, [userId]);
 
-  const fetchApplications = async () => {
-    try {
-      if (!myTeams.length) {
-        console.log('No teams available');
-        setApplications([]);
-        return;
-      }
-      
-      const allApplications = [];
-      for (const team of myTeams) {
-        try {
-          const appsResponse = await axios.get(
-            `http://localhost:5000/api/mentor/applications/team/${team._id}`
-          );
-          if (appsResponse.data.applications) {
-            allApplications.push(...appsResponse.data.applications);
-          }
-        } catch (err) {
-          console.error(`Error fetching applications for team ${team._id}:`, err);
-        }
-      }
-      
-      console.log("Fetched applications:", allApplications);
-      setApplications(allApplications);
-    } catch (err) {
-      console.error("Error in fetchApplications:", err);
+ const fetchApplications = async () => {
+  try {
+    if (!myTeams.length) {
+      console.log('No teams available');
       setApplications([]);
+      return;
     }
-  };
-  
-  // Update the useEffect hook
-  useEffect(() => {
-    if (myTeams.length > 0) {
-      fetchApplications();
+    
+    const allApplications = [];
+    for (const team of myTeams) {
+      try {
+        const appsResponse = await axios.get(
+          `http://localhost:5000/api/mentor/applications/team/${team._id}`
+        );
+        if (appsResponse.data.applications) {
+          allApplications.push(...appsResponse.data.applications);
+        }
+      } catch (err) {
+        console.error(`Error fetching applications for team ${team._id}:`, err);
+      }
     }
-  }, [myTeams]); // Only run when myTeams changes
+    
+    console.log("Fetched applications:", allApplications);
+    setApplications(allApplications);
+  } catch (err) {
+    console.error("Error in fetchApplications:", err);
+    setApplications([]);
+  }
+};
+
+// Update the useEffect hook
+useEffect(() => {
+  if (myTeams.length > 0) {
+    fetchApplications();
+  }
+}, [myTeams]); // Only run when myTeams changes
 
 
   // Fetch all mentors from backend
@@ -494,14 +494,31 @@ const MentorFindingPage = () => {
                 filteredApplications.map(app => (
                   <div key={app._id} className="bg-gray-800 rounded-xl border border-gray-700 p-5">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg">{app.mentor?.name || "Unknown Mentor"}</h3>
-                        <p className="text-gray-400 text-sm">Team: {app.team?.name || "Unknown Team"}</p>
-                        <p className="text-gray-300 mt-2">{app.message}</p>
-                        <p className="text-gray-500 text-sm mt-2">
-                          Submitted: {new Date(app.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-4">
+  {/* Profile Picture */}
+  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-blue-500/50">
+    <img
+      src={
+        app.mentor?.profilePicture
+          ? `http://localhost:5000${app.mentor.profilePicture}`
+          : "https://ui-avatars.com/api/?name=" + encodeURIComponent(app.mentor?.name || "Mentor")
+      }
+      alt={app.mentor?.name || "Mentor"}
+      className="w-full h-full object-cover"
+    />
+  </div>
+
+  {/* Mentor Info */}
+  <div>
+    <h3 className="font-bold text-lg">{app.mentor?.name || "Unknown Mentor"}</h3>
+    <p className="text-gray-400 text-sm">Team: {app.team?.name || "Unknown Team"}</p>
+    <p className="text-gray-300 mt-2">{app.message}</p>
+    <p className="text-gray-500 text-sm mt-2">
+      Submitted: {new Date(app.createdAt).toLocaleDateString()}
+    </p>
+  </div>
+</div>
+
                       <div className="flex flex-col items-end">
                         <span className={`px-3 py-1 rounded-full text-sm ${
                           app.status === "pending" ? "bg-yellow-600/30 text-yellow-400" :

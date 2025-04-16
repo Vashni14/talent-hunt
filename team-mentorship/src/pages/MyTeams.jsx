@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { auth } from "../config/firebase";
 import { useNavigate } from "react-router-dom";
 import {
+  FaSpinner,
   FaCalendarAlt,
   FaChartBar,
   FaCheckCircle,
@@ -38,6 +39,8 @@ export default function MyTeams() {
   const [teams, setTeams] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [currentProcessingTeam, setCurrentProcessingTeam] = useState(null);
+  const [mentorsData, setMentorsData] = useState({}); // Stores mentor details by ID
   const [newTeam, setNewTeam] = useState({
     name: "",
     project: "",
@@ -51,7 +54,7 @@ export default function MyTeams() {
   const [editingTeam, setEditingTeam] = useState(null)
   const [currentTeam, setCurrentTeam] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
-   const [allSDGs, setAllSDGs] = useState([]);
+  const [allSDGs, setAllSDGs] = useState([]);
 
   const user = auth.currentUser;
 
@@ -60,6 +63,30 @@ export default function MyTeams() {
       setUserId(user.uid)
     }
   }, [user]);
+
+  // Fetch mentor details for a specific ID
+  const fetchMentorDetails = async (mentorId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/mentor/profile/id/${mentorId}`);
+      if (!response.ok) throw new Error('Failed to fetch mentor details');
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching mentor details:', err);
+      return null;
+    }
+  };
+
+  // Fetch all available mentors
+  const fetchAllMentors = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/mentors/mentors');
+      if (!response.ok) throw new Error('Failed to fetch mentors');
+      return await response.json();
+    } catch (err) {
+      console.error('Error fetching mentors:', err);
+      return [];
+    }
+  };
 
   const fetchTeams = async () => {
     try {
@@ -74,7 +101,27 @@ export default function MyTeams() {
       const result = await response.json();
       setTeams(result.data || []);
       
-      console.log('Teams data:', result.data);
+      // Fetch mentor details for all teams
+      const mentorDetails = {};
+      const mentorFetchPromises = [];
+      
+      result.data.forEach(team => {
+        if (team.mentors && team.mentors.length > 0) {
+          team.mentors.forEach(mentorId => {
+            if (!mentorDetails[mentorId]) {
+              mentorFetchPromises.push(
+                fetchMentorDetails(mentorId).then(mentor => {
+                  if (mentor) mentorDetails[mentorId] = mentor;
+                })
+              );
+            }
+          });
+        }
+      });
+      
+      await Promise.all(mentorFetchPromises);
+      setMentorsData(mentorDetails);
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -85,20 +132,21 @@ export default function MyTeams() {
   useEffect(() => {
     fetchTeams();
   }, [userId]);
-    useEffect(() => {
-      const fetchSDGs = async () => {
-        try {
-          const response = await fetch('http://localhost:5000/api/sdgs');
-          if (!response.ok) throw new Error('Failed to fetch SDGs');
-          const data = await response.json();
-          setAllSDGs(data);
-        } catch (err) {
-          console.error('Error fetching SDGs:', err);
-          toast.error('Failed to load SDG data');
-        }
-      };
-      fetchSDGs();
-    }, []);
+
+  useEffect(() => {
+    const fetchSDGs = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/sdgs');
+        if (!response.ok) throw new Error('Failed to fetch SDGs');
+        const data = await response.json();
+        setAllSDGs(data);
+      } catch (err) {
+        console.error('Error fetching SDGs:', err);
+        toast.error('Failed to load SDG data');
+      }
+    };
+    fetchSDGs();
+  }, []);
 
   // Separate teams into created by me and teams I'm a member of
   const createdTeams = teams.filter(team => team.createdBy === userId);
@@ -179,6 +227,51 @@ export default function MyTeams() {
     }
   };
 
+  const handleRemoveMentor = async (teamId, mentorId) => {
+    try {
+      setCurrentProcessingTeam(teamId);
+      setIsLoading(true);
+      
+      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/mentors/${mentorId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+        }
+      });
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to remove mentor');
+      }
+  
+      const updatedTeam = await response.json();
+      
+      // Update the team in state
+      setTeams(teams.map(t => 
+        t._id === teamId ? updatedTeam.team : t
+      ));
+      
+      // Update mentors data
+      const newMentorsData = {...mentorsData};
+      delete newMentorsData[mentorId];
+      setMentorsData(newMentorsData);
+      
+      toast.success('Mentor removed successfully');
+      
+    } catch (err) {
+      console.error('Error removing mentor:', err);
+      toast.error(err.message || 'Failed to remove mentor');
+    } finally {
+      setCurrentProcessingTeam(null);
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddMentor = (teamId) => {
+    navigate(`/mentors?teamId=${teamId}`);
+  };
+
   const handleDeleteTeam = async (teamId) => {
     try {
       setIsLoading(true)
@@ -199,6 +292,7 @@ export default function MyTeams() {
       setIsLoading(false)
     }
   }
+
   const handleLeaveTeam = async (teamId) => {
     console.log('Attempting to leave team:', teamId);
     try {
@@ -252,7 +346,7 @@ export default function MyTeams() {
     }
   };
   
-  // Add this helper function
+  // Helper function
   const verifyRemoval = async (teamId, userId) => {
     const verifyResponse = await fetch(
       `http://localhost:5000/api/teams/${teamId}/verify-member/${userId}`
@@ -267,6 +361,7 @@ export default function MyTeams() {
       throw new Error('Still appears to be a member');
     }
   };
+
   const handleUpdateTeam = async () => {
     try {
       setIsLoading(true)
@@ -677,160 +772,225 @@ export default function MyTeams() {
 
         {/* Teams List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  {filteredTeams.length > 0 ? (
-    filteredTeams.map((team) => {
-      const isCreator = team.createdBy === userId;
-      
-      return (
-        <div
-          key={team._id}
-          className={`bg-gray-800 rounded-xl border border-gray-700 overflow-hidden transition-all duration-300 ${
-            expandedTeam === team._id 
-              ? "border-yellow-500 shadow-lg shadow-yellow-500/10" 
-              : "hover:border-yellow-500/30 hover:shadow-lg hover:shadow-yellow-500/10"
-          }`}
-        >
-          <div className="p-5">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div>
-                  <h3 className="font-medium text-white text-lg">{team.name}</h3>
-                  <p className="text-sm text-yellow-400">{team.project}</p>
-                  <div className="flex items-center mt-1 gap-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      team.status === "active" ? "bg-green-900 text-green-400" :
-                      team.status === "pending" ? "bg-blue-900 text-blue-400" :
-                      "bg-purple-900 text-purple-400"
-                    }`}>
-                      {team.status === "active" ? (
-                        <span className="flex items-center">
-                          <FaCheckCircle className="mr-1" /> Active
-                        </span>
-                      ) : team.status === "pending" ? (
-                        <span className="flex items-center">
-                          <FaHourglassStart className="mr-1" /> Pending
-                        </span>
-                      ) : (
-                        <span className="flex items-center">
-                          <FaThumbsUp className="mr-1" /> Completed
-                        </span>
-                      )}
-                    </span>
-                    {team.sdgs?.length > 0 && (
-                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full flex items-center">
-                        <FaBook className="mr-1 text-blue-400" />
-                        {team.sdgs.length} SDGs
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {isCreator ? (
-                  <>
-                    <button 
-                      className="text-gray-400 hover:text-white p-1"
-                      onClick={() => {
-                        setEditingTeam(team)
-                        setShowEditModal(true)
-                      }}
-                    >
-                      <FaEdit />
-                    </button>
-                    <button 
-                      className="text-gray-400 hover:text-red-500 p-1"
-                      onClick={() => handleDeleteTeam(team._id)}
-                      disabled={isLoading}
-                    >
-                      <FaTrash />
-                    </button>
-                  </>
-                ) : (
-                  <button 
-                    className="text-gray-400 hover:text-red-500 p-1"
-                    onClick={() => handleLeaveTeam(team._id)}
-                    disabled={isLoading}
-                  >
-                    <FaSignOutAlt />
-                  </button>
-                )}
-                <button 
-                  className="text-gray-400 hover:text-white p-1"
-                  onClick={() => toggleExpandTeam(team._id)}
-                >
-                  <FaEllipsisH />
-                </button>
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm text-gray-300">{team.description}</p>
-
-            {team.mentor && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-gray-300">
-                <FaUserTie className="text-yellow-400" />
-                <span>Mentor: </span>
-                <span className="text-white">{team.mentor.name}</span>
-                <span className="text-gray-400 text-xs ml-1">({team.mentor.role})</span>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <div className="flex justify-between mb-2">
-                <span className="text-xs text-gray-400">Progress</span>
-                <span className="text-xs text-gray-400">{team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2">
+          {filteredTeams.length > 0 ? (
+            filteredTeams.map((team) => {
+              const isCreator = team.createdBy === userId;
+              
+              return (
                 <div
-                  className={`h-2 rounded-full ${getProgressBarColor(team)}`}
-                  style={{ width: `${team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%` }}
-                ></div>
-              </div>
-            </div>
+                  key={team._id}
+                  className={`bg-gray-800 rounded-xl border border-gray-700 overflow-hidden transition-all duration-300 ${
+                    expandedTeam === team._id 
+                      ? "border-yellow-500 shadow-lg shadow-yellow-500/10" 
+                      : "hover:border-yellow-500/30 hover:shadow-lg hover:shadow-yellow-500/10"
+                  }`}
+                >
+                  <div className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-4">
+                        <div>
+                          <h3 className="font-medium text-white text-lg">{team.name}</h3>
+                          <p className="text-sm text-yellow-400">{team.project}</p>
+                          <div className="flex items-center mt-1 gap-2">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              team.status === "active" ? "bg-green-900 text-green-400" :
+                              team.status === "pending" ? "bg-blue-900 text-blue-400" :
+                              "bg-purple-900 text-purple-400"
+                            }`}>
+                              {team.status === "active" ? (
+                                <span className="flex items-center">
+                                  <FaCheckCircle className="mr-1" /> Active
+                                </span>
+                              ) : team.status === "pending" ? (
+                                <span className="flex items-center">
+                                  <FaHourglassStart className="mr-1" /> Pending
+                                </span>
+                              ) : (
+                                <span className="flex items-center">
+                                  <FaThumbsUp className="mr-1" /> Completed
+                                </span>
+                              )}
+                            </span>
+                            {team.sdgs?.length > 0 && (
+                              <span className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full flex items-center">
+                                <FaBook className="mr-1 text-blue-400" />
+                                {team.sdgs.length} SDGs
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {isCreator ? (
+                          <>
+                            <button 
+                              className="text-gray-400 hover:text-white p-1"
+                              onClick={() => {
+                                setEditingTeam(team)
+                                setShowEditModal(true)
+                              }}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button 
+                              className="text-gray-400 hover:text-red-500 p-1"
+                              onClick={() => handleDeleteTeam(team._id)}
+                              disabled={isLoading}
+                            >
+                              <FaTrash />
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            className="text-gray-400 hover:text-red-500 p-1"
+                            onClick={() => handleLeaveTeam(team._id)}
+                            disabled={isLoading}
+                          >
+                            <FaSignOutAlt />
+                          </button>
+                        )}
+                        <button 
+                          className="text-gray-400 hover:text-white p-1"
+                          onClick={() => toggleExpandTeam(team._id)}
+                        >
+                          <FaEllipsisH />
+                        </button>
+                      </div>
+                    </div>
 
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="flex items-center text-xs text-gray-400">
-                <FaUsers className="mr-1" />
-                <span>{team.members?.length || 0} members</span>
-              </div>
-              <div className="flex items-center text-xs text-gray-400">
-                <FaCalendarAlt className="mr-1" />
-                <span>Deadline: {team.deadline ? new Date(team.deadline).toLocaleDateString() : 'Not set'}</span>
-              </div>
-              <div className="flex items-center text-xs text-gray-400">
-                <FaCheckCircle className="mr-1" />
-                <span>
-                  {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
-                </span>
-              </div>
-            </div>
+                    <p className="mt-4 text-sm text-gray-300">{team.description}</p>
 
-            {expandedTeam === team._id && (
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                {/* Team Members Section */}
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-white">Team Members</h4>
-                    {isCreator && (
-                      <button 
-                        onClick={() => navigate(`/dashboard`)}
-                        className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
-                      >
-                        <FaPlus size={10} /> Add Member
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-3">
-                    {team.members?.length > 0 ? (
-                      team.members.map((member) => (
-                        <div key={member._id} className="flex items-start gap-3">
-                          <img
-                            src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
-                            alt={member.name}
-                            className="w-8 h-8 rounded-full border border-gray-600"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">{member.name}</p>
-                            <p className="text-xs text-gray-400">{member.role}</p>
+                    <div className="mt-4">
+                      <div className="flex justify-between mb-2">
+                        <span className="text-xs text-gray-400">Progress</span>
+                        <span className="text-xs text-gray-400">{team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%</span>
+                      </div>
+                      <div className="w-full bg-gray-700 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${getProgressBarColor(team)}`}
+                          style={{ width: `${team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 mt-4">
+                      <div className="flex items-center text-xs text-gray-400">
+                        <FaUsers className="mr-1" />
+                        <span>{team.members?.length || 0} members</span>
+                      </div>
+                      <div className="flex items-center text-xs text-gray-400">
+                        <FaCalendarAlt className="mr-1" />
+                        <span>Deadline: {team.deadline ? new Date(team.deadline).toLocaleDateString() : 'Not set'}</span>
+                      </div>
+                      <div className="flex items-center text-xs text-gray-400">
+                        <FaCheckCircle className="mr-1" />
+                        <span>
+                          {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
+                        </span>
+                      </div>
+                    </div>
+
+                    {expandedTeam === team._id && (
+                      <div className="mt-4 pt-4 border-t border-gray-700">
+                        {/* Mentor Section */}
+                        {team.mentors && team.mentors.length > 0 ? (
+                          <div className="mb-6">
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="text-sm font-medium text-white">Mentors</h4>
+                              {isCreator && (
+                                <button 
+                                  onClick={() => handleAddMentor(team._id)}
+                                  className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                                >
+                                  <FaPlus size={10} /> Add Mentor
+                                </button>
+                              )}
+                            </div>
+                            <div className="space-y-3">
+                              {team.mentors.map(mentorId => {
+                                const mentor = mentorsData[mentorId];
+                                if (!mentor) return null;
+                                
+                                return (
+                                  <div key={mentorId} className="bg-gray-700/50 p-3 rounded-lg">
+                                    <div className="flex justify-between items-center">
+                                      <div className="flex items-center gap-3">
+                                        <img
+                                          src={mentor.profilePicture 
+                                            ? `http://localhost:5000${mentor.profilePicture}`
+                                            : "/default-profile.png"}
+                                          alt={mentor.name}
+                                          className="w-10 h-10 rounded-full border border-gray-600"
+                                        />
+                                        <div>
+                                          <p className="text-white font-medium">{mentor.name}</p>
+                                          <p className="text-gray-400 text-sm">{mentor.domain}</p>
+                                          {mentor.currentPosition && (
+                                            <p className="text-gray-400 text-xs">{mentor.currentPosition}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {isCreator && (
+                                        <button
+                                          onClick={() => handleRemoveMentor(team._id, mentorId)}
+                                          className="text-red-500 hover:text-red-400 p-2"
+                                          disabled={isLoading && currentProcessingTeam === team._id}
+                                        >
+                                          {isLoading && currentProcessingTeam === team._id ? (
+                                            <FaSpinner className="animate-spin" />
+                                          ) : (
+                                            <FaTimes />
+                                          )}
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mb-6">
+                            <div className="flex justify-between items-center mb-3">
+                              <h4 className="text-sm font-medium text-white">Mentors</h4>
+                              {isCreator && (
+                                <button 
+                                  onClick={() => handleAddMentor(team._id)}
+                                  className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                                >
+                                  <FaPlus size={10} /> Add Mentor
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-gray-400 text-sm">No mentors assigned yet</p>
+                          </div>
+                        )}
+
+                        {/* Team Members Section */}
+                        <div className="mb-6">
+                          <div className="flex justify-between items-center mb-3">
+                            <h4 className="text-sm font-medium text-white">Team Members</h4>
+                            {isCreator && (
+                              <button 
+                                onClick={() => navigate(`/dashboard`)}
+                                className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
+                              >
+                                <FaPlus size={10} /> Add Member
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-3">
+                            {team.members?.length > 0 ? (
+                              team.members.map((member) => (
+                                <div key={member._id} className="flex items-start gap-3">
+                                  <img
+                                    src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
+                                    alt={member.name}
+                                    className="w-8 h-8 rounded-full border border-gray-600"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm text-white font-medium">{member.name}</p>
+                                    <p className="text-xs text-gray-400">{member.role}</p>
                             {member.skills?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {member.skills.map((skill, index) => (

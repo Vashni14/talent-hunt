@@ -19,6 +19,20 @@ router.get('/profile/:userId', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+router.get('/profile/id/:userId', async (req, res) => {
+    try {
+      const mentor = await Mentor.findById({ _id:req.params.userId });
+      
+      if (!mentor) {
+        return res.status(404).json({ message: 'Mentor not found' });
+      }
+      
+      res.json(mentor);
+    } catch (error) {
+      console.error('Error fetching mentor profile:', error);
+      res.status(500).json({ message: 'Server error' });
+    }
+  });
 
 // Update mentor profile
 router.put('/profile/:userId', upload.single('profilePicture'), async (req, res) => {

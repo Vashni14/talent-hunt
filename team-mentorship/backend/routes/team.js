@@ -471,6 +471,80 @@ router.post('/invite', async (req, res) => {
     });
   }
 });
+
+// GET /api/teams/mentor/:mentorId - Get all teams for a specific mentor
+router.get('/mentor/:mentorId', async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+
+    // Find teams where this mentor is in the mentors array
+    const teams = await Team.find({ mentors: mentorId })
+      .populate({
+        path: 'members',
+        select: 'name role profilePicture email'
+      })
+      .populate({
+        path: 'mentors',
+        select: 'name domain profilePicture currentPosition'
+      })
+      .sort({ createdAt: -1 }); // Sort by newest first
+
+    res.json({
+      success: true,
+      teams
+    });
+
+  } catch (error) {
+    console.error('Error fetching mentor teams:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
+
+// Remove mentor from team
+router.delete('/:teamId/mentor', async (req, res) => {
+  try {
+    const { teamId } = req.params;
+    
+    // Verify team exists
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({
+        success: false,
+        message: 'Team not found'
+      });
+    }
+
+    // Check if team has a mentor to remove
+    if (!team.mentors) {
+      return res.status(400).json({
+        success: false,
+        message: 'Team has no mentor assigned'
+      });
+    }
+
+    // Remove mentor
+    team.mentors = undefined;
+    await team.save();
+
+    res.json({
+      success: true,
+      message: 'Mentor removed successfully',
+      team
+    });
+
+  } catch (error) {
+    console.error('Error removing mentor:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+});
 router.patch('/invite/:id/accept', async (req, res) => {
   console.log('\n===== START INVITATION ACCEPTANCE =====');
   console.log('Headers:', req.headers);

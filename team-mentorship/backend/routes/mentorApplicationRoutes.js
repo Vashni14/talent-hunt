@@ -16,7 +16,7 @@ const getPopulatedApplications = async (query) => {
       select: 'name description sdgs members createdAt',
       populate: {
         path: 'members',
-        select: 'name role'
+        select: 'name role profilePicture'
       }
     });
 };
@@ -79,7 +79,7 @@ router.post('/applications', async (req, res) => {
 
     // Populate the response data
     const populatedApp = await MentorApplication.findById(application._id)
-      .populate('mentor', 'name domain')
+      .populate('mentor', 'name domain profilePicture')
       .populate('team', 'name');
 
     res.status(201).json({
@@ -156,65 +156,89 @@ router.get('/applications/team/:teamId', async (req, res) => {
 
 // PATCH /api/mentor/applications/:id - Update application status
 router.patch('/applications/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    if (!['accepted', 'rejected', 'pending'].includes(status)) {
-      return res.status(400).json({
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+  
+      // Validate status
+      if (!['accepted', 'rejected', 'pending'].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status value'
+        });
+      }
+  
+      // Update application and populate mentor (singular) and team with its mentors (plural)
+      const application = await MentorApplication.findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }
+      )
+      .populate({
+        path: 'mentor',  // Singular - from Mentor model
+        select: 'name domain profilePicture'
+      })
+      .populate({
+        path: 'team',
+        select: 'name description members mentors',
+        populate: [
+          {
+            path: 'members',
+            select: 'name role profilePicture'
+          },
+          {
+            path: 'mentors',  // Plural - array in Team model
+            select: 'name domain profilePicture'
+          }
+        ]
+      });
+  
+      if (!application) {
+        return res.status(404).json({
+          success: false,
+          message: 'Application not found'
+        });
+      }
+  
+      // Handle accepted status
+      if (status === 'accepted') {
+        // Reject other pending applications for this team
+        await MentorApplication.updateMany(
+          {
+            team: application.team._id,
+            status: 'pending',
+            _id: { $ne: application._id }
+          },
+          { status: 'rejected' }
+        );
+  
+        // Add mentor to team's mentors array (plural)
+        await Team.findByIdAndUpdate(
+          application.team._id,
+          { $addToSet: { mentors: application.mentor._id } }  // Adding to plural array
+        );
+  
+        // Optional: Fetch updated team with populated mentors if needed
+        const updatedTeam = await Team.findById(application.team._id)
+          .populate('mentors', 'name domain profilePicture');
+        console.log('Updated team mentors:', updatedTeam.mentors);
+      }
+  
+      res.json({
+        success: true,
+        message: 'Application status updated',
+        application
+      });
+  
+    } catch (error) {
+      console.error('Error updating application:', error);
+      res.status(500).json({ 
         success: false,
-        message: 'Invalid status value'
+        message: 'Server error',
+        error: error.message 
       });
     }
-
-    const application = await MentorApplication.findByIdAndUpdate(
-      id,
-      { status },
-      { new: true }
-    ).populate('mentor', 'name')
-     .populate('team', 'name');
-
-    if (!application) {
-      return res.status(404).json({
-        success: false,
-        message: 'Application not found'
-      });
-    }
-
-    // If application is accepted, reject all other pending applications for this team
-    if (status === 'accepted') {
-      await MentorApplication.updateMany(
-        {
-          team: application.team,
-          status: 'pending',
-          _id: { $ne: application._id }
-        },
-        { status: 'rejected' }
-      );
-
-      // Add mentor to the team
-      await Team.findByIdAndUpdate(
-        application.team,
-        { $addToSet: { mentors: application.mentor } }
-      );
-    }
-
-    res.json({
-      success: true,
-      message: 'Application status updated',
-      application
-    });
-
-  } catch (error) {
-    console.error('Error updating application:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error',
-      error: error.message 
-    });
-  }
-});
-
+  });
 // DELETE /api/mentor/applications/:id - Withdraw application
 router.delete('/applications/:id', async (req, res) => {
   try {

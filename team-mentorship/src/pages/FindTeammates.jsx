@@ -46,22 +46,41 @@ function TeammateCard({ teammate, onView, onConnect }) {
         </div>
 
         <div className="mt-4">
-          <div className="flex flex-wrap gap-1 mb-3">
-            {teammate.skills.slice(0, 3).map((skill, index) => (
-              <span key={index} className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300">
-                {skill}
-              </span>
-            ))}
-            {teammate.skills.length > 3 && (
-              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-700 text-gray-300">
-                +{teammate.skills.length - 3}
-              </span>
-            )}
-          </div>
-          
+        {/* Skills display */}
+        
           <p className="text-xs text-gray-400 line-clamp-2 mb-2">
             {teammate.bio}
           </p>
+          <div className="flex flex-wrap gap-1 mb-3">
+  {teammate.skills.slice(0, 3).map((skill, index) => (
+    <span 
+      key={index} 
+      className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300 flex items-center gap-1"
+      title={`Level: ${skill.level}`}
+    >
+      <span>{skill.name}</span>
+      <span className="text-[0.6rem] text-blue-400">({skill.level})</span>
+    </span>
+  ))}
+  {teammate.skills.length > 3 && (
+    <span className="px-2 py-0.5 rounded-full text-xs bg-gray-700 text-gray-300">
+      +{teammate.skills.length - 3}
+    </span>
+  )}
+</div>
+           {/* Competitions - Fixed rendering */}
+        {teammate.competitions && teammate.competitions.length > 0 && (
+          <div className="mt-3">
+            <h4 className="text-xs font-medium text-gray-400 mb-1">Competitions</h4>
+            <div className="flex flex-wrap gap-2">
+              {teammate.competitions.map((comp, idx) => (
+                <span key={idx} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                  {comp.name} {/* Render name property instead of object */}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
           {teammate.mutualInterests && teammate.mutualInterests.length > 0 && (
             <div className="mt-3">
@@ -140,6 +159,10 @@ export default function FindTeammatesPage() {
   const [sentInvitations, setSentInvitations] = useState([]);
   const [receivedInvitations, setReceivedInvitations] = useState([]);
   const [refreshInvitations, setRefreshInvitations] = useState(false);
+   const [myTeams, setMyTeams] = useState([]);
+    const [teamsLoading, setTeamsLoading] = useState(false);
+    const [teamsError, setTeamsError] = useState(null);
+    const [userId, setUserId] = useState(null);
 
   const skillsList = [
     "AI", "Machine Learning", "Web Development", "UI/UX Design", 
@@ -160,6 +183,7 @@ export default function FindTeammatesPage() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
+        setUserId(user.uid);
         fetchStudentProfile(user.uid);
         fetchTeammates(user.uid);
         fetchUserTeams(user.uid);
@@ -244,27 +268,49 @@ export default function FindTeammatesPage() {
     }
   };
 
-  const fetchUserTeams = async (userId) => {
-    try {
-      setLoading(prev => ({ ...prev, teams: true }));
-  
-      const response = await axios.get(`${API_URL}/teams/user/${userId}`);
-      const result = response.data;
-  
-      // Filter teams where createdBy === userId
-      const createdByTeams = result.data?.filter(team => {
-        return team.createdBy === userId || team.createdBy?._id === userId;
-      }) || [];
-  
-      setTeams(createdByTeams);
-    } catch (error) {
-      console.error("Error fetching teams:", error);
-      toast.error("Failed to load teams");
-    } finally {
-      setLoading(prev => ({ ...prev, teams: false }));
-    }
-  };
-  
+ const fetchUserTeams = async () => {
+     try {
+       if (!userId) {
+         console.log('No user ID available');
+         return;
+       }
+   
+       setTeamsLoading(true);
+       setTeamsError(null);
+       
+       const response = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+   
+       let teamsData = [];
+       if (Array.isArray(response.data)) {
+         teamsData = response.data;
+       } else if (response.data.success && Array.isArray(response.data.data)) {
+         teamsData = response.data.data;
+       }
+   
+       const myTeams = teamsData.filter(team => {
+         const createdById = typeof team.createdBy === 'object' 
+           ? team.createdBy._id 
+           : team.createdBy;
+         return createdById === userId;
+       });
+   
+       console.log("filtered teams", myTeams);
+       setTeams(myTeams);
+       
+     } catch (err) {
+       console.error('Error in fetchMyTeams:', err);
+       setTeamsError(err.message);
+       setTeams([]);
+     } finally {
+       setTeamsLoading(false);
+     }
+   };
+   
+   useEffect(() => {
+     fetchUserTeams();
+   }, [userId]);
+ 
+
   const fetchInvitations = async (userId) => {
     try {
       setLoading(prev => ({ ...prev, invitations: true }))
