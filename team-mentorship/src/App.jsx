@@ -23,6 +23,13 @@ import MyTeams from "./pages/MyTeams";
 import SDGMapping from "./pages/SDGMapping";
 import Competitions from "./pages/Competitions";
 import MentorFindingPage from "./pages/MentorFindingPage";
+import Dashboard from "./pages/admin/Dashboard";
+import CompetitionsA from "./pages/admin/CompetitionsA";
+import Mentors from "./pages/admin/Mentors";
+import Reports from "./pages/admin/Reports";
+import SDG from "./pages/admin/SDG";
+import Students from "./pages/admin/Students";
+import Teams from "./pages/admin/Teams";
 
 function App() {
   const { user } = useAuth(); // Get the authenticated user
@@ -56,11 +63,6 @@ function App() {
             }
           />
 
-          {/* 🏛️ Admin Dashboard */}
-          <Route
-            path="/admin-dashboard"
-            element={user ? <AdminDashboard /> : <Navigate to="/auth" />}
-          />
 
           {/* 🎯 Add Goals Page */}
           <Route
@@ -94,6 +96,18 @@ function App() {
           <Route path="mentor-profile" element={<MentorProfile />} />
           <Route path="mentored-teams" element={<MentorTeamsPage />} />
           <Route path="mentor-students" element={<MentorStudents />} />
+          {/* Admin Routes */}
+          <Route
+  path="/admin-dashboard"
+  element={user? <AdminDashboard /> : <Navigate to="/admin-dashboard" />}>
+  <Route index element={<Dashboard />} />
+  <Route path="competitions" element={<CompetitionsA />} />
+  <Route path="teams" element={<Teams />} />
+  <Route path="mentors" element={<Mentors />} />
+  <Route path="reports" element={<Reports />} />
+  <Route path="sdg" element={<SDG />} />
+  <Route path="students" element={<Students />} />
+</Route>
         </Routes>
       </div>
     </Router>

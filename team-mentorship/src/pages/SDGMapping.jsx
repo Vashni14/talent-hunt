@@ -325,11 +325,6 @@ export default function SDGMapping() {
                   <div className="p-5">
                     <div className="flex justify-between items-start">
                       <div className="flex items-start gap-4">
-                        <img
-                          src={team.logo || "/placeholder-team.svg"}
-                          alt={`${team.name} logo`}
-                          className="w-14 h-14 rounded-lg object-cover border-2 border-green-500/30"
-                        />
                         <div className="min-w-0">
                           <h3 className="font-medium text-white text-lg truncate">{team.name}</h3>
                           <p className="text-sm text-green-400 truncate">{team.project}</p>
