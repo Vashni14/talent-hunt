@@ -264,7 +264,7 @@ const MentorProfile = () => {
             Mentored Teams
           </Link>
           <Link
-            to="/my-students"
+            to="/mentor-students"
             className="flex items-center px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
           >
             <FaUserCheck className="mr-2 text-base" />

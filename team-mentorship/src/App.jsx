@@ -10,6 +10,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import MentorDashboard from "./pages/mentor/MentorDashboard";
 import MentorProfile from "./pages/mentor/MentorProfie";
 import MentorTeamsPage from "./pages/mentor/MentorTeamsPage";
+import MentorStudents from "./pages/mentor/MentorStudents";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentLandingPage from "./pages/StudentLandingPage";
 import AddGoals from "./pages/AddGoals";
@@ -92,6 +93,7 @@ function App() {
           />
           <Route path="mentor-profile" element={<MentorProfile />} />
           <Route path="mentored-teams" element={<MentorTeamsPage />} />
+          <Route path="mentor-students" element={<MentorStudents />} />
         </Routes>
       </div>
     </Router>

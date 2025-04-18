@@ -232,7 +232,7 @@ const MentorDashboard = () => {
             Mentored Teams
           </Link>
           <Link
-            to="/my-students"
+            to="/mentor-students"
             className="flex items-center px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
           >
             <FaUserCheck className="mr-2 text-base" />
@@ -255,7 +255,10 @@ const MentorDashboard = () => {
 
           <div className="mt-8 pt-4 border-t border-gray-700">
             <button
-              onClick={logout}
+               onClick={() => {
+                              auth.signOut()
+                              navigate('/login')
+                            }}
               className="flex items-center w-full px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
             >
               <FaSignOutAlt className="mr-2 text-base" />

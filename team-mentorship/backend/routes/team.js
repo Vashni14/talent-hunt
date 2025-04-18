@@ -3,6 +3,7 @@ const router = express.Router();
 const Team = require('../models/Team');
 const User = require('../models/StudentProfile'); // Import User model
 const Invitation = require('../models/Invitation'); // Import Invitation model
+const Mentor = require('../models/Mentor'); // Import Invitation model
 
 const mongoose = require('mongoose');
 const StudentProfile = require('../models/StudentProfile');
@@ -471,7 +472,145 @@ router.post('/invite', async (req, res) => {
     });
   }
 });
+// Get all members from all teams where user is mentor
+router.get('/mentor/:mentorUid/members', async (req, res) => {
+  try {
+    const { mentorUid } = req.params;
 
+    // 1. Find the mentor's MongoDB _id using their uid
+    const mentor = await Mentor.findOne({ userId: mentorUid }).select('_id');
+    
+    if (!mentor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Mentor not found'
+      });
+    }
+
+    // 2. Find all teams where this mentor is assigned
+    const teams = await Team.find({ mentors: mentor._id })
+      .populate({
+        path: 'members.user',
+        model: 'StudentProfile',
+        select: 'name email contact profilePicture rolePreference domain skills bio lastActive userId'
+      })
+      .select('name members sdgs status createdBy')
+      .lean();
+  
+    if (!teams || teams.length === 0) {
+      return res.json({
+        success: true,
+        count: 0,
+        members: [],
+        teams: []
+      });
+    }
+
+    // 3. Get all creator UIDs to find in StudentProfile
+    const creatorUids = teams.map(t => t.createdBy).filter(Boolean);
+    
+    // Find creators by userId field (Firebase UID)
+    const creators = await User.find({ 
+      uid: { $in: creatorUids } 
+    }).select('name email contact profilePicture rolePreference domain skills bio lastActive uid').lean();
+    
+    const creatorMap = new Map(creators.map(c => [c.uid, c]));
+    
+    // 4. Process members with team info
+    const memberMap = new Map();
+    
+    teams.forEach(team => {
+      // Add team creator first (if exists)
+      if (team.createdBy) {
+        const creator = creatorMap.get(team.createdBy);
+        if (creator) {
+          const creatorData = {
+            _id: creator._id,
+            uid: creator.uid, // Use Firebase UID here
+            name: creator.name,
+            email: creator.email,
+            contact: creator.contact,
+            profilePicture: creator.profilePicture,
+            rolePreference: creator.rolePreference,
+            skills: creator.skills || [],
+            bio: creator.bio,
+            lastActive: creator.lastActive,
+            teamId: team._id,
+            teamName: team.name,
+            teamStatus: team.status,
+            teamSDGs: team.sdgs,
+            memberRole: 'Team Creator',
+            status: 'active'
+          };
+    
+          if (!memberMap.has(creator.uid)) {  // Changed from creator.userId to creator.uid
+            memberMap.set(creator.uid, creatorData);  // Changed from creator.userId to creator.uid
+          }
+        }
+      }
+
+      // Add regular team members
+      team.members.forEach(member => {
+        if (member.user) {
+          const memberData = {
+            _id: member.user._id,
+            uid: member.user.userId, // Use Firebase UID here
+            name: member.user.name,
+            email: member.user.email,
+            contact: member.user.contact,
+            profilePicture: member.user.profilePicture,
+            rolePreference: member.user.rolePreference,
+            skills: member.user.skills || [],
+            bio: member.user.bio,
+            lastActive: member.user.lastActive,
+            teamId: team._id,
+            teamName: team.name,
+            teamStatus: team.status,
+            teamSDGs: team.sdgs,
+            memberRole: 'Team Member',
+            status: 'active'
+          };
+
+          if (!memberMap.has(member.user.userId)) {
+            memberMap.set(member.user.userId, memberData);
+          }
+        }
+      });
+    });
+
+    const uniqueMembers = Array.from(memberMap.values());
+
+    // 5. Prepare team info for response
+    const teamInfo = teams.map(t => ({
+      _id: t._id,
+      name: t.name,
+      status: t.status,
+      sdgs: t.sdgs,
+      createdBy: t.createdBy ? {
+        _id: t.createdBy,
+        name: creatorMap.get(t.createdBy)?.name || 'Unknown'
+      } : null
+    }));
+
+    res.json({
+      success: true,
+      count: uniqueMembers.length,
+      members: uniqueMembers,
+      teams: teamInfo
+    });
+
+  } catch (error) {
+    console.error('Error fetching mentor members:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching members',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack
+      } : undefined
+    });
+  }
+});
 // GET /api/teams/mentor/:mentorId - Get all teams for a specific mentor
 router.get('/mentor/:mentorId', async (req, res) => {
   try {

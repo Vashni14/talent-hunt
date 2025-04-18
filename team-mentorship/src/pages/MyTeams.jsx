@@ -899,7 +899,7 @@ export default function MyTeams() {
                               <h4 className="text-sm font-medium text-white">Mentors</h4>
                               {isCreator && (
                                 <button 
-                                  onClick={() => handleAddMentor(team._id)}
+                                onClick={() => navigate("/mentorfind")}
                                   className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
                                 >
                                   <FaPlus size={10} /> Add Mentor
