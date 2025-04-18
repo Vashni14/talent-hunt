@@ -456,7 +456,6 @@ const CompetitionsA = () => {
         
         <div className="overflow-y-auto max-h-[80vh]">
           <div className="h-64 w-full bg-gray-700 overflow-hidden relative">
-            {console.log(currentCompetition.photo)}
             <img 
               src={currentCompetition?.photo ? `http://localhost:5000${currentCompetition.photo}` : "/default-profile.png"}
               alt={currentCompetition.name}

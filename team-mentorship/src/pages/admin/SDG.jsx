@@ -6,9 +6,9 @@ Chart.register(...registerables);
 
 const SDG = () => {
   const [sdgStats, setSdgStats] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [viewMode, setViewMode] = useState('competitions'); // 'competitions' or 'teams'
 
   // SDG data with official colors
   const allSDGs = [
@@ -37,19 +37,18 @@ const SDG = () => {
         setLoading(true);
         setError(null);
         
-        const [statsRes, activityRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/sdg/stats'),
-          axios.get('http://localhost:5000/api/sdg/recent-activity')
-        ]);
+        const response = await axios.get('http://localhost:5000/api/sdgadmin/stats');
         
-        setSdgStats(statsRes.data?.sdgStats || []);
-        setRecentActivity(activityRes.data?.recentActivity || []);
+        if (response.data?.data?.sdgStats) {
+          setSdgStats(response.data.data.sdgStats);
+        } else {
+          throw new Error('Unexpected API response structure');
+        }
 
       } catch (err) {
         console.error('Error fetching SDG data:', err);
         setError('Failed to load SDG data. Please try again later.');
         setSdgStats([]);
-        setRecentActivity([]);
       } finally {
         setLoading(false);
       }
@@ -58,15 +57,15 @@ const SDG = () => {
     fetchData();
   }, []);
 
-  // Prepare data for the chart - using competitions as the metric
+  // Prepare chart data based on view mode
   const chartData = {
     labels: allSDGs.map(sdg => `SDG ${sdg.id}`),
     datasets: [
       {
-        label: 'Number of Competitions',
+        label: viewMode === 'competitions' ? 'Number of Competitions' : 'Number of Teams',
         data: allSDGs.map(sdg => {
           const stat = sdgStats.find(s => s.sdgId === sdg.id);
-          return stat?.competitions || 0;
+          return viewMode === 'competitions' ? (stat?.competitions || 0) : (stat?.teams || 0);
         }),
         backgroundColor: allSDGs.map(sdg => `${sdg.color}80`),
         borderColor: allSDGs.map(sdg => sdg.color),
@@ -87,7 +86,9 @@ const SDG = () => {
           label: function(context) {
             const sdg = allSDGs[context.dataIndex];
             const stat = sdgStats.find(s => s.sdgId === sdg.id);
-            return `${sdg.name}: ${stat?.competitions || 0} competitions`;
+            return `${sdg.name}: ${context.dataset.label === 'Number of Competitions' 
+              ? (stat?.competitions || 0) 
+              : (stat?.teams || 0)}`;
           }
         }
       }
@@ -111,16 +112,6 @@ const SDG = () => {
           color: 'rgba(255, 255, 255, 0.7)'
         }
       }
-    }
-  };
-
-  const getStatusColor = (status) => {
-    if (!status) return 'bg-gray-700/50 text-gray-400';
-    switch (status.toLowerCase()) {
-      case 'active': return 'bg-green-500/20 text-green-400';
-      case 'upcoming': return 'bg-yellow-500/20 text-yellow-400';
-      case 'completed': return 'bg-blue-500/20 text-blue-400';
-      default: return 'bg-gray-700/50 text-gray-400';
     }
   };
 
@@ -184,67 +175,50 @@ const SDG = () => {
         </div>
       </div>
       
-      {/* SDG Distribution Chart */}
+      {/* Chart Section with Toggle */}
       <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-semibold text-white mb-4">Competitions by SDG</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-white">
+            {viewMode === 'competitions' ? 'Competitions by SDG' : 'Teams by SDG'}
+          </h2>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-400">View:</span>
+            <div className="inline-flex rounded-md shadow-sm" role="group">
+              <button
+                type="button"
+                onClick={() => setViewMode('competitions')}
+                className={`px-4 py-2 text-sm font-medium rounded-l-lg ${
+                  viewMode === 'competitions'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Competitions
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('teams')}
+                className={`px-4 py-2 text-sm font-medium rounded-r-lg ${
+                  viewMode === 'teams'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Teams
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <div className="h-80 md:h-96">
           {sdgStats.length > 0 ? (
             <Bar data={chartData} options={chartOptions} />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500">
-              No competition data available
+              No data available
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Recent Activity Table */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700 overflow-x-auto">
-        <h2 className="text-xl font-semibold text-white mb-4">Recent Activity</h2>
-        {recentActivity.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead>
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Action</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">SDG Goal</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">User</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700">
-              {recentActivity.map((activity, index) => {
-                const sdg = allSDGs.find(s => s.id === activity.goal) || allSDGs[0];
-                return (
-                  <tr key={index}>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">
-                      {new Date(activity.timestamp).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-white">{activity.action}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span 
-                        className="px-2 py-1 rounded-full text-xs text-white"
-                        style={{ backgroundColor: sdg.color }}
-                      >
-                        Goal {activity.goal}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-300">{activity.user}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(activity.status)}`}>
-                        {activity.status}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            No recent activity found
-          </div>
-        )}
       </div>
 
       {/* SDG Goals Overview */}
