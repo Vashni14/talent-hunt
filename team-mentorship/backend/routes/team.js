@@ -644,29 +644,22 @@ router.get('/mentor/:mentorId', async (req, res) => {
 });
 
 // Remove mentor from team
-router.delete('/:teamId/mentor', async (req, res) => {
+router.delete('/:teamId/mentors/:mentorId', async (req, res) => {
   try {
-    const { teamId } = req.params;
-    
-    // Verify team exists
+    const { teamId, mentorId } = req.params;
+
     const team = await Team.findById(teamId);
     if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
+      return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    // Check if team has a mentor to remove
-    if (!team.mentors) {
-      return res.status(400).json({
-        success: false,
-        message: 'Team has no mentor assigned'
-      });
+    // Check if the mentor is assigned to the team
+    if (!team.mentors.includes(mentorId)) {
+      return res.status(400).json({ success: false, message: 'Mentor not assigned to this team' });
     }
 
-    // Remove mentor
-    team.mentors = undefined;
+    // Remove mentor from array
+    team.mentors = team.mentors.filter(id => id.toString() !== mentorId);
     await team.save();
 
     res.json({
@@ -677,13 +670,11 @@ router.delete('/:teamId/mentor', async (req, res) => {
 
   } catch (error) {
     console.error('Error removing mentor:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
+
+
 router.patch('/invite/:id/accept', async (req, res) => {
   console.log('\n===== START INVITATION ACCEPTANCE =====');
   console.log('Headers:', req.headers);

@@ -9,10 +9,10 @@ const TeamSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'StudentProfile', 
   },
-  mentors: { 
+  mentors: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Mentor', 
-  },
+  }],
   members: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile' },
     name: String,
