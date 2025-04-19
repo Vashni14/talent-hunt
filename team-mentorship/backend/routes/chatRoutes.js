@@ -111,63 +111,53 @@ router.post("/send", async (req, res) => {
   }
 });
 
-// Search for users to chat with
-// Add this temporary route to check all users
-// Enhanced search endpoint
+// routes/chatRoutes.js
 router.get("/search/:userId/:query", async (req, res) => {
-    try {
-      const { userId, query } = req.params;
-      
-      if (!query?.trim()) {
-        return res.json([]);
-      }
-  
-      // Sanitize and prepare search query
-      const searchTerm = query.trim()
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-        .split(/\s+/)
-        .map(term => `(${term})`)
-        .join('|');
-  
-      const users = await StudentProfile.aggregate([
-        {
-          $match: {
-            uid: { $ne: userId },
-            $or: [
-              { name: { $regex: searchTerm, $options: "i" } },
-              { email: { $regex: searchTerm, $options: "i" } }
-            ]
-          }
-        },
-        {
-          $project: {
-            _id: 0,
-            id: "$uid",
-            name: 1,
-            email: 1,
-            avatar: { $ifNull: ["$profilePicture", "/default-profile.png"] },
-            matchScore: {
-              $cond: [
-                { $regexMatch: { input: "$name", regex: searchTerm, options: "i" } },
-                2, // Higher score for name matches
-                1  // Lower score for email matches
-              ]
-            }
-          }
-        },
-        { $sort: { matchScore: -1, name: 1 } },
-        { $limit: 10 }
-      ]);
-  
-      res.json(users);
-    } catch (error) {
-      console.error("Search error:", error);
-      res.status(500).json({ 
-        success: false,
-        message: "Search failed",
-        error: error.message 
-      });
-    }
-  });
+  try {
+    const { userId, query } = req.params;
+    
+    console.log(`Search request received for query: ${query}`); // Debug log
+    
+    const users = await StudentProfile.find({
+      uid: { $ne: userId }, // Exclude current user
+      name: { $regex: query, $options: "i" } // Case-insensitive search
+    }).limit(10);
+
+    console.log(`Found ${users.length} users`); // Debug log
+    
+    res.json(users.map(user => ({
+      id: user.uid,
+      name: user.name,
+      avatar: user.profilePicture || "/default-profile.png"
+    })));
+  } catch (error) {
+    console.error("Search error:", error);
+    res.status(500).json({ message: "Error searching users", error });
+  }
+});
+
+// Add a temporary test route
+router.get("/test-profiles", async (req, res) => {
+  try {
+    const profiles = await StudentProfile.find({});
+    console.log(`Found ${profiles.length} profiles in database`);
+    res.json({
+      success: true,
+      count: profiles.length,
+      profiles: profiles.map(p => ({
+        id: p._id,
+        uid: p.uid,
+        name: p.name
+      }))
+    });
+  } catch (error) {
+    console.error("Test profiles error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching profiles",
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;
