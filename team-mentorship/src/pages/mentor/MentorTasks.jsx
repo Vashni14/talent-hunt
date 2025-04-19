@@ -245,7 +245,7 @@ const MentorTasks = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <div>
               <button 
-                onClick={() => navigate("/mentor/dashboard")}
+                onClick={() => navigate("/mentor-dashboard")}
                 className="flex items-center gap-1 text-sm text-blue-400 hover:text-blue-300"
               >
                 <FaArrowLeft size={14} /> Back

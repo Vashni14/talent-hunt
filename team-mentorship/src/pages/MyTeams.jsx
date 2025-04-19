@@ -1,6 +1,6 @@
 "use client"
 import { toast } from "react-hot-toast";
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react";
 import { auth } from "../config/firebase";
 import { useNavigate } from "react-router-dom";
 import {
@@ -26,19 +26,19 @@ import {
   FaSave,
   FaSearch,
   FaSignOutAlt
-} from "react-icons/fa"
+} from "react-icons/fa";
 
 export default function MyTeams() {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState(null)
-  const [activeTab, setActiveTab] = useState("created")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [expandedTeam, setExpandedTeam] = useState(null)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [teams, setTeams] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(null)
+  const [userId, setUserId] = useState(null);
+  const [activeTab, setActiveTab] = useState("created");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [expandedTeam, setExpandedTeam] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [teams, setTeams] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [currentProcessingTeam, setCurrentProcessingTeam] = useState(null);
   const [mentorsData, setMentorsData] = useState({});
   const [newTeam, setNewTeam] = useState({
@@ -54,11 +54,22 @@ export default function MyTeams() {
       items: []
     },
     members: []
-  })
-  const [editingTeam, setEditingTeam] = useState(null)
-  const [currentTeam, setCurrentTeam] = useState(null)
-  const [searchQuery, setSearchQuery] = useState("")
+  });
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [currentTeam, setCurrentTeam] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [allSDGs, setAllSDGs] = useState([]);
+  
+  // Task management states
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(false);
+  const [currentTeamIdForTask, setCurrentTeamIdForTask] = useState(null);
+  const [newTask, setNewTask] = useState({
+    name: "",
+    description: "",
+    completed: false
+  });
+  const [editingTask, setEditingTask] = useState(null);
 
   const user = auth.currentUser;
 
@@ -151,69 +162,115 @@ export default function MyTeams() {
   useEffect(() => {
     fetchTeams();
   }, [userId]);
-  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-const [currentTeamIdForTask, setCurrentTeamIdForTask] = useState(null);
-const [newTask, setNewTask] = useState({
-  name: "",
-  description: "",
-  completed: false
-});
 
-// Add this function to handle adding a new task
-const handleAddTask = async () => {
-  try {
-    if (!newTask.name || !currentTeamIdForTask) {
-      throw new Error('Task name is required');
-    }
-
-    setIsLoading(true);
-    
-    const response = await fetch(`http://localhost:5000/api/teams/${currentTeamIdForTask}/tasks`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name: newTask.name,
-        description: newTask.description
-      })
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to add task');
-    }
-
-    await fetchTeams();
-    setShowAddTaskModal(false);
-    setNewTask({
-      name: "",
-      description: "",
-      completed: false
-    });
-    toast.success("Task added successfully");
-    
-  } catch (err) {
-    toast.error(err.message || "Failed to add task");
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  useEffect(() => {
-    const fetchSDGs = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/api/sdgs');
-        if (!response.ok) throw new Error('Failed to fetch SDGs');
-        const data = await response.json();
-        setAllSDGs(data);
-      } catch (err) {
-        console.error('Error fetching SDGs:', err);
-        toast.error('Failed to load SDG data');
+  // Task CRUD Operations
+  const handleAddTask = async () => {
+    try {
+      if (!newTask.name || !currentTeamIdForTask) {
+        throw new Error('Task name is required');
       }
-    };
-    fetchSDGs();
-  }, []);
+
+      setIsLoading(true);
+      
+      const response = await fetch(`http://localhost:5000/api/teams/${currentTeamIdForTask}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newTask.name,
+          description: newTask.description
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add task');
+      }
+
+      await fetchTeams();
+      setShowAddTaskModal(false);
+      setNewTask({
+        name: "",
+        description: "",
+        completed: false
+      });
+      toast.success("Task added successfully");
+      
+    } catch (err) {
+      toast.error(err.message || "Failed to add task");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditTask = async () => {
+    try {
+      if (!editingTask?.name || !editingTask?.teamId) {
+        throw new Error('Task name is required');
+      }
+
+      setIsLoading(true);
+      
+      const response = await fetch(
+        `http://localhost:5000/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: editingTask.name,
+            description: editingTask.description,
+            completed: editingTask.completed
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update task');
+      }
+
+      await fetchTeams();
+      setShowEditTaskModal(false);
+      setEditingTask(null);
+      toast.success("Task updated successfully");
+      
+    } catch (err) {
+      toast.error(err.message || "Failed to update task");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteTask = async (teamId, taskId) => {
+    try {
+      if (!window.confirm("Are you sure you want to delete this task?")) return;
+      
+      setIsLoading(true);
+      
+      const response = await fetch(
+        `http://localhost:5000/api/teams/${teamId}/tasks/${taskId}`,
+        {
+          method: 'DELETE'
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete task');
+      }
+
+      await fetchTeams();
+      toast.success("Task deleted successfully");
+      
+    } catch (err) {
+      toast.error(err.message || "Failed to delete task");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const toggleTaskCompletion = async (teamId, taskId) => {
     try {
@@ -520,6 +577,134 @@ const handleAddTask = async () => {
     setExpandedTeam(expandedTeam === teamId ? null : teamId);
   };
 
+  const renderTaskItem = (teamId, task) => (
+    <div key={task._id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+      <div className="flex items-center">
+        <input
+          type="checkbox"
+          checked={task.completed}
+          onChange={() => toggleTaskCompletion(teamId, task._id)}
+          className="h-4 w-4 text-yellow-600 rounded border-gray-600 bg-gray-700 focus:ring-yellow-500"
+        />
+        <span className={`ml-2 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-300'}`}>
+          {task.name}
+        </span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => {
+            setEditingTask({
+              ...task,
+              teamId: teamId
+            });
+            setShowEditTaskModal(true);
+          }}
+          className="text-blue-400 hover:text-blue-300 p-1"
+        >
+          <FaEdit className="text-xs" />
+        </button>
+        <button
+          onClick={() => handleDeleteTask(teamId, task._id)}
+          className="text-red-400 hover:text-red-300 p-1"
+        >
+          <FaTrash className="text-xs" />
+        </button>
+        {task.completed ? (
+          <FaCheckCircle className="text-green-500 text-xs" />
+        ) : (
+          <FaClock className="text-yellow-500 text-xs" />
+        )}
+      </div>
+    </div>
+  );
+
+  const renderEditTaskModal = () => (
+    showEditTaskModal && editingTask && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-white">Edit Task</h3>
+            <button 
+              onClick={() => setShowEditTaskModal(false)}
+              className="text-gray-400 hover:text-white"
+            >
+              <FaTimes />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Task Name*</label>
+              <input
+                type="text"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                value={editingTask.name}
+                onChange={(e) => setEditingTask({...editingTask, name: e.target.value})}
+                placeholder="Task name"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+              <textarea
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                rows={3}
+                value={editingTask.description}
+                onChange={(e) => setEditingTask({...editingTask, description: e.target.value})}
+                placeholder="Task description"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="completed"
+                checked={editingTask.completed}
+                onChange={(e) => setEditingTask({...editingTask, completed: e.target.checked})}
+                className="h-4 w-4 text-yellow-600 rounded border-gray-600 bg-gray-700 focus:ring-yellow-500"
+              />
+              <label htmlFor="completed" className="text-sm text-gray-300">
+                Mark as completed
+              </label>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              onClick={() => setShowEditTaskModal(false)}
+              className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleEditTask}
+              className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+              disabled={!editingTask.name || isLoading}
+            >
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
+  useEffect(() => {
+    const fetchSDGs = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/sdgs');
+        if (!response.ok) throw new Error('Failed to fetch SDGs');
+        const data = await response.json();
+        setAllSDGs(data);
+      } catch (err) {
+        console.error('Error fetching SDGs:', err);
+        toast.error('Failed to load SDG data');
+      }
+    };
+    fetchSDGs();
+  }, []);
+
   if (isLoading && teams.length === 0) {
     return (
       <div className="p-6 bg-gray-900 min-h-screen flex items-center justify-center">
@@ -783,6 +968,67 @@ const handleAddTask = async () => {
         </div>
       )}
 
+      {/* Add Task Modal */}
+      {showAddTaskModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Add New Task</h3>
+              <button 
+                onClick={() => setShowAddTaskModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Task Name*</label>
+                <input
+                  type="text"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  value={newTask.name}
+                  onChange={(e) => setNewTask({...newTask, name: e.target.value})}
+                  placeholder="Complete project documentation"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+                <textarea
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  rows={3}
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                  placeholder="Detailed description of the task..."
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAddTaskModal(false)}
+                className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTask}
+                className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+                disabled={!newTask.name || isLoading}
+              >
+                {isLoading ? 'Adding...' : 'Add Task'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {renderEditTaskModal()}
+
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-white">My Teams</h1>
@@ -881,62 +1127,6 @@ const handleAddTask = async () => {
             </button>
           </div>
         </div>
-        {showAddTaskModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-xl font-bold text-white">Add New Task</h3>
-        <button 
-          onClick={() => setShowAddTaskModal(false)}
-          className="text-gray-400 hover:text-white"
-        >
-          <FaTimes />
-        </button>
-      </div>
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Task Name*</label>
-          <input
-            type="text"
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            value={newTask.name}
-            onChange={(e) => setNewTask({...newTask, name: e.target.value})}
-            placeholder="Complete project documentation"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
-          <textarea
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-            rows={3}
-            value={newTask.description}
-            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-            placeholder="Detailed description of the task..."
-          />
-        </div>
-      </div>
-      
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          onClick={() => setShowAddTaskModal(false)}
-          className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleAddTask}
-          className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
-          disabled={!newTask.name || isLoading}
-        >
-          {isLoading ? 'Adding...' : 'Add Task'}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 
         {/* Teams List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1069,26 +1259,7 @@ const handleAddTask = async () => {
                         <div className="mb-6">
                           <h4 className="text-sm font-medium text-white mb-3">Task Progress</h4>
                           <div className="space-y-2">
-                            {team.tasks?.items?.map(task => (
-                              <div key={task._id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
-                                <div className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={task.completed}
-                                    onChange={() => toggleTaskCompletion(team._id, task._id)}
-                                    className="h-4 w-4 text-yellow-600 rounded border-gray-600 bg-gray-700 focus:ring-yellow-500"
-                                  />
-                                  <span className={`ml-2 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-300'}`}>
-                                    {task.name}
-                                  </span>
-                                </div>
-                                {task.completed ? (
-                                  <FaCheckCircle className="text-green-500 text-xs" />
-                                ) : (
-                                  <FaClock className="text-yellow-500 text-xs" />
-                                )}
-                              </div>
-                            ))}
+                            {team.tasks?.items?.map(task => renderTaskItem(team._id, task))}
                           </div>
                           
                           {/* Progress Summary */}
@@ -1328,18 +1499,18 @@ const handleAddTask = async () => {
                       </button>
                     </div>
                     {team.status === "active" && (
-  <button 
-    className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-    disabled={isLoading}
-    onClick={() => {
-      setCurrentTeamIdForTask(team._id);
-      setShowAddTaskModal(true);
-    }}
-  >
-    <FaPlus className="text-xs" />
-    Add Task
-  </button>
-)}
+                      <button 
+                        className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+                        disabled={isLoading}
+                        onClick={() => {
+                          setCurrentTeamIdForTask(team._id);
+                          setShowAddTaskModal(true);
+                        }}
+                      >
+                        <FaPlus className="text-xs" />
+                        Add Task
+                      </button>
+                    )}
                   </div>
                 </div>
               )
@@ -1361,5 +1532,5 @@ const handleAddTask = async () => {
         </div>
       </div>
     </div>
-  )
+  );
 }
