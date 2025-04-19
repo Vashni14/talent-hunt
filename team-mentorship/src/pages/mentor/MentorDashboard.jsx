@@ -496,11 +496,6 @@ const MentorDashboard = () => {
             </div>
           </div>
         </main>
-
-        {/* Footer */}
-        <footer className="bg-gray-800 border-t border-gray-700 p-4 text-center text-sm text-gray-500">
-          MentorHub Dashboard v1.0
-        </footer>
       </div>
     </div>
   );

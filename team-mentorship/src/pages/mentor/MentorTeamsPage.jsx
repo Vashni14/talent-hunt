@@ -47,6 +47,13 @@ const MentorTeamsPage = () => {
   const [applications, setApplications] = useState([]);
   const [teams, setTeams] = useState([]);
   const [currentProcessingId, setCurrentProcessingId] = useState(null);
+  const getProgressColor = (team) => {
+  if (team.status === "completed") return "bg-green-500";
+  const progress = team.tasks?.total ? (team.tasks.completed / team.tasks.total) : 0;
+  if (progress > 0.7) return "bg-green-500";
+  if (progress > 0.3) return "bg-yellow-500";
+  return "bg-blue-500";
+};
 
   // Get SDG details by number
   const getSDGDetails = (number) => {
@@ -322,6 +329,29 @@ const MentorTeamsPage = () => {
                       </div>
                     </div>
                     <p className="mt-3 text-gray-300">{team.description}</p>
+                   
+<div className="mt-4">
+  <div className="flex justify-between mb-1">
+    <span className="text-sm font-medium text-gray-300">Project Progress</span>
+    <span className="text-sm text-gray-400">
+      {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
+      ({team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%)
+    </span>
+  </div>
+  <div className="w-full bg-gray-700 rounded-full h-2.5">
+    <div 
+      className={`h-2.5 rounded-full ${
+        team.status === "completed" ? "bg-green-500" :
+        (team.tasks?.completed / team.tasks?.total) > 0.7 ? "bg-green-500" :
+        (team.tasks?.completed / team.tasks?.total) > 0.3 ? "bg-yellow-500" : "bg-blue-500"
+      }`}
+      style={{ 
+        width: `${team.tasks?.total ? 
+          Math.min(100, Math.round((team.tasks.completed / team.tasks.total) * 100)) : 0}%` 
+      }}
+    ></div>
+  </div>
+</div>
                     
                     <div className="mt-4">
                       <h4 className="font-medium flex items-center gap-2 text-gray-300">

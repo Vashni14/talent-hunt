@@ -217,7 +217,7 @@ const MentorProfile = () => {
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
             <FaGraduationCap className="text-blue-400 text-xl" />
-            MentorHub
+            Mentor Profile
           </h1>
         </div>
 

@@ -40,7 +40,7 @@ export default function MyTeams() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
   const [currentProcessingTeam, setCurrentProcessingTeam] = useState(null);
-  const [mentorsData, setMentorsData] = useState({}); // Stores mentor details by ID
+  const [mentorsData, setMentorsData] = useState({});
   const [newTeam, setNewTeam] = useState({
     name: "",
     project: "",
@@ -48,7 +48,11 @@ export default function MyTeams() {
     deadline: "",
     mentor: "",
     status: "active",
-    tasks: { total: 0, completed: 0 },
+    tasks: { 
+      total: 0,
+      completed: 0,
+      items: []
+    },
     members: []
   })
   const [editingTeam, setEditingTeam] = useState(null)
@@ -60,11 +64,10 @@ export default function MyTeams() {
 
   useEffect(() => {
     if (user) {
-      setUserId(user.uid)
+      setUserId(user.uid);
     }
   }, [user]);
 
-  // Fetch mentor details for a specific ID
   const fetchMentorDetails = async (mentorId) => {
     try {
       const response = await fetch(`http://localhost:5000/api/mentor/profile/id/${mentorId}`);
@@ -76,7 +79,6 @@ export default function MyTeams() {
     }
   };
 
-  // Fetch all available mentors
   const fetchAllMentors = async () => {
     try {
       const response = await fetch('http://localhost:5000/api/mentors/mentors');
@@ -99,13 +101,30 @@ export default function MyTeams() {
       if (!response.ok) throw new Error('Failed to fetch teams');
       
       const result = await response.json();
-      setTeams(result.data || []);
+      const teamsWithTasks = await Promise.all(
+        result.data.map(async team => {
+          const tasksResponse = await fetch(`http://localhost:5000/api/teams/${team._id}/tasks`);
+          if (!tasksResponse.ok) return team;
+          
+          const tasksData = await tasksResponse.json();
+          return {
+            ...team,
+            tasks: tasksData || {
+              total: 0,
+              completed: 0,
+              items: []
+            }
+          };
+        })
+      );
+      
+      setTeams(teamsWithTasks);
       
       // Fetch mentor details for all teams
       const mentorDetails = {};
       const mentorFetchPromises = [];
       
-      result.data.forEach(team => {
+      teamsWithTasks.forEach(team => {
         if (team.mentors && team.mentors.length > 0) {
           team.mentors.forEach(mentorId => {
             if (!mentorDetails[mentorId]) {
@@ -132,6 +151,54 @@ export default function MyTeams() {
   useEffect(() => {
     fetchTeams();
   }, [userId]);
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+const [currentTeamIdForTask, setCurrentTeamIdForTask] = useState(null);
+const [newTask, setNewTask] = useState({
+  name: "",
+  description: "",
+  completed: false
+});
+
+// Add this function to handle adding a new task
+const handleAddTask = async () => {
+  try {
+    if (!newTask.name || !currentTeamIdForTask) {
+      throw new Error('Task name is required');
+    }
+
+    setIsLoading(true);
+    
+    const response = await fetch(`http://localhost:5000/api/teams/${currentTeamIdForTask}/tasks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: newTask.name,
+        description: newTask.description
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to add task');
+    }
+
+    await fetchTeams();
+    setShowAddTaskModal(false);
+    setNewTask({
+      name: "",
+      description: "",
+      completed: false
+    });
+    toast.success("Task added successfully");
+    
+  } catch (err) {
+    toast.error(err.message || "Failed to add task");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   useEffect(() => {
     const fetchSDGs = async () => {
@@ -148,23 +215,43 @@ export default function MyTeams() {
     fetchSDGs();
   }, []);
 
-  // Separate teams into created by me and teams I'm a member of
-  const createdTeams = teams.filter(team => team.createdBy === userId);
-  const memberTeams = teams.filter(team => team.createdBy !== userId);
+  const toggleTaskCompletion = async (teamId, taskId) => {
+    try {
+      setIsLoading(true);
+      
+      // Find the current state of the task
+      const team = teams.find(t => t._id === teamId);
+      if (!team) return;
+      
+      const task = team.tasks.items.find(t => t._id === taskId);
+      if (!task) return;
+      
+      const newCompletedState = !task.completed;
 
-  // Filter teams based on active tab, search query and status filter
-  const filteredTeams = activeTab === "created" 
-    ? createdTeams.filter(team => 
-        (team.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        team.project?.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (statusFilter === "all" || team.status === statusFilter))
-    : memberTeams.filter(team => 
-        (team.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        team.project?.toLowerCase().includes(searchQuery.toLowerCase())) &&
-        (statusFilter === "all" || team.status === statusFilter));
+      // Update the task on the backend
+      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          completed: newCompletedState
+        })
+      });
 
-  const toggleExpandTeam = (teamId) => {
-    setExpandedTeam(expandedTeam === teamId ? null : teamId);
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      // Refresh the team data
+      await fetchTeams();
+      
+    } catch (err) {
+      console.error('Error toggling task completion:', err);
+      toast.error(err.message || 'Failed to update task');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateTeam = async () => {
@@ -179,8 +266,9 @@ export default function MyTeams() {
         description: newTeam.description.trim(),
         status: newTeam.status || 'active',
         tasks: {
-          total: Number(newTeam.tasks.total) || 0,
-          completed: Number(newTeam.tasks.completed) || 0
+          total: 0,
+          completed: 0,
+          items: []
         },
         createdBy: userId,
         members: []
@@ -204,7 +292,29 @@ export default function MyTeams() {
       }
 
       const createdTeam = await response.json();
-      setTeams(prevTeams => [...prevTeams, createdTeam]);
+      
+      // Create default tasks for the new team
+      const defaultTasks = [
+        { name: "Project Planning", completed: false },
+        { name: "Research", completed: false },
+        { name: "Design Mockups", completed: false },
+        { name: "Development", completed: false },
+        { name: "Testing", completed: false }
+      ];
+      
+      for (const task of defaultTasks) {
+        await fetch(`http://localhost:5000/api/teams/${createdTeam._id}/tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(task)
+        });
+      }
+
+      // Refresh the teams list
+      await fetchTeams();
+      
       setNewTeam({
         name: "",
         project: "",
@@ -212,7 +322,11 @@ export default function MyTeams() {
         deadline: "",
         mentor: "",
         status: "active",
-        tasks: { total: 0, completed: 0 },
+        tasks: { 
+          total: 0,
+          completed: 0,
+          items: []
+        },
         members: []
       });
       setShowCreateModal(false);
@@ -236,6 +350,7 @@ export default function MyTeams() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
         }
       });
   
@@ -244,18 +359,7 @@ export default function MyTeams() {
         throw new Error(errorData.message || 'Failed to remove mentor');
       }
   
-      const updatedTeam = await response.json();
-      
-      // Update the team in state
-      setTeams(teams.map(t => 
-        t._id === teamId ? updatedTeam.team : t
-      ));
-      
-      // Update mentors data
-      const newMentorsData = {...mentorsData};
-      delete newMentorsData[mentorId];
-      setMentorsData(newMentorsData);
-      
+      await fetchTeams();
       toast.success('Mentor removed successfully');
       
     } catch (err) {
@@ -293,16 +397,11 @@ export default function MyTeams() {
   }
 
   const handleLeaveTeam = async (teamId) => {
-    console.log('Attempting to leave team:', teamId);
     try {
       setIsLoading(true);
       const user = auth.currentUser;
       if (!user) throw new Error('Authentication required');
   
-      // 1. Optimistic UI update
-      setTeams(prevTeams => prevTeams.filter(t => t._id !== teamId));
-  
-      // 2. Make API call
       const response = await fetch(
         `http://localhost:5000/api/teams/${teamId}/members/${user.uid}`,
         {
@@ -314,50 +413,19 @@ export default function MyTeams() {
         }
       );
   
-      // 3. Handle response
-      const text = await response.text();
-      const data = text ? JSON.parse(text) : {};
-      
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to leave team');
+        throw new Error('Failed to leave team');
       }
-  
-      // 4. Verify with separate fetch
-      await verifyRemoval(teamId, user.uid);
+
+      setTeams(teams.filter(t => t._id !== teamId));
       toast.success("Successfully left the team");
   
     } catch (err) {
-      console.error('Leave team failed:', {
-        error: err,
-        teamId,
-        time: new Date().toISOString()
-      });
-      
-      toast.error(err.message.includes('Server error') 
-        ? 'Failed to leave team (please try again)' 
-        : err.message
-      );
-      
-      // 5. Revert by refreshing data
+      console.error('Leave team failed:', err);
+      toast.error(err.message || 'Failed to leave team');
       await fetchTeams();
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  // Helper function
-  const verifyRemoval = async (teamId, userId) => {
-    const verifyResponse = await fetch(
-      `http://localhost:5000/api/teams/${teamId}/verify-member/${userId}`
-    );
-    
-    if (!verifyResponse.ok) {
-      throw new Error('Verification failed');
-    }
-    
-    const { isMember } = await verifyResponse.json();
-    if (isMember) {
-      throw new Error('Still appears to be a member');
     }
   };
 
@@ -367,13 +435,18 @@ export default function MyTeams() {
       const response = await fetch(`http://localhost:5000/api/teams/${editingTeam._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingTeam)
+        body: JSON.stringify({
+          ...editingTeam,
+          tasks: {
+            total: editingTeam.tasks.total,
+            completed: editingTeam.tasks.completed
+          }
+        })
       })
 
       if (!response.ok) throw new Error('Failed to update team')
 
-      const updatedTeam = await response.json()
-      setTeams(teams.map(t => t._id === updatedTeam._id ? updatedTeam : t))
+      await fetchTeams();
       setShowEditModal(false)
       toast.success("Team updated successfully");
     } catch (err) {
@@ -387,17 +460,13 @@ export default function MyTeams() {
   const removeMember = async (teamId, memberId) => {
     try {
       setIsLoading(true)
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/delete/${memberId}`, {
+      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/members/${memberId}`, {
         method: 'DELETE'
       })
 
       if (!response.ok) throw new Error('Failed to remove member')
 
-      const updatedTeam = await response.json()
-      setTeams(teams.map(team => team._id === teamId ? updatedTeam : team))
-      if (editingTeam?._id === teamId) {
-        setEditingTeam(updatedTeam)
-      }
+      await fetchTeams();
       toast.success("Member removed successfully");
     } catch (err) {
       setError(err.message)
@@ -409,7 +478,9 @@ export default function MyTeams() {
 
   const getProgressBarColor = (team) => {
     if (team.status === "completed") return "bg-green-500"
-    if (team.progress > 50) return "bg-yellow-500"
+    const progress = team.tasks?.total ? (team.tasks.completed / team.tasks.total) * 100 : 0;
+    if (progress > 70) return "bg-green-500"
+    if (progress > 30) return "bg-yellow-500"
     return "bg-blue-500"
   }
 
@@ -429,6 +500,25 @@ export default function MyTeams() {
         return "No teams found.";
     }
   }
+
+  // Separate teams into created by me and teams I'm a member of
+  const createdTeams = teams.filter(team => team.createdBy === userId);
+  const memberTeams = teams.filter(team => team.createdBy !== userId);
+
+  // Filter teams based on active tab, search query and status filter
+  const filteredTeams = activeTab === "created" 
+    ? createdTeams.filter(team => 
+        (team.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (team.project?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+        (statusFilter === "all" || team.status === statusFilter)))
+    : memberTeams.filter(team => 
+        (team.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (team.project?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+        (statusFilter === "all" || team.status === statusFilter)));
+
+  const toggleExpandTeam = (teamId) => {
+    setExpandedTeam(expandedTeam === teamId ? null : teamId);
+  };
 
   if (isLoading && teams.length === 0) {
     return (
@@ -505,21 +595,6 @@ export default function MyTeams() {
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   value={newTeam.deadline}
                   onChange={(e) => setNewTeam({...newTeam, deadline: e.target.value})}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">Total Tasks</label>
-                <input
-                  type="number"
-                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  value={newTeam.tasks.total}
-                  onChange={(e) => setNewTeam({
-                    ...newTeam,
-                    tasks: { ...newTeam.tasks, total: parseInt(e.target.value) || 0 }
-                  })}
-                  placeholder="10"
-                  min="0"
                 />
               </div>
             </div>
@@ -615,7 +690,6 @@ export default function MyTeams() {
                 </div>
               </div>
                 
-
               <div>
                 <h3 className="text-lg font-medium text-white mb-2">Members</h3>
                 <div className="space-y-4">
@@ -624,7 +698,7 @@ export default function MyTeams() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <img
-                             src={member?.avatar  ?  `http://localhost:5000${member.avatar}`  :  "/default-profile.png"}
+                            src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
                             alt={member.name}
                             className="w-10 h-10 rounded-full border border-gray-600"
                           />
@@ -641,6 +715,45 @@ export default function MyTeams() {
                           <FaTrash />
                         </button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress Section in Edit Modal */}
+              <div>
+                <h3 className="text-lg font-medium text-white mb-2">Task Progress</h3>
+                <div className="space-y-2">
+                  {editingTeam.tasks?.items?.map(task => (
+                    <div key={task._id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={task.completed}
+                          onChange={() => {
+                            const updatedTasks = editingTeam.tasks.items.map(t => 
+                              t._id === task._id ? {...t, completed: !t.completed} : t
+                            );
+                            setEditingTeam({
+                              ...editingTeam,
+                              tasks: {
+                                ...editingTeam.tasks,
+                                items: updatedTasks,
+                                completed: updatedTasks.filter(t => t.completed).length
+                              }
+                            });
+                          }}
+                          className="h-4 w-4 text-yellow-600 rounded border-gray-600 bg-gray-700 focus:ring-yellow-500"
+                        />
+                        <span className={`ml-2 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-300'}`}>
+                          {task.name}
+                        </span>
+                      </div>
+                      {task.completed ? (
+                        <FaCheckCircle className="text-green-500 text-xs" />
+                      ) : (
+                        <FaClock className="text-yellow-500 text-xs" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -768,12 +881,70 @@ export default function MyTeams() {
             </button>
           </div>
         </div>
+        {showAddTaskModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold text-white">Add New Task</h3>
+        <button 
+          onClick={() => setShowAddTaskModal(false)}
+          className="text-gray-400 hover:text-white"
+        >
+          <FaTimes />
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Task Name*</label>
+          <input
+            type="text"
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+            value={newTask.name}
+            onChange={(e) => setNewTask({...newTask, name: e.target.value})}
+            placeholder="Complete project documentation"
+            required
+          />
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Description</label>
+          <textarea
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+            rows={3}
+            value={newTask.description}
+            onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+            placeholder="Detailed description of the task..."
+          />
+        </div>
+      </div>
+      
+      <div className="mt-6 flex justify-end gap-3">
+        <button
+          onClick={() => setShowAddTaskModal(false)}
+          className="px-4 py-2 text-sm text-white bg-gray-700 rounded-lg hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleAddTask}
+          className="px-4 py-2 text-sm text-white bg-yellow-600 rounded-lg hover:bg-yellow-700"
+          disabled={!newTask.name || isLoading}
+        >
+          {isLoading ? 'Adding...' : 'Add Task'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Teams List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredTeams.length > 0 ? (
             filteredTeams.map((team) => {
               const isCreator = team.createdBy === userId;
+              const progressPercentage = team.tasks?.total ? 
+                Math.round((team.tasks.completed / team.tasks.total) * 100) : 0;
               
               return (
                 <div
@@ -862,12 +1033,15 @@ export default function MyTeams() {
                     <div className="mt-4">
                       <div className="flex justify-between mb-2">
                         <span className="text-xs text-gray-400">Progress</span>
-                        <span className="text-xs text-gray-400">{team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%</span>
+                        <span className="text-xs text-gray-400">
+                          {team.tasks?.completed || 0}/{team.tasks?.total || 0} tasks
+                          ({progressPercentage}%)
+                        </span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${getProgressBarColor(team)}`}
-                          style={{ width: `${team.tasks?.total ? Math.round((team.tasks.completed / team.tasks.total) * 100) : 0}%` }}
+                          style={{ width: `${progressPercentage}%` }}
                         ></div>
                       </div>
                     </div>
@@ -891,6 +1065,53 @@ export default function MyTeams() {
 
                     {expandedTeam === team._id && (
                       <div className="mt-4 pt-4 border-t border-gray-700">
+                        {/* Task Progress Section */}
+                        <div className="mb-6">
+                          <h4 className="text-sm font-medium text-white mb-3">Task Progress</h4>
+                          <div className="space-y-2">
+                            {team.tasks?.items?.map(task => (
+                              <div key={task._id} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg">
+                                <div className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={task.completed}
+                                    onChange={() => toggleTaskCompletion(team._id, task._id)}
+                                    className="h-4 w-4 text-yellow-600 rounded border-gray-600 bg-gray-700 focus:ring-yellow-500"
+                                  />
+                                  <span className={`ml-2 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-300'}`}>
+                                    {task.name}
+                                  </span>
+                                </div>
+                                {task.completed ? (
+                                  <FaCheckCircle className="text-green-500 text-xs" />
+                                ) : (
+                                  <FaClock className="text-yellow-500 text-xs" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Progress Summary */}
+                          <div className="mt-4 bg-gray-700/50 p-3 rounded-lg">
+                            <div className="flex justify-between text-sm mb-2">
+                              <span className="text-gray-300">Overall Progress</span>
+                              <span className="text-yellow-400">
+                                {progressPercentage}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-600 rounded-full h-2.5">
+                              <div
+                                className={`h-2.5 rounded-full ${getProgressBarColor(team)}`}
+                                style={{ width: `${progressPercentage}%` }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between mt-2 text-xs text-gray-400">
+                              <span>{team.tasks?.completed || 0} completed</span>
+                              <span>{team.tasks?.total ? team.tasks.total - team.tasks.completed : 0} remaining</span>
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Mentor Section */}
                         {team.mentors && team.mentors.length > 0 ? (
                           <div className="mb-6">
@@ -898,7 +1119,7 @@ export default function MyTeams() {
                               <h4 className="text-sm font-medium text-white">Mentors</h4>
                               {isCreator && (
                                 <button 
-                                onClick={() => navigate("/mentorfind")}
+                                  onClick={() => navigate("/mentorfind")}
                                   className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
                                 >
                                   <FaPlus size={10} /> Add Mentor
@@ -990,151 +1211,154 @@ export default function MyTeams() {
                                   <div className="flex-1">
                                     <p className="text-sm text-white font-medium">{member.name}</p>
                                     <p className="text-xs text-gray-400">{member.role}</p>
-                            {member.skills?.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {member.skills.map((skill, index) => (
-                                  <span key={index} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
-                                    {skill}
-                                  </span>
-                                ))}
-                              </div>
+                                    {member.skills?.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {member.skills.map((skill, index) => (
+                                          <span key={index} className="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded">
+                                            {skill}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {isCreator && (
+                                    <button
+                                      onClick={() => removeMember(team._id, member._id)}
+                                      className="text-red-500 hover:text-red-400 p-1"
+                                      disabled={isLoading}
+                                    >
+                                      <FaTimes />
+                                    </button>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-gray-400 text-sm">No members added yet</p>
                             )}
                           </div>
-                          {isCreator && (
+                        </div>
+
+                        {/* Skills Needed Section */}
+                        {team.skillsNeeded?.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="text-sm font-medium text-white mb-2">Skills Needed</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {team.skillsNeeded.map((skill, index) => (
+                                <span key={index} className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-1 rounded">
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* SDGs Section */}
+                        <div className="mb-4">
+                          <div className="flex justify-between items-center mb-3">
+                            <h4 className="text-sm font-medium text-white">Sustainable Development Goals</h4>
                             <button
-                              onClick={() => removeMember(team._id, member._id)}
-                              className="text-red-500 hover:text-red-400 p-1"
-                              disabled={isLoading}
+                              onClick={() => navigate(`/sdg`)}
+                              className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
                             >
-                              <FaTimes />
+                              <FaPlus size={10} /> Add SDGs
                             </button>
+                          </div>
+                          {team.sdgs?.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {team.sdgs.map(sdgId => {
+                                const sdg = allSDGs.find(s => s.id === sdgId);
+                                return sdg ? (
+                                  <div 
+                                    key={sdgId} 
+                                    className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${sdg.color} text-white`}
+                                  >
+                                    <span>SDG {sdg.id}</span>
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-gray-400 text-sm">No SDGs mapped yet</p>
                           )}
                         </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-400 text-sm">No members added yet</p>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Skills Needed Section */}
-                {team.skillsNeeded?.length > 0 && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-white mb-2">Skills Needed</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {team.skillsNeeded.map((skill, index) => (
-                        <span key={index} className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-1 rounded">
-                          {skill}
-                        </span>
+                    <div className="flex -space-x-2 mt-4">
+                      {team.members?.slice(0, 5).map((member) => (
+                        <img
+                          key={member._id}
+                          src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
+                          alt={member.name}
+                          title={`${member.name} - ${member.role}`}
+                          className="w-8 h-8 rounded-full border-2 border-gray-800"
+                        />
                       ))}
+                      {team.members?.length > 5 && (
+                        <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-800 flex items-center justify-center text-xs text-gray-300">
+                          +{team.members.length - 5}
+                        </div>
+                      )}
+                      {team.status === "active" && isCreator && !expandedTeam &&(
+                        <button 
+                          className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
+                          onClick={() => navigate(`/dashboard`)}
+                        >
+                          <FaPlus className="text-xs" />
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {/* SDGs Section */}
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-sm font-medium text-white">Sustainable Development Goals</h4>
-                    <button
-                      onClick={() => navigate(`/sdg`)}
-                      className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
-                    >
-                      <FaPlus size={10} /> Add SDGs
-                    </button>
-                  </div>
-                  {team.sdgs?.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {team.sdgs.map(sdgId => {
-                        const sdg = allSDGs.find(s => s.id === sdgId);
-                        return sdg ? (
-                          <div 
-                            key={sdgId} 
-                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-2 ${sdg.color} text-white`}
-                          >
-                            <span>SDG {sdg.id}</span>
-                           
-                          </div>
-                        ) : null;
-                      })}
+                  
+                  <div className="border-t border-gray-700 p-3 flex justify-between items-center">
+                    <div className="flex gap-3">
+                      <button 
+                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                        onClick={() => navigate(`/team-analytics/${team._id}`)}
+                      >
+                        <FaChartBar className="mr-1" />
+                        <span>Analytics</span>
+                      </button>
+                      <button 
+                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
+                        onClick={() => navigate(`/team-chat/${team._id}`)}
+                      >
+                        <FaComments className="mr-1" />
+                        <span>Chat</span>
+                      </button>
                     </div>
-                  ) : (
-                    <p className="text-gray-400 text-sm">No SDGs mapped yet</p>
-                  )}
+                    {team.status === "active" && (
+  <button 
+    className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+    disabled={isLoading}
+    onClick={() => {
+      setCurrentTeamIdForTask(team._id);
+      setShowAddTaskModal(true);
+    }}
+  >
+    <FaPlus className="text-xs" />
+    Add Task
+  </button>
+)}
+                  </div>
                 </div>
-              </div>
-            )}
-
-            <div className="flex -space-x-2 mt-4">
-              {team.members?.slice(0, 5).map((member) => (
-                <img
-                  key={member._id}
-                  src={member?.avatar ? `http://localhost:5000${member.avatar}` : "/default-profile.png"}
-                  alt={member.name}
-                  title={`${member.name} - ${member.role}`}
-                  className="w-8 h-8 rounded-full border-2 border-gray-800"
-                />
-              ))}
-              {team.members?.length > 5 && (
-                <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-gray-800 flex items-center justify-center text-xs text-gray-300">
-                  +{team.members.length - 5}
-                </div>
-              )}
-              {team.status === "active" && isCreator && !expandedTeam &&(
+              )
+            })
+          ) : (
+            <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
+              <p className="text-gray-400">{getEmptyStateMessage()}</p>
+              {activeTab === "created" && (
                 <button 
-                  className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:text-white border-2 border-gray-800"
-                  onClick={() => navigate(`/dashboard`)}
+                  className="mt-4 flex items-center gap-1 mx-auto text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
+                  onClick={() => setShowCreateModal(true)}
                 >
-                  <FaPlus className="text-xs" />
+                  <FaPlus />
+                  Create New Team
                 </button>
               )}
             </div>
-          </div>
-          
-          <div className="border-t border-gray-700 p-3 flex justify-between items-center">
-            <div className="flex gap-3">
-              <button 
-                className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                onClick={() => navigate(`/team-analytics/${team._id}`)}
-              >
-                <FaChartBar className="mr-1" />
-                <span>Analytics</span>
-              </button>
-              <button 
-                className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                onClick={() => navigate(`/team-chat/${team._id}`)}
-              >
-                <FaComments className="mr-1" />
-                <span>Chat</span>
-              </button>
-            </div>
-            {team.status === "active" && team.tasks?.total > 0 && (
-              <button 
-                className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1.5 rounded-lg transition-colors"
-                disabled={isLoading}
-              >
-                <FaCheckCircle className="text-xs" />
-                Complete Task
-              </button>
-            )}
-          </div>
+          )}
         </div>
-      )
-    })
-  ) : (
-    <div className="col-span-full bg-gray-800 rounded-xl border border-gray-700 p-8 text-center">
-      <p className="text-gray-400">{getEmptyStateMessage()}</p>
-      {activeTab === "created" && (
-        <button 
-          className="mt-4 flex items-center gap-1 mx-auto text-yellow-400 hover:text-yellow-300 text-sm px-4 py-2 bg-gray-700 rounded-lg"
-          onClick={() => setShowCreateModal(true)}
-        >
-          <FaPlus />
-          Create New Team
-        </button>
-      )}
-    </div>
-  )}
-</div>
       </div>
     </div>
   )

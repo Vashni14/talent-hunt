@@ -11,14 +11,23 @@ router.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   next();
 });
-
+// Helper function to calculate progress
+const calculateProgress = (team) => {
+  if (!team.tasks || team.tasks.total === 0) return 0;
+  return Math.round((team.tasks.completed / team.tasks.total) * 100);
+};
 router.post('/', async (req, res) => {
   try {
     const teamData = {
       ...req.body,
       createdBy: req.body.createdBy, // Ensure this is required
       members: req.body.members || [], // Default empty array
-      status: req.body.status || 'active' // Default status
+      status: req.body.status || 'active', // Default status
+      tasks: {
+        total: 0,
+        completed: 0,
+        items: []
+      }
     };
     
     const newTeam = new Team(teamData);
@@ -1028,5 +1037,157 @@ router.put('/invitations/:id', async (req, res) => {
     });
   }
 });
+// Task-related routes
+router.get('/:teamId/tasks', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+    
+    res.status(200).json(team.tasks || { total: 0, completed: 0, items: [] });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
+router.post('/:teamId/tasks', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    const newTask = {
+      _id: new mongoose.Types.ObjectId(),
+      ...req.body,
+      completed: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    team.tasks.items.push(newTask);
+    team.tasks.total = team.tasks.items.length;
+    team.tasks.completed = team.tasks.items.filter(t => t.completed).length;
+
+    const updatedTeam = await team.save();
+    
+    res.status(201).json(updatedTeam.tasks);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.patch('/:teamId/tasks/:taskId', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    const taskIndex = team.tasks.items.findIndex(t => t._id.toString() === req.params.taskId);
+    if (taskIndex === -1) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Update task properties
+    if (req.body.completed !== undefined) {
+      team.tasks.items[taskIndex].completed = req.body.completed;
+      team.tasks.items[taskIndex].updatedAt = new Date();
+    }
+
+    if (req.body.name) {
+      team.tasks.items[taskIndex].name = req.body.name;
+    }
+
+    if (req.body.description) {
+      team.tasks.items[taskIndex].description = req.body.description;
+    }
+
+    // Recalculate totals
+    team.tasks.completed = team.tasks.items.filter(t => t.completed).length;
+    team.tasks.total = team.tasks.items.length;
+
+    // Update team status if all tasks are completed
+    if (team.tasks.completed === team.tasks.total && team.tasks.total > 0) {
+      team.status = 'completed';
+    }
+
+    const updatedTeam = await team.save();
+    
+    res.status(200).json(updatedTeam.tasks);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+router.delete('/:teamId/tasks/:taskId', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    team.tasks.items = team.tasks.items.filter(t => t._id.toString() !== req.params.taskId);
+    team.tasks.total = team.tasks.items.length;
+    team.tasks.completed = team.tasks.items.filter(t => t.completed).length;
+
+    const updatedTeam = await team.save();
+    
+    res.status(200).json(updatedTeam.tasks);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+router.put('/:teamId/tasks/:taskId', async (req, res) => {
+  try {
+    const team = await Team.findById(req.params.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    const taskIndex = team.tasks.items.findIndex(t => t._id.toString() === req.params.taskId);
+    if (taskIndex === -1) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Update all provided fields
+    const originalTask = team.tasks.items[taskIndex];
+    const updatedTask = {
+      ...originalTask,
+      ...req.body,
+      _id: originalTask._id, // Preserve original ID
+      updatedAt: new Date()  // Always update timestamp
+    };
+
+    // Replace the task in the array
+    team.tasks.items[taskIndex] = updatedTask;
+
+    // Recalculate totals
+    team.tasks.completed = team.tasks.items.filter(t => t.completed).length;
+    team.tasks.total = team.tasks.items.length;
+
+    // Update team status if all tasks are completed
+    if (team.tasks.completed === team.tasks.total && team.tasks.total > 0) {
+      team.status = 'completed';
+    } else if (team.status === 'completed') {
+      // Revert status if not all tasks are completed
+      team.status = 'active';
+    }
+
+    const updatedTeam = await team.save();
+    
+    res.status(200).json({
+      success: true,
+      data: updatedTeam.tasks.items[taskIndex],
+      teamStatus: updatedTeam.status
+    });
+    
+  } catch (error) {
+    res.status(400).json({ 
+      success: false,
+      message: error.message 
+    });
+  }
+});
 module.exports = router;

@@ -21,14 +21,14 @@ const TeamSchema = new mongoose.Schema({
     joinedAt: { type: Date, default: Date.now }
   }],
   skillsNeeded: [{ type: String }],
-  maxMembers: { type: Number,  min: 1 },
+  maxMembers: { type: Number, min: 1 },
   currentMembers: { type: Number, default: 1 },
-  deadline: { type: Date, required: true },
-  contactEmail: { type: String},
+  deadline: { type: Date },
+  contactEmail: { type: String },
   status: { 
     type: String, 
-    enum: ['recruiting', 'active', 'completed'], 
-    default: 'recruiting' 
+    enum: ['active', 'pending', 'completed'], 
+    default: 'active' 
   },
   applications: [{
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'StudentProfile' },
@@ -41,9 +41,9 @@ const TeamSchema = new mongoose.Schema({
     },
     appliedAt: { type: Date, default: Date.now }
   }],
-  createdBy:{
-    type:String,
-    required:true
+  createdBy: {
+    type: String,
+    required: true
   },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -52,6 +52,18 @@ const TeamSchema = new mongoose.Schema({
     enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
     default: []
   }],
+  tasks: {
+    total: { type: Number, default: 0 },
+    completed: { type: Number, default: 0 },
+    items: [{
+      _id: mongoose.Schema.Types.ObjectId,
+      name: String,
+      description: String,
+      completed: { type: Boolean, default: false },
+      createdAt: { type: Date, default: Date.now },
+      updatedAt: { type: Date, default: Date.now }
+    }]
+  }
 });
 
 // Indexes for better query performance
@@ -60,9 +72,17 @@ TeamSchema.index({ status: 1 });
 TeamSchema.index({ skillsNeeded: 1 });
 TeamSchema.index({ 'members.user': 1 });
 TeamSchema.index({ 'applications.user': 1 });
+TeamSchema.index({ createdBy: 1 });
+
+TeamSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
+
 TeamSchema.pre('find', function() {
   this.populate('members.user', 'name profilePicture rolePreference');
 });
+
 TeamSchema.pre('findOne', function() {
   this.populate('members.user', 'name profilePicture rolePreference');
 });
