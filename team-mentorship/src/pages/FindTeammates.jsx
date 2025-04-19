@@ -12,6 +12,7 @@ import {
   FaGraduationCap, FaSignOutAlt, FaUsers, FaEnvelope, FaCheck, FaClock
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import ComplementaryTeammates from "../components/ComplementaryTeammates";
 
 const API_URL = "http://localhost:5000/api";
 
@@ -764,27 +765,7 @@ export default function FindTeammatesPage() {
                 <>
                   {activeTab === "find" && (
                     <>
-                      <div className="mb-8">
-                        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                          <FaMagic className="text-purple-400" /> AI-Recommended Teammates
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {filteredTeammates
-                            .filter((teammate) => teammate.compatibility >= 85)
-                            .slice(0, 2)
-                            .map((teammate) => (
-                              <TeammateCard 
-                                key={teammate._id}
-                                teammate={teammate}
-                                onView={() => {
-                                  setSelectedProfile(teammate);
-                                  setShowProfileModal(true);
-                                }}
-                                onConnect={() => handleConnect(teammate)}
-                              />
-                            ))}
-                        </div>
-                      </div>
+                      <ComplementaryTeammates/>
 
                       <div>
                         <h2 className="text-lg font-bold mb-4">All Potential Teammates</h2>

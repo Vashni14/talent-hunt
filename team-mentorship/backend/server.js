@@ -9,6 +9,7 @@ const teamsRouter = require('./routes/team');
 const mentorApplicationRoutes = require('./routes/mentorApplicationRoutes');
 const { createServer } = require("http");
 const { Server } = require("socket.io");
+const djangoProxy = require('./routes/djangoProxy');
 
 dotenv.config();
 connectDB();
@@ -53,6 +54,8 @@ app.use('/api/mentor', mentorApplicationRoutes);
 //Admin Routes
 app.use("/api/competitions", require("./routes/competitions"));
 app.use("/api/sdgadmin", require("./routes/sdgadmin"));
+app.use('/api/django', djangoProxy);
+
 const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
