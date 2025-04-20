@@ -679,12 +679,12 @@ const StudentLandingPage = () => {
             <motion.div
               className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'internships' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => setActiveFeature('internships')}
+              onClick={() => navigate("/student-analysis")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-md">
                 <FaBriefcase className="text-xl" />
               </div>
-              <h3 className="text-center text-sm font-medium">Internships</h3>
+              <h3 className="text-center text-sm font-medium">Analysis</h3>
             </motion.div>
 
             <motion.div

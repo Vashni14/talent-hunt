@@ -99,12 +99,12 @@ router.get('/user/:userId', async (req, res) => {
       teamsQuery = teamsQuery
         .populate({
           path: 'createdBy',
-          select: 'name profilePicture rolePreference department',
+          select: 'name profilePicture rolePreference domain contact',
           model: 'StudentProfile'
         })
         .populate({
           path: 'members.user',
-          select: 'name profilePicture rolePreference department',
+          select: 'name profilePicture rolePreference domain contact',
           model: 'StudentProfile'
         });
     }
@@ -124,6 +124,70 @@ router.get('/user/:userId', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+// In your teamRoutes.js (or wherever you define team routes)
+
+router.get('/by-user/:identifier', async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const { populateMembers } = req.query;
+
+    // Validate identifier exists
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'User identifier is required'
+      });
+    }
+
+    // Prepare query conditions
+    const queryConditions = [];
+
+    // Check if identifier is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(identifier)) {
+      queryConditions.push({ 'members.user': new mongoose.Types.ObjectId(identifier) });
+    }
+
+    // Always include string match for UID
+    queryConditions.push({ createdBy: identifier });
+
+    const query = { $or: queryConditions };
+
+    // Build the query
+    let teamsQuery = Team.find(query);
+
+    // Handle population if requested
+    if (populateMembers === 'true') {
+      teamsQuery = teamsQuery
+        .populate({
+          path: 'createdBy',
+          select: 'name profilePicture rolePreference domain contact',
+          model: 'StudentProfile'
+        })
+        .populate({
+          path: 'members.user',
+          select: 'name profilePicture rolePreference domain contact',
+          model: 'StudentProfile'
+        });
+    }
+
+    // Execute query
+    const teams = await teamsQuery.lean().exec();
+
+    res.status(200).json({
+      success: true,
+      count: teams.length,
+      data: teams
+    });
+
+  } catch (error) {
+    console.error('Error in /teams/by-user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

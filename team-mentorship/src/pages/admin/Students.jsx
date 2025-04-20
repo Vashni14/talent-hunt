@@ -12,7 +12,7 @@ import {
   FaCertificate, 
   FaCode,
   FaUserTie,
-  FaMedal 
+  FaMedal  
 } from "react-icons/fa";
 import axios from 'axios';
 
@@ -279,36 +279,84 @@ const ProfileModal = ({ profile, onClose }) => {
   );
 }
 
-const CompetitionParticipationModal = ({ onClose }) => {
-    // Static data for demonstration
-    const competitionStats = {
-      totalParticipations: 8,
-      wins: 3,
-      top3: 5,
-      successRatio: '62.5%'
-    };
-  
-    const competitions = [
-      {
-        name: "Hackathon 2023",
-        date: "2023-05-15",
-        result: "1st Place",
-        team: "Tech Innovators"
-      },
-      {
-        name: "AI Challenge 2022",
-        date: "2022-11-20",
-        result: "3rd Place",
-        team: "Data Wizards"
-      },
-      {
-        name: "Code Wars 2022",
-        date: "2022-08-10",
-        result: "Finalist",
-        team: "Byte Force"
+
+const CompetitionParticipationModal = ({ userId, onClose }) => {
+  const [stats, setStats] = useState({
+    totalParticipations: 0,
+    wins: 0,
+    top3: 0,
+    successRatio: '0%'
+  });
+  const [competitions, setCompetitions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch competition participation data
+  const fetchParticipationData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First find the student document using Firebase UID
+      const studentResponse = await axios.get(`http://localhost:5000/api/student/profile/${userId}`);
+      if (!studentResponse.data) {
+        throw new Error('User not found');
       }
-    ];
-  
+
+      // Get all applications for this student
+      const applicationsResponse = await axios.get(`http://localhost:5000/api/compapp/me/${userId}`);
+      const applications = applicationsResponse.data;
+
+      // Calculate statistics
+      const totalParticipations = applications.length;
+      const wins = applications.filter(app => app.result === 'winner').length;
+      const top3 = applications.filter(app => 
+        app.result === 'winner' || 
+        app.result === 'runner-up' || 
+        app.result === '3rd Place'
+      ).length;
+      const successRatio = totalParticipations > 0 
+        ? `${Math.round((top3 / totalParticipations) * 100)}%` 
+        : '0%';
+
+      setStats({
+        totalParticipations,
+        wins,
+        top3,
+        successRatio
+      });
+
+      // Prepare competitions list
+      const formattedCompetitions = applications
+        .filter(app => app.result) // Only include competitions with results
+        .map(app => ({
+          id: app._id,
+          name: app.competition.name,
+          date: app.competition.date,
+          result: app.result,
+          team: app.team?.name || 'Individual',
+          status: app.status,
+          competitionId: app.competition._id,
+          teamId: app.team?._id
+        }))
+        .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
+
+      setCompetitions(formattedCompetitions);
+    } catch (err) {
+      console.error('Error fetching participation data:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch competition data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchParticipationData();
+    }
+  }, [userId]);
+
+  if (loading) {
     return (
       <AnimatePresence>
         <motion.div
@@ -322,101 +370,244 @@ const CompetitionParticipationModal = ({ onClose }) => {
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.95 }}
-            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-xl font-bold text-white">My Competition Participation</h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-                <FaTimes className="text-xl" />
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  if (error) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-red-400 p-4 rounded-lg bg-red-900/20 mb-4">
+              Error: {error}
+              <button 
+                onClick={fetchParticipationData}
+                className="ml-4 text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700"
+              >
+                Retry
               </button>
             </div>
-  
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-                <p className="text-sm text-gray-400">Total Participations</p>
-                <p className="text-2xl font-bold text-white">{competitionStats.totalParticipations}</p>
-              </div>
-              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-                <p className="text-sm text-gray-400">Wins</p>
-                <p className="text-2xl font-bold text-green-400">{competitionStats.wins}</p>
-              </div>
-              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-                <p className="text-sm text-gray-400">Top 3 Finishes</p>
-                <p className="text-2xl font-bold text-yellow-400">{competitionStats.top3}</p>
-              </div>
-              <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
-                <p className="text-sm text-gray-400">Success Ratio</p>
-                <p className="text-2xl font-bold text-blue-400">{competitionStats.successRatio}</p>
-              </div>
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Close
+              </button>
             </div>
-  
-            {/* Competitions List */}
-            <div>
-              <h3 className="text-lg font-semibold text-white mb-3 pb-2 border-b border-gray-700">
-                Recent Competitions
-              </h3>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0.95 }}
+          className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-xl font-bold text-white">My Competition Participation</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+              <FaTimes className="text-xl" />
+            </button>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-400">Total Participations</p>
+              <p className="text-2xl font-bold text-white">{stats.totalParticipations}</p>
+            </div>
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-400">Wins</p>
+              <p className="text-2xl font-bold text-green-400">{stats.wins}</p>
+            </div>
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-400">Top 3 Finishes</p>
+              <p className="text-2xl font-bold text-yellow-400">{stats.top3}</p>
+            </div>
+            <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600">
+              <p className="text-sm text-gray-400">Success Ratio</p>
+              <p className="text-2xl font-bold text-blue-400">{stats.successRatio}</p>
+            </div>
+          </div>
+
+          {/* Competitions List */}
+          <div>
+            <h3 className="text-lg font-semibold text-white mb-3 pb-2 border-b border-gray-700">
+              {competitions.length > 0 ? 'Recent Competitions' : 'No Competition History'}
+            </h3>
+            {competitions.length > 0 ? (
               <div className="space-y-3">
-                {competitions.map((comp, index) => (
-                  <div key={index} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                {competitions.map((comp) => (
+                  <div key={comp.id} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-white font-medium">{comp.name}</h4>
-                        <p className="text-gray-400 text-sm">{comp.date}</p>
+                        <p className="text-gray-400 text-sm">
+                          {comp.date ? new Date(comp.date).toLocaleDateString() : 'Date not available'}
+                        </p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        comp.result.includes('1st') ? 'bg-yellow-500/20 text-yellow-400' :
+                        comp.result.includes('1st') || comp.result.includes('Winner') ? 'bg-yellow-500/20 text-yellow-400' :
                         comp.result.includes('3rd') ? 'bg-amber-500/20 text-amber-400' :
                         'bg-blue-500/20 text-blue-400'
                       }`}>
                         {comp.result}
                       </span>
                     </div>
-                    <p className="text-gray-300 text-sm mt-2">Team: {comp.team}</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-gray-300 text-sm">Team: {comp.team}</p>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        comp.status === 'accepted' ? 'bg-green-500/20 text-green-400' :
+                        comp.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {comp.status}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
-            </div>
-  
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-gray-400 mb-4">
+                  <FaTrophy className="inline-block text-4xl" />
+                </div>
+                <h3 className="text-lg font-medium text-white mb-2">No Competition History</h3>
+                <p className="text-gray-400">You haven't participated in any competitions yet.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </motion.div>
-      </AnimatePresence>
-    );
-  };
-  
-  const MyTeamsModal = ({ onClose }) => {
-    // Static data for demonstration
-    const teams = [
-      {
-        name: "Tech Innovators",
-        competition: "Hackathon 2023",
-        members: [
-          { name: "John Doe", role: "Frontend Dev" },
-          { name: "Jane Smith", role: "Backend Dev" },
-          { name: "You", role: "Team Lead" }
-        ],
-        mentor: "Dr. Sarah Johnson"
-      },
-      {
-        name: "Data Wizards",
-        competition: "AI Challenge 2022",
-        members: [
-          { name: "Mike Chen", role: "Data Scientist" },
-          { name: "You", role: "ML Engineer" }
-        ],
-        mentor: "Prof. Robert Brown"
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+
+const MyTeamsModal = ({ userId, onClose }) => {
+  const [teams, setTeams] = useState([]);
+  const [mentorDetails, setMentorDetails] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch mentor details
+  const fetchMentorDetails = async (mentorId) => {
+    try {
+      // Check if we already have this mentor's details
+      if (mentorDetails[mentorId]) return;
+
+      const response = await axios.get(`http://localhost:5000/api/mentor/profile/id/${mentorId}`);
+      if (response.data) {
+        setMentorDetails(prev => ({
+          ...prev,
+          [mentorId]: response.data
+        }));
       }
-    ];
+    } catch (err) {
+      console.error(`Error fetching mentor ${mentorId}:`, err);
+      // Store minimal mentor info if fetch fails
+      setMentorDetails(prev => ({
+        ...prev,
+        [mentorId]: {
+          _id: mentorId,
+          name: "Unknown Mentor",
+          profilePicture: ""
+        }
+      }));
+    }
+  };
+
+  // Fetch teams data from backend
+  const fetchTeams = async () => {
+    try {
+      setLoading(true);
+      setError(null);
   
+      const response = await axios.get(`http://localhost:5000/api/teams/by-user/${userId}`);
+
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+      if (response.data.success) {
+        const teamsData = response.data.data;
+        setTeams(teamsData);
+
+        // Fetch mentor details for all mentors in all teams
+        const mentorIds = [];
+        teamsData.forEach(team => {
+          if (team.mentors && team.mentors.length > 0) {
+            team.mentors.forEach(mentorId => {
+              if (typeof mentorId === 'string' && !mentorDetails[mentorId]) {
+                mentorIds.push(mentorId);
+              }
+            });
+          }
+        });
+
+        // Fetch all mentor details in parallel
+        await Promise.all(mentorIds.map(fetchMentorDetails));
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch teams');
+      }
+    } catch (err) {
+      console.error('Error fetching teams:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch teams');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchTeams();
+    }
+  }, [userId]);
+
+  if (loading) {
     return (
       <AnimatePresence>
         <motion.div
@@ -430,53 +621,45 @@ const CompetitionParticipationModal = ({ onClose }) => {
             initial={{ scale: 0.95 }}
             animate={{ scale: 1 }}
             exit={{ scale: 0.95 }}
-            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-start mb-6">
-              <h2 className="text-xl font-bold text-white">My Teams</h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-                <FaTimes className="text-xl" />
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+            </div>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  if (error) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.95 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.95 }}
+            className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-red-400 p-4 rounded-lg bg-red-900/20 mb-4">
+              Error: {error}
+              <button 
+                onClick={fetchTeams}
+                className="ml-4 text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700"
+              >
+                Retry
               </button>
             </div>
-  
-            <div className="space-y-4">
-              {teams.map((team, index) => (
-                <div key={index} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{team.name}</h3>
-                      <p className="text-gray-400 text-sm">{team.competition}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-400">Mentor</p>
-                      <p className="text-blue-400">{team.mentor}</p>
-                    </div>
-                  </div>
-  
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Team Members</h4>
-                    <div className="space-y-2">
-                      {team.members.map((member, idx) => (
-                        <div key={idx} className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            <div className="w-6 h-6 rounded-full bg-gray-600 flex items-center justify-center mr-2">
-                              <FaUserTie className="text-xs text-gray-300" />
-                            </div>
-                            <span className={`${member.name === 'You' ? 'text-yellow-400' : 'text-gray-300'}`}>
-                              {member.name}
-                            </span>
-                          </div>
-                          <span className="text-xs text-gray-400">{member.role}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-  
-            <div className="mt-6 flex justify-end">
+            <div className="flex justify-end">
               <button
                 onClick={onClose}
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
@@ -488,7 +671,170 @@ const CompetitionParticipationModal = ({ onClose }) => {
         </motion.div>
       </AnimatePresence>
     );
-  };
+  }
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.95 }}
+          animate={{ scale: 1 }}
+          exit={{ scale: 0.95 }}
+          className="bg-gray-800 rounded-xl p-6 w-full max-w-3xl border border-gray-700 shadow-xl overflow-y-auto max-h-[90vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-start mb-6">
+            <h2 className="text-xl font-bold text-white">My Teams</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+              <FaTimes className="text-xl" />
+            </button>
+          </div>
+
+          {teams.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-gray-400 mb-4">
+                <FaUsers className="inline-block text-4xl" />
+              </div>
+              <h3 className="text-lg font-medium text-white mb-2">No Teams Found</h3>
+              <p className="text-gray-400">You're not currently part of any teams.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {teams.map((team) => (
+                <div key={team._id} className="bg-gray-700/30 p-4 rounded-lg border border-gray-600">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{team.name}</h3>
+                      <p className="text-gray-400 text-sm">
+                        {team.competition || 'General Team'} • {team.status}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400">Created</p>
+                      <p className="text-blue-400 text-sm">
+                        {new Date(team.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {team.project && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-medium text-gray-400 mb-1">Project</h4>
+                      <p className="text-gray-300">{team.project}</p>
+                    </div>
+                  )}
+
+                  <div className="mb-3">
+                    <h4 className="text-sm font-medium text-gray-400 mb-2">Team Members</h4>
+                    <div className="space-y-2">
+                      {team.createdBy && typeof team.createdBy === 'object' && (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <img
+                              className="w-6 h-6 rounded-full mr-2"
+                              src={team.createdBy?.profilePicture ? `http://localhost:5000${team.createdBy.profilePicture}` : "/default-profile.png"}
+                              alt={team.createdBy.name}
+                            />
+                            <span className="text-yellow-400">
+                              {team.createdBy.name} (Creator)
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {team.createdBy.rolePreference || 'Team Lead'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {team.members?.map((member, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <img
+                              className="w-6 h-6 rounded-full mr-2"
+                              src={member.user?.profilePicture ? `http://localhost:5000${member.user.profilePicture}` : "/default-profile.png"}
+                              alt={member.user?.name || member.name}
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = '/default-profile.png';
+                              }}
+                            />
+                            <span className="text-gray-300">
+                              {member.user?.name || member.name}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {member.role || 'Member'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {team.mentors?.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-400 mb-2">Mentors</h4>
+                      <div className="space-y-2">
+                        {team.mentors.map((mentorId, idx) => {
+                          const mentor = mentorDetails[mentorId] || {
+                            _id: mentorId,
+                            name: "Loading...",
+                            profilePicture: ""
+                          };
+
+                          return (
+                            <div key={idx} className="flex items-center">
+                              <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-2 overflow-hidden">
+                                {mentor.profilePicture ? (
+                                  <img
+                                  src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+                                    alt={mentor.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = '/default-profile.png';
+                                    }}
+                                  />
+                                ) : (
+                                  <FaUserTie className="text-xs text-blue-400" />
+                                )}
+                              </div>
+                              <span className="text-blue-400">
+                                {mentor.name}
+                                {mentor.currentPosition && (
+                                  <span className="text-gray-400 text-xs ml-2">
+                                    ({mentor.currentPosition})
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
   
   const Students = () => {
     const [students, setStudents] = useState([]);
@@ -621,7 +967,18 @@ const CompetitionParticipationModal = ({ onClose }) => {
     setSelectedStudent(freshData || student);
     setIsModalOpen(true);
   };
-
+  const openTeamsModal = async (student) => {
+    setSelectedStudent(student);
+    setIsTeamsModalOpen(true);  // Changed from setIsModalOpen
+  };
+  const openCompetitionsModal = async (student) => {
+    setSelectedStudent(student);
+    setIsCompetitionsModalOpen(true);  // Changed from setIsModalOpen
+  };
+  const closeTeamsModal = () => {
+    setIsTeamsModalOpen(false);
+    setSelectedStudent(null);
+  };
   const closeProfileModal = () => {
     setIsModalOpen(false);
     setSelectedStudent(null);
@@ -761,19 +1118,19 @@ const CompetitionParticipationModal = ({ onClose }) => {
                           <FaEye />
                         </button>
                         <button
-                          onClick={() => setIsCompetitionsModalOpen(true)}
+                          onClick={() => openCompetitionsModal(student)}
                           className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
                           title="View Competitions"
                         >
                           <FaTrophy />
                         </button>
                         <button
-                          onClick={() => setIsTeamsModalOpen(true)}
-                          className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
-                          title="View Teams"
-                        >
-                          <FaUsers />
-                        </button>
+  onClick={() => openTeamsModal(student)}
+  className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
+  title="View Teams"
+>
+  <FaUsers />
+</button>
                         <button
                           onClick={() => console.log('Initiate chat with:', student._id)}
                           className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-purple-900/20"
@@ -841,24 +1198,37 @@ const CompetitionParticipationModal = ({ onClose }) => {
         )}
       </div>
 
-      <ProfileModal 
-        profile={selectedStudent} 
-        onClose={closeProfileModal} 
-      />
 
-      {/* Competitions Modal */}
       {isCompetitionsModalOpen && (
-        <CompetitionParticipationModal 
-          onClose={() => setIsCompetitionsModalOpen(false)} 
-        />
-      )}
+  <CompetitionParticipationModal 
+    userId={selectedStudent?.uid} 
+    onClose={() => {
+      setIsCompetitionsModalOpen(false);
+      setSelectedStudent(null);
+    }} 
+  />
+)}
 
-      {/* Teams Modal */}
-      {isTeamsModalOpen && (
-        <MyTeamsModal 
-          onClose={() => setIsTeamsModalOpen(false)} 
-        />
-      )}
+
+{isTeamsModalOpen && (
+  <MyTeamsModal 
+    userId={selectedStudent?.uid} 
+    onClose={() => {
+      setIsTeamsModalOpen(false);
+      setSelectedStudent(null);
+    }} 
+  />
+)}
+
+{isModalOpen && selectedStudent && (
+  <ProfileModal 
+    profile={selectedStudent} 
+    onClose={() => {
+      setIsModalOpen(false);
+      setSelectedStudent(null);
+    }}
+  />
+)}
     </div>
   );
 };

@@ -5,6 +5,7 @@ const Application = require('../models/CompApplication');
 const Competition = require('../models/Competition');
 const Team = require('../models/Team');
 const User = require('../models/StudentProfile'); // Import User model
+const Mentor = require('../models/Mentor'); 
 
 // Helper function to determine application status
 const determineStatus = (dateRange) => {
@@ -302,7 +303,103 @@ router.get('/', async (req, res) => {
       });
     }
   });
+// Add this route to your competitionRoutes.js or similar file
 
+// @route   GET /api/competitions/mentor/:mentorId
+// @desc    Get competitions where mentor is involved
+// @access  Private (Mentor)
+// In your competitionRoutes.js
+router.get('/mentor/:mentorId', async (req, res) => {
+  try {
+    const mentorId = req.params.mentorId;
+
+    // Validate mentorId format
+    if (!mongoose.Types.ObjectId.isValid(mentorId)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid mentor ID format',
+        error: 'Invalid ID'
+      });
+    }
+
+    // 1. Find all teams where this mentor is listed
+    const teams = await Team.find({ mentors: mentorId })
+      .select('_id name')
+      .lean();
+
+    if (!teams || teams.length === 0) {
+      return res.status(200).json({ 
+        success: true,
+        data: [],
+        message: 'No teams found for this mentor'
+      });
+    }
+
+    const teamIds = teams.map(team => team._id);
+
+    // 2. Find all applications for these teams, populated with competition and team data
+    const applications = await Application.find({ team: { $in: teamIds } })
+      .populate({
+        path: 'competition',
+        select: 'name description category date prizePool deadline photo requirements sdgs status'
+      })
+      .populate('team', 'name members')
+      .sort({ appliedAt: -1 }) // Sort by most recent first
+      .lean();
+
+    if (!applications || applications.length === 0) {
+      return res.status(200).json({ 
+        success: true,
+        data: [],
+        message: 'No applications found for mentor teams'
+      });
+    }
+
+    // 3. Transform data into a more organized structure
+    const result = applications.map(app => {
+      // Calculate current competition status
+      const status = determineStatus(app.competition?.date);
+      
+      return {
+        competition: {
+          ...app.competition,
+          status, // Add calculated status
+          deadline: app.competition?.deadline || null
+        },
+        application: {
+          id: app._id,
+          status: app.status,
+          result: app.result || null,
+          appliedAt: app.appliedAt,
+          motivation: app.motivation || null,
+          skills: app.skills || []
+        },
+        team: {
+          id: app.team?._id || null,
+          name: app.team?.name || 'Unknown Team',
+          members: app.team?.members || []
+        }
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: 'Successfully fetched mentor competition data'
+    });
+
+  } catch (err) {
+    console.error('Error in /api/competitions/mentor/:mentorId:', err);
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: err.message,
+        stack: err.stack
+      } : null
+    });
+  }
+});
 // @route   PUT /api/applications/:id/status
 // @desc    Update application status (Admin)
 // @access  Private (Admin)

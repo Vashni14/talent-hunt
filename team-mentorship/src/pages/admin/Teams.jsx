@@ -310,7 +310,7 @@ const Teams = () => {
               {selectedApplication.status}
             </span>
             <p className="text-gray-400 text-sm">
-              {selectedApplication.competition.name} • {new Date(selectedApplication.appliedAt).toLocaleDateString()}
+              {selectedApplication.competition.name} • {new Date(selectedApplication.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>

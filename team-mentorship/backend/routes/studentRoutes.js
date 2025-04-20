@@ -104,5 +104,40 @@ router.post("/uploadProfile", upload.single("profilePicture"), async (req, res) 
     res.status(500).json({ message: "Error uploading profile picture", error });
   }
 });
+// Add this to your backend routes (likely in your studentProfileRoutes.js or similar)
+router.get('/profile/uid/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
 
+    // Find the student by UID and only return the _id field
+    const student = await StudentProfile.findOne({ uid })
+      .select('_id name profilePicture skills rolePreference domain')
+      .lean();
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found with the provided UID'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      _id: student._id,
+      name: student.name,
+      profilePicture: student.profilePicture,
+      skills: student.skills,
+      rolePreference: student.rolePreference,
+      domain: student.domain
+    });
+
+  } catch (error) {
+    console.error('Error finding student by UID:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error finding student',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 module.exports = router;

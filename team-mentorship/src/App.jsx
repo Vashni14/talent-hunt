@@ -19,6 +19,7 @@ import FindTeammatesPage from "./pages/FindTeammatesPage";
 import { useAuth } from "./context/AuthContext"; // Correct import path
 import FindTeammates from "./pages/FindTeammates";
 import OpenTeams from "./pages/OpenTeams";
+import StudentAnalysisReport from "./pages/StudentAnalysisReport";
 import Chat from "./pages/Chat";
 import MyTeams from "./pages/MyTeams";
 import SDGMapping from "./pages/SDGMapping";
@@ -48,6 +49,7 @@ function App() {
           <Route path="dashboard" element={<FindTeammates />} />
           <Route path="open-teams" element={<OpenTeams />} />
           <Route path="chats" element={<Chat />} />
+          <Route path="student-analysis" element={<StudentAnalysisReport />} />
           <Route path="my-teams" element={<MyTeams />} />
           <Route path="sdg" element={<SDGMapping />} />
           {/* 🎓 Student Landing Page */}
