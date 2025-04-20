@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { auth } from "../config/firebase";
+import { auth } from "/src/config/firebase";
 
-const StudentCompetitions = () => {
+const Competitions = () => {
   const [competitions, setCompetitions] = useState([]);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentCompetition, setCurrentCompetition] = useState(null);
@@ -14,62 +14,37 @@ const StudentCompetitions = () => {
   const [applicationForm, setApplicationForm] = useState({
     motivation: '',
     skills: '',
-    teamMembers: '',
+    teamId: '',
     additionalInfo: ''
   });
   const [isApplicationModalOpen, setIsApplicationModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('allCompetitions'); // 'allCompetitions', 'myApplications', 'addNew'
-  const [newCompetitionForm, setNewCompetitionForm] = useState({
-    name: '',
-    location: '',
-    teamId: '',
-    startDate: '',
-    endDate: '',
-    description: '',
-    website: '',
-    organizer: ''
-  });
+  const [activeTab, setActiveTab] = useState('allCompetitions');
+  const [myApplications, setMyApplications] = useState([]);
+  const [myTeams, setMyTeams] = useState([]);
+  const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState(null);
+    const [userId, setUserId] = useState(null);
+  const user = auth.currentUser;
+  // At the top of your component
+const [authInitialized, setAuthInitialized] = useState(false);
 
-  // Static data for my applications (will be fetched from backend in real implementation)
-  const [myApplications, setMyApplications] = useState([
-    {
-      id: 'app1',
-      competitionId: 'comp1',
-      competitionName: 'Tech Hackathon 2023',
-      status: 'accepted',
-      applicationDate: '2023-05-15',
-      team: 'Team Innovators',
-      result: null,
-      analysis: null
-    },
-    {
-      id: 'app2',
-      competitionId: 'comp2',
-      competitionName: 'AI Challenge',
-      status: 'pending',
-      applicationDate: '2023-06-01',
-      team: 'Team AI Masters',
-      result: null,
-      analysis: null
-    },
-    {
-      id: 'app3',
-      competitionId: 'comp3',
-      competitionName: 'Sustainability Hackathon',
-      status: 'rejected',
-      applicationDate: '2023-04-20',
-      team: 'Team Green',
-      result: null,
-      analysis: null
+// Auth state listener
+useEffect(() => {
+  const unsubscribe = auth.onAuthStateChanged((user) => {
+    if (user) {
+      console.log("User authenticated:", user.uid);
+      setUserId(user.uid); // Make sure this is setting properly
+      fetchData()
+    } else {
+      console.log("No user authenticated");
+      setUserId(null);
     }
-  ]);
+    setAuthInitialized(true);
+  });
+  
+  return () => unsubscribe();
+}, []);
 
-  // Static data for teams (will be fetched from backend in real implementation)
-  const [myTeams, setMyTeams] = useState([
-    { id: 'team1', name: 'Team Innovators', members: 4 },
-    { id: 'team2', name: 'Team AI Masters', members: 3 },
-    { id: 'team3', name: 'Team Green', members: 5 }
-  ]);
 
   const allSDGs = [
     { id: 1, name: 'No Poverty' },
@@ -91,25 +66,31 @@ const StudentCompetitions = () => {
     { id: 17, name: 'Partnerships' }
   ];
 
-  const allCategories = ['all', ...new Set(competitions.map(c => c.category).filter(Boolean))];
-  const allStatuses = ['all', 'Active', 'Upcoming', 'Completed'];
-
-  // Fetch competitions from API
-  useEffect(() => {
-    const fetchCompetitions = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/competitions');
-        setCompetitions(response.data);
+        if (!userId) {
+          console.log('No user ID available');
+          return;
+        }
+        const [competitionsRes, applicationsRes, teamsRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/competitions'),
+          axios.get(`http://localhost:5000/api/compapp/me/${userId}`),
+          axios.get(`http://localhost:5000/api/teams/user/${userId}`)
+        ]);
+        const validApplications = applicationsRes.data.filter(app => app.competition);
+
+        setCompetitions(competitionsRes.data);
+        setMyApplications(validApplications);
+        setMyTeams(teamsRes.data.data);
         setIsLoading(false);
       } catch (err) {
-        setError(err.message);
+        setError(err.response?.data?.message || err.message);
         setIsLoading(false);
-        console.error('Error fetching competitions:', err);
       }
     };
-
-    fetchCompetitions();
-  }, []);
+    useEffect(() => {
+        fetchData();
+      }, [userId]);
 
   const handleViewDetails = (competition) => {
     setCurrentCompetition(competition);
@@ -121,7 +102,7 @@ const StudentCompetitions = () => {
     setApplicationForm({
       motivation: '',
       skills: '',
-      teamMembers: '',
+      teamId: '',
       additionalInfo: ''
     });
     setIsApplicationModalOpen(true);
@@ -135,74 +116,45 @@ const StudentCompetitions = () => {
     }));
   };
 
-  const handleNewCompetitionChange = (e) => {
-    const { name, value } = e.target;
-    setNewCompetitionForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
   const submitApplication = async () => {
     try {
-      // Here you would typically send the application to your backend
+      const token = await auth.currentUser.getIdToken();
       const response = await axios.post(
-        `http://localhost:5000/api/competitions/${currentCompetition._id}/apply`,
-        applicationForm
+        `http://localhost:5000/api/compapp/${currentCompetition._id}/apply/${userId}`,
+        {
+          motivation: applicationForm.motivation,
+          skills: applicationForm.skills.split(',').map(s => s.trim()),
+          teamId: applicationForm.teamId,
+          additionalInfo: applicationForm.additionalInfo
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       
-      // Handle successful application
-      console.log('Application submitted:', response.data);
       setIsApplicationModalOpen(false);
+      setMyApplications([...myApplications, response.data.application]);
       alert('Application submitted successfully!');
-      
-      // Add to myApplications (static for now)
-      const newApplication = {
-        id: `app${myApplications.length + 1}`,
-        competitionId: currentCompetition._id,
-        competitionName: currentCompetition.name,
-        status: 'pending',
-        applicationDate: new Date().toISOString().split('T')[0],
-        team: myTeams.find(t => t.id === applicationForm.teamId)?.name || 'No team selected',
-        result: null,
-        analysis: null
-      };
-      setMyApplications([...myApplications, newApplication]);
     } catch (err) {
-      console.error('Error submitting application:', err);
       setError(err.response?.data?.message || err.message);
     }
   };
 
-  const submitNewCompetition = async () => {
+  const updateCompetitionResult = async (applicationId, result, analysis) => {
     try {
-      // In a real implementation, this would send to your backend
-      console.log('New competition submitted:', newCompetitionForm);
+      const token = await auth.currentUser.getIdToken();
+      await axios.put(
+        `http://localhost:5000/api/compapp/${applicationId}/result/${userId}`,
+        { result, analysis },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
-      // Reset form
-      setNewCompetitionForm({
-        name: '',
-        location: '',
-        teamId: '',
-        startDate: '',
-        endDate: '',
-        description: '',
-        website: '',
-        organizer: ''
-      });
-      
-      alert('New competition suggestion submitted successfully!');
+      setMyApplications(myApplications.map(app => 
+        app._id === applicationId ? { ...app, result, analysis } : app
+      ));
+      setIsResultModalOpen(false);
+      alert('Competition result updated successfully!');
     } catch (err) {
-      console.error('Error submitting new competition:', err);
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     }
-  };
-
-  const updateCompetitionResult = (applicationId, result, analysis) => {
-    setMyApplications(myApplications.map(app => 
-      app.id === applicationId ? { ...app, result, analysis } : app
-    ));
-    alert('Competition result updated successfully!');
   };
 
   const getStatusColor = (status) => {
@@ -216,17 +168,6 @@ const StudentCompetitions = () => {
       default:
         return 'bg-gray-700/50 text-gray-400';
     }
-  };
-
-  const getSDGColor = (sdgId) => {
-    const colors = [
-      'bg-red-500', 'bg-yellow-600', 'bg-green-600', 'bg-red-600',
-      'bg-orange-500', 'bg-teal-500', 'bg-yellow-500', 'bg-red-700',
-      'bg-purple-500', 'bg-pink-600', 'bg-yellow-700', 'bg-green-700',
-      'bg-green-800', 'bg-blue-600', 'bg-brown-500', 'bg-blue-800',
-      'bg-blue-700'
-    ];
-    return colors[sdgId - 1] || 'bg-gray-500';
   };
 
   const getApplicationStatusColor = (status) => {
@@ -257,7 +198,17 @@ const StudentCompetitions = () => {
     }
   };
 
-  // Format date and check if deadline is approaching (within 3 days)
+  const getSDGColor = (sdgId) => {
+    const colors = [
+      'bg-red-500', 'bg-yellow-600', 'bg-green-600', 'bg-red-600',
+      'bg-orange-500', 'bg-teal-500', 'bg-yellow-500', 'bg-red-700',
+      'bg-purple-500', 'bg-pink-600', 'bg-yellow-700', 'bg-green-700',
+      'bg-green-800', 'bg-blue-600', 'bg-brown-500', 'bg-blue-800',
+      'bg-blue-700'
+    ];
+    return colors[sdgId - 1] || 'bg-gray-500';
+  };
+
   const formatDeadline = (deadline) => {
     if (!deadline) return { text: 'No deadline set', color: 'text-gray-400' };
     
@@ -279,7 +230,6 @@ const StudentCompetitions = () => {
     }
   };
 
-  // Filter competitions based on search term, category and status
   const filteredCompetitions = competitions.filter(competition => {
     const matchesSearch = competition.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          competition.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -288,7 +238,9 @@ const StudentCompetitions = () => {
     return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  // Filter applications based on status
+  const allCategories = ['all', ...new Set(competitions.map(c => c.category).filter(Boolean))];
+  const allStatuses = ['all', 'Active', 'Upcoming', 'Completed'];
+
   const filteredApplications = (status) => {
     if (status === 'all') return myApplications;
     return myApplications.filter(app => app.status === status);
@@ -334,7 +286,6 @@ const StudentCompetitions = () => {
             </div>
             
             <div className="p-6">
-              {/* Deadline Highlight */}
               {currentCompetition.deadline && (
                 <div className="mb-6 bg-gray-700/30 p-4 rounded-lg border border-gray-600">
                   <div className="flex items-center">
@@ -499,7 +450,6 @@ const StudentCompetitions = () => {
           </div>
           
           <div className="p-6 overflow-y-auto max-h-[70vh]">
-            {/* Deadline Warning */}
             {currentCompetition.deadline && (
               <div className={`mb-4 p-3 rounded-lg ${
                 new Date(currentCompetition.deadline) < new Date() 
@@ -558,8 +508,8 @@ const StudentCompetitions = () => {
                 >
                   <option value="">Select a team</option>
                   {myTeams.map(team => (
-                    <option key={team.id} value={team.id}>
-                      {team.name} ({team.members} members)
+                    <option key={team._id} value={team._id}>
+                      {team.name} ({team.members.length} members)
                     </option>
                   ))}
                 </select>
@@ -620,7 +570,7 @@ const StudentCompetitions = () => {
           <div className="bg-gray-900 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold text-white">Update Competition Result</h2>
-              <p className="text-gray-400 text-sm">{application.competitionName}</p>
+              <p className="text-gray-400 text-sm">{application.competition.name}</p>
             </div>
             <button 
               onClick={onClose}
@@ -687,141 +637,8 @@ const StudentCompetitions = () => {
     );
   };
 
-  const NewCompetitionForm = () => {
-    return (
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <h2 className="text-xl font-bold text-white mb-4">Suggest a New Competition</h2>
-        <p className="text-gray-400 mb-6">Found a competition not listed here? Fill out the details below and we'll review it for inclusion.</p>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Competition Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={newCompetitionForm.name}
-              onChange={handleNewCompetitionChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-              placeholder="e.g. Global Hackathon 2023"
-              required
-            />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Location *</label>
-              <input
-                type="text"
-                name="location"
-                value={newCompetitionForm.location}
-                onChange={handleNewCompetitionChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-                placeholder="City, Country or Online"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Team</label>
-              <select
-                name="teamId"
-                value={newCompetitionForm.teamId}
-                onChange={handleNewCompetitionChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-              >
-                <option value="">Select your team (optional)</option>
-                {myTeams.map(team => (
-                  <option key={team.id} value={team.id}>{team.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Start Date *</label>
-              <input
-                type="date"
-                name="startDate"
-                value={newCompetitionForm.startDate}
-                onChange={handleNewCompetitionChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">End Date *</label>
-              <input
-                type="date"
-                name="endDate"
-                value={newCompetitionForm.endDate}
-                onChange={handleNewCompetitionChange}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-                required
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Organizer</label>
-            <input
-              type="text"
-              name="organizer"
-              value={newCompetitionForm.organizer}
-              onChange={handleNewCompetitionChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Organization or company name"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Website</label>
-            <input
-              type="url"
-              name="website"
-              value={newCompetitionForm.website}
-              onChange={handleNewCompetitionChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-              placeholder="https://example.com"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Description *</label>
-            <textarea
-              name="description"
-              value={newCompetitionForm.description}
-              onChange={handleNewCompetitionChange}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:ring-blue-500"
-              rows="3"
-              placeholder="Brief description of the competition..."
-              required
-            />
-          </div>
-        </div>
-        
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={submitNewCompetition}
-            disabled={!newCompetitionForm.name || !newCompetitionForm.location || !newCompetitionForm.startDate || !newCompetitionForm.endDate || !newCompetitionForm.description}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              (!newCompetitionForm.name || !newCompetitionForm.location || !newCompetitionForm.startDate || !newCompetitionForm.endDate || !newCompetitionForm.description)
-                ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            Submit Competition
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   const MyApplicationsTab = () => {
     const [selectedStatus, setSelectedStatus] = useState('all');
-    const [selectedApplication, setSelectedApplication] = useState(null);
-    const [isResultModalOpen, setIsResultModalOpen] = useState(false);
     
     return (
       <div className="space-y-6">
@@ -863,10 +680,10 @@ const StudentCompetitions = () => {
         ) : (
           <div className="space-y-4">
             {filteredApplications(selectedStatus).map(application => (
-              <div key={application.id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+              <div key={application._id} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{application.competitionName}</h3>
+                    <h3 className="text-lg font-semibold text-white">{application.competition.name}</h3>
                     <div className="flex items-center mt-1 space-x-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getApplicationStatusColor(application.status)}`}>
                         {application.status}
@@ -879,12 +696,12 @@ const StudentCompetitions = () => {
                     </div>
                   </div>
                   <div className="text-sm text-gray-400">
-                    Applied on: {application.applicationDate}
+                    Applied on: {new Date(application.createdAt).toLocaleDateString()}
                   </div>
                 </div>
                 
                 <div className="mt-4 text-sm text-gray-300">
-                  <p>Team: {application.team}</p>
+                  <p>Team: {application.team?.name || 'No team selected'}</p>
                 </div>
                 
                 {application.analysis && (
@@ -910,17 +727,6 @@ const StudentCompetitions = () => {
               </div>
             ))}
           </div>
-        )}
-        
-        {isResultModalOpen && selectedApplication && (
-          <ApplicationResultModal
-            application={selectedApplication}
-            onClose={() => setIsResultModalOpen(false)}
-            onSave={(result, analysis) => {
-              updateCompetitionResult(selectedApplication.id, result, analysis);
-              setIsResultModalOpen(false);
-            }}
-          />
         )}
       </div>
     );
@@ -953,7 +759,6 @@ const StudentCompetitions = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl md:text-3xl font-bold text-white">Competitions</h1>
         
-        {/* Tabs */}
         <div className="flex space-x-2">
           <button
             onClick={() => setActiveTab('allCompetitions')}
@@ -967,19 +772,12 @@ const StudentCompetitions = () => {
           >
             My Applications
           </button>
-          <button
-            onClick={() => setActiveTab('addNew')}
-            className={`px-4 py-2 rounded-lg ${activeTab === 'addNew' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-          >
-            Add New
-          </button>
         </div>
       </div>
 
       {activeTab === 'allCompetitions' && (
         <>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            {/* Search Bar */}
             <div className="relative w-full md:w-64">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -996,7 +794,6 @@ const StudentCompetitions = () => {
             </div>
           </div>
 
-          {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1045,7 +842,7 @@ const StudentCompetitions = () => {
                 const deadlineInfo = formatDeadline(competition.deadline);
                 
                 return (
-                  <div key={competition._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                  <div key={competition._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
                     <div className="h-40 overflow-hidden relative">
                       <img 
                         src={competition?.photo ? `http://localhost:5000${competition.photo}` : "/default-profile.png"}
@@ -1057,7 +854,6 @@ const StudentCompetitions = () => {
                         {competition.status}
                       </span>
                       
-                      {/* Deadline badge */}
                       {competition.deadline && (
                         <span className={`absolute top-3 left-3 px-2 py-1 rounded-full text-xs font-medium ${
                           deadlineInfo.color.includes('red') ? 'bg-red-900/80 text-red-100' : 
@@ -1120,15 +916,19 @@ const StudentCompetitions = () => {
 
       {activeTab === 'myApplications' && <MyApplicationsTab />}
 
-      {activeTab === 'addNew' && <NewCompetitionForm />}
-
-      {/* Details Modal */}
       {isDetailsModalOpen && currentCompetition && <DetailsModal />}
-
-      {/* Application Modal */}
       {isApplicationModalOpen && currentCompetition && <ApplicationModal />}
+      {isResultModalOpen && selectedApplication && (
+        <ApplicationResultModal
+          application={selectedApplication}
+          onClose={() => setIsResultModalOpen(false)}
+          onSave={(result, analysis) => {
+            updateCompetitionResult(selectedApplication._id, result, analysis);
+          }}
+        />
+      )}
     </div>
   );
 };
 
-export default StudentCompetitions;
+export default Competitions;
