@@ -370,7 +370,7 @@ router.get('/mentor/:mentorId', async (req, res) => {
           id: app._id,
           status: app.status,
           result: app.result || null,
-          appliedAt: app.appliedAt,
+          createdAt: app.createdAt,
           motivation: app.motivation || null,
           skills: app.skills || []
         },
@@ -387,6 +387,7 @@ router.get('/mentor/:mentorId', async (req, res) => {
       data: result,
       message: 'Successfully fetched mentor competition data'
     });
+    console.log('Mentor competition data:', result);
 
   } catch (err) {
     console.error('Error in /api/competitions/mentor/:mentorId:', err);

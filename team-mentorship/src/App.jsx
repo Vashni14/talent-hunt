@@ -11,6 +11,7 @@ import MentorDashboard from "./pages/mentor/MentorDashboard";
 import MentorProfile from "./pages/mentor/MentorProfie";
 import MentorTeamsPage from "./pages/mentor/MentorTeamsPage";
 import MentorStudents from "./pages/mentor/MentorStudents";
+import MentorAnalysisReport from "./pages/mentor/MentorAnalysisReport";
 import MentorTasks from "./pages/mentor/MentorTasks";
 import AdminDashboard from "./pages/AdminDashboard";
 import StudentLandingPage from "./pages/StudentLandingPage";
@@ -100,6 +101,7 @@ function App() {
           <Route path="mentored-teams" element={<MentorTeamsPage />} />
           <Route path="mentor-students" element={<MentorStudents />} />
           <Route path="mentor-tasks" element={<MentorTasks />} />
+          <Route path="mentor-analytics" element={<MentorAnalysisReport />} />
           {/* Admin Routes */}
           <Route
   path="/admin-dashboard"
