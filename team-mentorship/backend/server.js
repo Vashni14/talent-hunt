@@ -49,5 +49,6 @@ app.use('/api/mentor', mentorApplicationRoutes);
 app.use("/api/competitions", require("./routes/competitions"));
 app.use("/api/compapp", require("./routes/compapp"));
 app.use("/api/sdgadmin", require("./routes/sdgadmin"));
+app.use("/api/reports", require("./routes/reports"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

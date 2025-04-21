@@ -159,26 +159,21 @@ const MentorProfile = () => {
       const response = await axios.put(
         `http://localhost:5000/api/mentor/profile/${userId}`,
         formDataToSend,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
       );
   
       // Update local state with the response data
       const updatedMentor = response.data;
       setUser(updatedMentor);
       setFormData({
-        name: updatedMentor.name || "",
-        email: updatedMentor.email || "",
-        bio: updatedMentor.bio || "",
-        domain: updatedMentor.domain || "",
-        skills: updatedMentor.skills?.join(", ") || "",
-        experience: updatedMentor.experience || "",
-        education: updatedMentor.education || "",
-        linkedin: updatedMentor.linkedin || "",
-        currentPosition: updatedMentor.currentPosition || ""
+        name: updatedMentor.name || "a",
+        email: updatedMentor.email || "a",
+        bio: updatedMentor.bio || "a",
+        domain: updatedMentor.domain || "a",
+        skills: updatedMentor.skills?.join(", ") || "a",
+        experience: updatedMentor.experience || "a",
+        education: updatedMentor.education || "a",
+        linkedin: updatedMentor.linkedin || "a",
+        currentPosition: updatedMentor.currentPosition || "a"
       });
   
       // Clear the image preview and file if successful
@@ -217,7 +212,7 @@ const MentorProfile = () => {
         <div className="p-4 border-b border-gray-700">
           <h1 className="text-xl font-bold flex items-center gap-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
             <FaGraduationCap className="text-blue-400 text-xl" />
-            Mentor Profile
+            MentorHub
           </h1>
         </div>
 
@@ -235,7 +230,8 @@ const MentorProfile = () => {
               />
             </div>
             <div>
-              <p className="font-medium text-sm">{user.name || "New Mentor"}</p>
+              <p className="font-medium text-sm">{user?.name || "Loading..."
+ || "New Mentor"}</p>
               <p className="text-xs text-gray-400">Mentor - {user.domain || "Select Domain"}</p>
             </div>
           </div>
@@ -264,7 +260,7 @@ const MentorProfile = () => {
             Mentored Teams
           </Link>
           <Link
-            to="/mentor-students"
+            to="/my-students"
             className="flex items-center px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
           >
             <FaUserCheck className="mr-2 text-base" />
@@ -333,7 +329,7 @@ const MentorProfile = () => {
         {/* Profile Content */}
         <main className="flex-1 overflow-auto p-3 md:p-5 lg:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold">Mentor Profile</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">Professional Profile</h1>
             <div className="flex gap-3">
               {editMode ? (
                 <>

@@ -237,7 +237,7 @@ export default function FindTeammatesPage() {
       setLoading(prev => ({ ...prev, teammates: true }));
       const response = await axios.get(`${API_URL}/student/profile`);
       const teammates = response.data
-        .filter(profile => profile._id !== userId)
+        .filter(profile => profile.uid !== userId)
         .map(profile => ({
           _id: profile._id,
           uid: profile._id,
@@ -337,11 +337,18 @@ export default function FindTeammatesPage() {
     }
   };  
   const triggerRefreshInvitations = () => setRefreshInvitations(prev => !prev);
-
   const calculateMutualInterests = (currentUser, profile) => {
-    const userSkills = new Set(currentUser.skills);
-    const profileSkills = new Set(profile.skills || []);
-    return [...userSkills].filter(skill => profileSkills.has(skill));
+    // Handle both cases where skills might be strings or objects
+    const userSkills = currentUser.skills.map(skill => 
+      typeof skill === 'string' ? skill : skill.name
+    );
+    const profileSkills = (profile.skills || []).map(skill => 
+      typeof skill === 'string' ? skill : skill.name
+    );
+    
+    return [...new Set(userSkills)].filter(skill => 
+      new Set(profileSkills).has(skill)
+    );
   };
 
   const calculateCompatibility = (currentUser, profile) => {
