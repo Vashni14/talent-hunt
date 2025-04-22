@@ -16,6 +16,20 @@ const StudentProfileSchema = new mongoose.Schema({
   isPublic: { type: Boolean, default: true } ,
   experience: [{competition: String}],
   bio: { type: String }, // Added for UI compatibility
-  teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }]
+  teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+// Update the updatedAt field before saving
+StudentProfileSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 module.exports = mongoose.model("StudentProfile", StudentProfileSchema);

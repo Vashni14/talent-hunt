@@ -148,15 +148,16 @@ const StatsDashboard = () => {
   };
 
   const topSkillsData = {
-    labels: stats?.skills.top.map(skill => skill._id) || [],
+    labels: stats?.skills.top.map(skill => skill.skill) || [], // Use `skill.skill` for the skill name
     datasets: [{
       label: 'Top Skills',
-      data: stats?.skills.top.map(skill => skill.count) || [],
+      data: stats?.skills.top.map(skill => skill.count) || [], // Use `skill.count` for the count
       backgroundColor: [
         'rgba(54, 162, 235, 0.6)',
         'rgba(255, 206, 86, 0.6)',
         'rgba(75, 192, 192, 0.6)',
-        'rgba(153, 102, 255, 0.6)'
+        'rgba(153, 102, 255, 0.6)',
+        'rgba(255, 99, 132, 0.6)'
       ]
     }]
   };
