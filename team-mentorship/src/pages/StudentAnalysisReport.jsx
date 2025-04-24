@@ -205,16 +205,29 @@ try {
     }]
   };
 
-  const skillsUsageData = {
-    labels: reportData.profile?.skills || [],
-    datasets: [{
-      label: 'Skills Utilization',
-      data: reportData.profile?.skills?.map((_, i) => (i + 1) * 2) || [],
-      backgroundColor: 'rgba(153, 102, 255, 0.6)',
-      borderColor: 'rgba(153, 102, 255, 1)',
-      borderWidth: 1
-    }]
-  };
+const skillsUsageData = {
+  labels: reportData.profile?.skills?.map(skill => skill.name) || [],
+  datasets: [{
+    label: 'Skills Proficiency Level',
+    data: reportData.profile?.skills?.map(skill => {
+      // Convert skill level to numerical value for the chart
+      switch(skill.level?.toLowerCase()) {
+        case 'beginner': return 30;
+        case 'intermediate': return 50;
+        case 'advanced': return 70;
+        case 'expert': return 90;
+        default: return 1; // Default to beginner if level not specified
+      }
+    }) || [],
+    backgroundColor: reportData.profile?.skills?.map((_, i) => 
+      `hsl(${(i * 360) / Math.max(reportData.profile.skills.length, 1)}, 70%, 60%)`
+    ) || 'rgba(153, 102, 255, 0.6)',
+    borderColor: reportData.profile?.skills?.map((_, i) => 
+      `hsl(${(i * 360) / Math.max(reportData.profile.skills.length, 1)}, 70%, 40%)`
+    ) || 'rgba(153, 102, 255, 1)',
+    borderWidth: 1
+  }]
+};
 
   const generatePDF = async () => {
     try {
@@ -408,16 +421,19 @@ try {
               <h2 className="text-2xl font-bold">{reportData.profile.name}</h2>
               <p className="text-gray-300">{reportData.profile.department || 'No department specified'}</p>
               <div className="flex flex-wrap gap-2 mt-2">
-                {reportData.profile.skills?.length > 0 ? (
-                  reportData.profile.skills.map((skill, index) => (
-                    <span key={index} className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm">
-                      {skill}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-400">No skills listed</span>
-                )}
-              </div>
+  {reportData.profile.skills?.length > 0 ? (
+    reportData.profile.skills.map((skill, index) => (
+      <span key={skill._id || index} className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm">
+        {skill.name}
+        {skill.level && (
+          <span className="text-xs ml-1 text-blue-300">({skill.level})</span>
+        )}
+      </span>
+    ))
+  ) : (
+    <span className="text-gray-400">No skills listed</span>
+  )}
+</div>
             </div>
           </div>
           <p className="mt-4 text-gray-300">
@@ -528,45 +544,33 @@ try {
 
           {/* Skills Utilization Section */}
           {reportData.profile.skills?.length > 0 && (
-            <ReportSection 
-              icon={<FaChartLine className="text-yellow-400" />}
-              title="Skills Utilization"
-            >
-              <div className="h-64">
-                <Bar 
-                  data={skillsUsageData}
-                  options={chartOptions}
-                />
+  <ReportSection 
+    icon={<FaChartLine className="text-yellow-400" />}
+    title="Skills Distribution"
+  >
+    <div className="h-64">
+      <Bar 
+        data={skillsUsageData}
+        options={chartOptions}
+      />
+    </div>
+    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-3">Top Skills</h3>
+        <div className="space-y-2">
+          {reportData.profile.skills
+            .slice(0, 3)
+            .map((skill) => (
+              <div key={skill._id} className="flex items-center justify-between">
+                <span>{skill.name}</span>
+                <span className="text-gray-400">
+                  Level: {skill.level || 'not specified'}
+                </span>
               </div>
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Most Used Skills</h3>
-                  <div className="space-y-2">
-                    {reportData.profile.skills.slice(0, 3).map((skill, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span>{skill}</span>
-                        <span className="text-gray-400">Used in {index + 2} projects</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Recommended Skills</h3>
-                  <div className="space-y-2">
-                    <RecommendedSkill 
-                      name="Data Visualization"
-                      reason="Based on your projects"
-                    />
-                    <RecommendedSkill 
-                      name="Project Management"
-                      reason="For leadership roles"
-                    />
-                    <RecommendedSkill 
-                      name="Python"
-                      reason="For data analysis"
-                    />
-                  </div>
-                </div>
+            ))
+          }
+        </div>
+      </div>
               </div>
             </ReportSection>
           )}

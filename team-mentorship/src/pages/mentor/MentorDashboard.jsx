@@ -300,15 +300,6 @@ const MentorDashboard = () => {
               className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
             />
           </div>
-          <div className="flex items-center space-x-4">
-            <button className="text-gray-400 hover:text-white relative">
-              <FaBell className="text-xl" />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            <button className="text-gray-400 hover:text-white">
-              <FaCog className="text-xl" />
-            </button>
-          </div>
         </header>
 
         {/* Dashboard Content */}

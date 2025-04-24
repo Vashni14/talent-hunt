@@ -1501,13 +1501,6 @@ export default function MyTeams() {
                     <div className="flex gap-3">
                       <button 
                         className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                        onClick={() => navigate(`/team-analytics/${team._id}`)}
-                      >
-                        <FaChartBar className="mr-1" />
-                        <span>Analytics</span>
-                      </button>
-                      <button 
-                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
                         onClick={() => navigate(`/team-chat/${team._id}`)}
                       >
                         <FaComments className="mr-1" />

@@ -186,20 +186,6 @@ export default function FindTeammatesPage() {
             <FaComments className="mr-2 text-base" />
             Chats
           </Link>
-          <Link
-            to="/calendar"
-            className="flex items-center px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
-          >
-            <FaCalendarAlt className="mr-2 text-base" />
-            Calendar
-          </Link>
-          <Link
-            to="/analytics"
-            className="flex items-center px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
-          >
-            <FaChartBar className="mr-2 text-base" />
-            Analytics
-          </Link>
 
           <div className="mt-8 pt-4 border-t border-gray-700">
             <Link

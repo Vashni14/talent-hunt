@@ -1622,14 +1622,6 @@ const fetchOpenings = useCallback(async () => {
               
               <div className="p-4 border-t border-gray-700 sticky bottom-0 bg-gray-800">
                 <div className="flex justify-between items-center">
-                  <button
-                    onClick={() => {
-                      navigate('/my-teams')
-                    }}
-                    className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                  >
-                    View Team Page <FaChevronRight size={12} />
-                  </button>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowViewModal(false)}

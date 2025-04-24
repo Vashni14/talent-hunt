@@ -360,10 +360,6 @@ const StudentLandingPage = () => {
     </nav>
     
     <div className="flex items-center gap-4">
-      <button className="p-2 text-gray-400 hover:text-white rounded-full hover:bg-gray-800 transition-colors relative">
-        <FaBell />
-        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-      </button>
       
       {/* Enhanced Profile Photo with Dropdown */}
       <div className="relative group">
