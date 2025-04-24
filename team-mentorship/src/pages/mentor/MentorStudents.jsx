@@ -104,7 +104,11 @@ const MentorStudents = () => {
           contact: member.contact,
           profilePicture: member.profilePicture,
           rolePreference: member.rolePreference,
-          skills: member.skills,
+          skills: member.skills?.map(skill => ({
+            name: skill.name || skill,
+            level: skill.level,
+            _id: skill._id
+          })) || [],
           bio: member.bio
         },
         status: member.status || 'active'
@@ -121,29 +125,55 @@ const MentorStudents = () => {
     }
   };
 
+
   // Filter members based on search and filters
   const filteredMembers = members.filter(member => {
-    // Search term filter
-    const matchesSearch = 
-      member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (member.rolePreference && member.rolePreference.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (member.teamName && member.teamName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (member.skills && member.skills.some(skill => 
-        skill.toLowerCase().includes(searchTerm.toLowerCase())
-      )) ||
-      (member.memberRole && member.memberRole.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // Team filter
+    // Early return if no search term and no filters
+    if (!searchTerm && filters.team === "all" && filters.role === "all") {
+      return true;
+    }
+  
+    // Convert search term to lowercase once for performance
+    const searchTermLower = searchTerm.toLowerCase();
+  
+    // Helper function to safely check string matches
+    const matchesSearchTerm = (value) => {
+      if (!value) return false;
+      return String(value).toLowerCase().includes(searchTermLower);
+    };
+  
+    // Check basic fields (name, role, team)
+    const basicFieldMatches = 
+      matchesSearchTerm(member.name) ||
+      matchesSearchTerm(member.rolePreference) ||
+      matchesSearchTerm(member.teamName) ||
+      matchesSearchTerm(member.memberRole);
+  
+    // Check skills - handles both string and object formats
+    const skillMatches = member.skills?.some(skill => {
+      // Handle string format
+      if (typeof skill === 'string') {
+        return matchesSearchTerm(skill);
+      }
+      // Handle object format
+      if (skill && typeof skill === 'object') {
+        return matchesSearchTerm(skill.name) || matchesSearchTerm(skill.level);
+      }
+      return false;
+    }) || false;
+  
+    // Check filters
     const matchesTeam = filters.team === "all" || 
       (member.teamName && member.teamName === filters.team);
     
-    // Role filter
     const matchesRole = filters.role === "all" || 
-      (member.rolePreference && member.rolePreference.toLowerCase().includes(filters.role.toLowerCase())) ||
-      (member.memberRole && member.memberRole.toLowerCase().includes(filters.role.toLowerCase()));
+      [member.rolePreference, member.memberRole].some(role => 
+        role && role.toLowerCase().includes(filters.role.toLowerCase()));
     
-    // Status filter
     const matchesStatus = member.status === filters.status;
+  
+    // Combine all conditions
+    const matchesSearch = searchTerm ? (basicFieldMatches || skillMatches) : true;
     
     return matchesSearch && matchesTeam && matchesRole && matchesStatus;
   });
@@ -298,20 +328,24 @@ const MentorStudents = () => {
                   <p className="text-sm text-gray-400 mt-1">{member.teamName}</p>
                   
                   {/* Skills */}
-                  {member.skills && member.skills.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {member.skills.slice(0, 3).map(skill => (
-                        <span key={skill} className="text-xs bg-gray-700/50 rounded-full px-2 py-1">
-                          {skill}
-                        </span>
-                      ))}
-                      {member.skills.length > 3 && (
-                        <span className="text-xs bg-gray-700/50 rounded-full px-2 py-1">
-                          +{member.skills.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {/* In the member card component */}
+{member.skills && member.skills.length > 0 && (
+  <div className="mt-2 flex flex-wrap gap-1">
+    {member.skills.slice(0, 3).map(skill => (
+      <span key={skill._id || skill.name} className="text-xs bg-gray-700/50 rounded-full px-2 py-1">
+        {skill.name}
+        {skill.level && (
+          <span className="text-xs ml-1 text-gray-400">({skill.level})</span>
+        )}
+      </span>
+    ))}
+    {member.skills.length > 3 && (
+      <span className="text-xs bg-gray-700/50 rounded-full px-2 py-1">
+        +{member.skills.length - 3}
+      </span>
+    )}
+  </div>
+)}
                 </div>
               </div>
 
@@ -434,18 +468,22 @@ const MentorStudents = () => {
                   </div>
 
                   {/* Skills */}
-                  {selectedMember.skills && selectedMember.skills.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-lg font-bold mb-2">Skills</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedMember.skills.map(skill => (
-                          <span key={skill} className="bg-blue-500/20 text-blue-400 rounded-full px-3 py-1">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* In the member detail modal */}
+{selectedMember.skills && selectedMember.skills.length > 0 && (
+  <div className="mb-6">
+    <h3 className="text-lg font-bold mb-2">Skills</h3>
+    <div className="flex flex-wrap gap-2">
+      {selectedMember.skills.map(skill => (
+        <span key={skill._id || skill.name} className="bg-blue-500/20 text-blue-400 rounded-full px-3 py-1">
+          {skill.name}
+          {skill.level && (
+            <span className="text-xs ml-1 text-blue-300">({skill.level})</span>
+          )}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
 
                   {/* Activity */}
                   <div>
