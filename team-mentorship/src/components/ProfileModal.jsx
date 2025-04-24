@@ -217,12 +217,11 @@ export default function ProfileModal({ profile, onClose }) {
                   </h3>
                   {profile.competitions?.length  >  0  ?  (
                     <ul  className="space-y-2">
-                      {profile.competitions.map((competition,  idx)  =>  (
-                        <li  key={idx}  className="flex  items-start  gap-2">
-                          <FaMedal  className="text-yellow-400  mt-1  flex-shrink-0"  />
-                          <span  className="text-gray-300">{competition}</span>
-                        </li>
-                      ))}
+                       {profile.competitions.map((comp, idx) => (
+                <span key={idx} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                  {comp.competition} {/* Render name property instead of object */}
+                </span>
+              ))}
                     </ul>
                   )  :  (
                     <p  className="text-gray-400">No  competition  experience  listed</p>

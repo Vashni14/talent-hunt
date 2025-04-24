@@ -75,7 +75,7 @@ function TeammateCard({ teammate, onView, onConnect }) {
             <div className="flex flex-wrap gap-2">
               {teammate.competitions.map((comp, idx) => (
                 <span key={idx} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
-                  {comp.name} {/* Render name property instead of object */}
+                  {comp.competition} {/* Render name property instead of object */}
                 </span>
               ))}
             </div>
@@ -147,7 +147,7 @@ export default function FindTeammatesPage() {
   const [user, setUser] = useState({
     uid: "",
     name: "",
-    email: "",
+    contact: "",
     department: "",
     skills: [],
     competitions: [],
@@ -218,10 +218,10 @@ export default function FindTeammatesPage() {
       setUser({
         uid: response.data._id,
         name: response.data.name,
-        email: response.data.email,
+        contact: response.data.contact,
         department: response.data.department,
         skills: response.data.skills || [],
-        competitions: response.data.competitions || [],
+        competitions: response.data.experience || [],
         profilePicture: response.data.profilePicture || "",
       });
     } catch (error) {
@@ -243,7 +243,7 @@ export default function FindTeammatesPage() {
           uid: profile._id,
           name: profile.name,
           rolePreference: profile.rolePreference,
-          email: profile.email,
+          contact: profile.contact,
           linkedin: profile.linkedin,
           github: profile.github,
           portfolio: profile.portfolio,
@@ -251,7 +251,7 @@ export default function FindTeammatesPage() {
           projects: profile.projects || [],
           certifications: profile.certifications || [],
           skills: profile.skills || [],
-          competitions: profile.competitions || [],
+          competitions: profile.experience || [],
           availability: "Available",
           bio: profile.bio || `${profile.name} is a ${profile.department} student`,
           profilePicture: profile.profilePicture,
@@ -353,15 +353,15 @@ export default function FindTeammatesPage() {
 
   const calculateCompatibility = (currentUser, profile) => {
     const sharedSkills = calculateMutualInterests(currentUser, profile).length;
-    const userCompetitions = new Set(currentUser.competitions);
-    const profileCompetitions = new Set(profile.competitions || []);
-    const sharedCompetitions = [...userCompetitions].filter(comp => profileCompetitions.has(comp)).length;
-    
-    const maxPossible = Math.max(currentUser.skills.length, 1) + Math.max(currentUser.competitions.length, 1);
-    const score = (sharedSkills * 0.7 + sharedCompetitions * 0.3) / maxPossible;
-    
+    const maxPossible =
+      Math.max(currentUser.skills.length, 1) 
+  
+    const score =
+      (sharedSkills) / maxPossible;
+  
     return Math.floor(score * 100);
   };
+  
 
   const toggleSkill = (skill) => {
     setSelectedSkills(prev => 
@@ -465,12 +465,15 @@ export default function FindTeammatesPage() {
     try {
       console.log('Withdrawing invitation:', invitationId);
       
-      const response = await axios.delete(`${API_URL}/teams/invitations/${invitationId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+      const response = await axios.put(`${API_URL}/teams/invitations/${invitationId}`, 
+        { status: "withdrawn" }, 
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
+          }
         }
-      });
+      );
   
       console.log('Withdrawal response:', response.data);
   
@@ -569,7 +572,7 @@ export default function FindTeammatesPage() {
               className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
               onClick={() => {
                 auth.signOut();
-                navigate('/login');
+                navigate('/auth');
               }}
             >
               <FaSignOutAlt className="text-gray-400" />
