@@ -322,97 +322,68 @@ router.put('/:teamId/members/:memberId', async (req, res) => {
 });
 
 // Remove a member from a team
-// Updated DELETE route in your backend
-router.delete('/:teamId/members/:userId', async (req, res) => {
+// Remove a member from a team (updated version)
+router.delete('/:teamId/members/:memberId', async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { teamId, userId } = req.params;
+    const { teamId, memberId } = req.params;
 
-    // 1. Validate team exists
+    // Find team
     const team = await Team.findById(teamId).session(session);
     if (!team) {
       await session.abortTransaction();
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Team not found' 
-      });
-    }
-
-    // 2. Find user by UID (not ID)
-    const user = await User.findOne({ uid: userId }).session(session);
-    if (!user) {
-      await session.abortTransaction();
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    // 3. Remove from team's members array
-    const memberIndex = team.members.findIndex(m => 
-      m.user.equals(user._id) || m.user === userId
-    );
-    
-    if (memberIndex === -1) {
-      await session.abortTransaction();
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User not in team' 
-      });
-    }
-
-    team.members.splice(memberIndex, 1);
-    team.currentMembers = team.members.length;
-
-    // 4. Remove team from user's teams array
-    user.teams = user.teams.filter(t => !t.equals(team._id));
-
-    // 5. Save both documents
-    await team.save({ session });
-    await user.save({ session });
-
-    await session.commitTransaction();
-
-    res.status(200).json({ 
-      success: true,
-      remainingMembers: team.members.length 
-    });
-
-  } catch (error) {
-    await session.abortTransaction();
-    console.error('Removal error:', {
-      message: error.message,
-      stack: error.stack,
-      userId: req.params.userId,
-      teamId: req.params.teamId
-    });
-    res.status(500).json({ 
-      success: false,
-      message: process.env.NODE_ENV === 'development' 
-        ? error.message 
-        : 'Server error during removal'
-    });
-  } finally {
-    session.endSession();
-  }
-}); 
-
-// Remove a member from a team
-router.delete('/:teamId/delete/:memberId', async (req, res) => {
-  try {
-    const team = await Team.findById(req.params.teamId);
-    if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    team.members = team.members.filter(m => m.id !== req.params.memberId);
-    const updatedTeam = await team.save();
+    // Find member (handles both ObjectId and UID)
+    let memberObjectId;
+    if (mongoose.Types.ObjectId.isValid(memberId)) {
+      memberObjectId = new mongoose.Types.ObjectId(memberId);
+    } else {
+      const user = await User.findOne({ uid: memberId }).session(session);
+      if (!user) {
+        await session.abortTransaction();
+        return res.status(404).json({ message: 'User not found' });
+      }
+      memberObjectId = user._id;
+    }
+    console.log("member id",memberObjectId)
+
+    const initialCount = team.members.length;
+    console.log("Members before removal:", team.members.map(m => m._id.toString()));
     
-    res.status(200).json(updatedTeam);
+    team.members = team.members.filter(m =>
+      m._id.toString() !== memberId
+    );
+    
+    if (team.members.length === initialCount) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: 'User not in team' });
+    }
+    
+
+    // Remove team from user's teams
+    await User.updateOne(
+      { _id: memberObjectId },
+      { $pull: { teams: teamId } },
+      { session }
+    );
+
+    await team.save({ session });
+    await session.commitTransaction();
+
+    res.json({ success: true, members: team.members });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    await session.abortTransaction();
+    console.error('DELETE member error:', error);
+    res.status(500).json({ 
+      message: 'Server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  } finally {
+    session.endSession();
   }
 });
 // Add this to your backend routes

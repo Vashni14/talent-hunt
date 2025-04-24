@@ -516,20 +516,36 @@ export default function MyTeams() {
 
   const removeMember = async (teamId, memberId) => {
     try {
-      setIsLoading(true)
-      const response = await fetch(`http://localhost:5000/api/teams/${teamId}/members/${memberId}`, {
-        method: 'DELETE'
-      })
-
-      if (!response.ok) throw new Error('Failed to remove member')
-
+      setIsLoading(true);
+      
+      // Get the current user's token
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('Authentication required');
+      }
+      
+      const response = await fetch(
+        `http://localhost:5000/api/teams/${teamId}/members/${memberId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to remove member');
+      }
+  
       await fetchTeams();
       toast.success("Member removed successfully");
     } catch (err) {
-      setError(err.message)
+      console.error('Error removing member:', err);
       toast.error(err.message || "Failed to remove member");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
