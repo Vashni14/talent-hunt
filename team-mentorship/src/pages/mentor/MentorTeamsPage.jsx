@@ -390,9 +390,6 @@ const MentorTeamsPage = () => {
                       <button className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium flex items-center gap-1">
                         <FaEnvelope /> Chat
                       </button>
-                      <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium flex items-center gap-1">
-                        <FaInfoCircle /> View Details
-                      </button>
                     </div>
                   </div>
                 ))

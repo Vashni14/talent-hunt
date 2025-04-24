@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,6 +35,8 @@ import {
   FaPercentage,
   FaChevronDown
 } from 'react-icons/fa';
+import html2canvas from 'html2canvas-pro';
+import jsPDF from 'jspdf';
 
 // Register ChartJS components
 ChartJS.register(
@@ -54,8 +56,17 @@ const StatsDashboard = () => {
   const [timeRange, setTimeRange] = useState('month');
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [expandedSection, setExpandedSection] = useState('participation');
+  const [expandedSections, setExpandedSections] = useState({
+    participation: false,
+    performance: false,
+    domain: false,
+    sdg: false,
+    skills: false
+  });
   const [error, setError] = useState(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const reportRef = useRef(null); // Add this ref
+
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -71,6 +82,14 @@ const StatsDashboard = () => {
         
         if (data.success) {
           setStats(data.data);
+          // Expand all sections by default
+          setExpandedSections({
+            participation: true,
+            performance: true,
+            domain: true,
+            sdg: true,
+            skills: true
+          });
         } else {
           throw new Error(data.message || 'Failed to load dashboard data');
         }
@@ -87,12 +106,133 @@ const StatsDashboard = () => {
 
   // Toggle section expansion
   const toggleSection = (section) => {
-    setExpandedSection(expandedSection === section ? null : section);
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Expand all sections
+  const expandAllSections = () => {
+    setExpandedSections({
+      participation: true,
+      performance: true,
+      domain: true,
+      sdg: true,
+      skills: true
+    });
   };
 
   // Generate PDF function
-  const generatePDF = () => {
-    alert('PDF generation would be implemented here. In a real app, this would export the dashboard as a PDF.');
+  
+  const generatePDF = async () => {
+    try {
+      setIsGeneratingPDF(true);
+      
+      // First expand all sections
+      expandAllSections();
+      
+      // Wait for the UI to update and charts to render
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Use the ref instead of document.getElementById
+      if (!reportRef.current) {
+        throw new Error('Report content element not found');
+      }
+  
+      // Clone the report
+      const clone = reportRef.current.cloneNode(true);
+      document.body.appendChild(clone);
+  
+      clone.style.position = 'absolute';
+      clone.style.left = '0';
+      clone.style.top = '0';
+      clone.style.zIndex = '99999';
+      clone.style.background = 'white';
+      clone.style.color = 'black';
+      clone.style.padding = '20px';
+      clone.style.width = reportRef.current.scrollWidth + 'px';
+      clone.style.maxWidth = '1000px';
+  
+      // Remove Tailwind background and text color classes
+      const removeClasses = (node) => {
+        if (node.classList) {
+          node.classList.forEach(cls => {
+            if (
+              cls.startsWith('bg-') || cls.startsWith('text-') ||
+              cls.startsWith('border-') || cls.startsWith('from-') ||
+              cls.startsWith('to-') || cls.startsWith('via-')
+            ) {
+              node.classList.remove(cls);
+            }
+          });
+        }
+        node.childNodes.forEach(removeClasses);
+      };
+      removeClasses(clone);
+  
+      // Convert Chart.js canvas to images
+      const originalCanvases = reportRef.current.querySelectorAll('canvas');
+      const clonedCanvases = clone.querySelectorAll('canvas');
+      originalCanvases.forEach((origCanvas, index) => {
+        const dataUrl = origCanvas.toDataURL('image/png', 1.0);
+        const img = new Image();
+        img.src = dataUrl;
+        img.style.width = origCanvas.style.width || '100%';
+        img.style.height = origCanvas.style.height || 'auto';
+        clonedCanvases[index].replaceWith(img);
+      });
+  
+      // Wait for images to load
+      await Promise.all(
+        Array.from(clone.querySelectorAll('img')).map(img => {
+          if (!img.complete) {
+            return new Promise(resolve => {
+              img.onload = img.onerror = resolve;
+            });
+          }
+        })
+      );
+  
+      await new Promise(resolve => setTimeout(resolve, 500));
+  
+      const canvas = await html2canvas(clone, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        scrollY: -window.scrollY,
+      });
+  
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+  
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const imgWidth = pdfWidth;
+      const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+  
+      let heightLeft = imgHeight;
+      let position = 0;
+  
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+  
+      while (heightLeft > 0) {
+        position -= pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+  
+      pdf.save(`platform-analytics-report.pdf`);
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      document.querySelectorAll('[style*="z-index: 99999"]').forEach(el => el.remove());
+      setIsGeneratingPDF(false);
+    }
   };
 
   // Chart data configurations
@@ -148,10 +288,10 @@ const StatsDashboard = () => {
   };
 
   const topSkillsData = {
-    labels: stats?.skills.top.map(skill => skill.skill) || [], // Use `skill.skill` for the skill name
+    labels: stats?.skills.top.map(skill => skill.skill) || [],
     datasets: [{
       label: 'Top Skills',
-      data: stats?.skills.top.map(skill => skill.count) || [], // Use `skill.count` for the count
+      data: stats?.skills.top.map(skill => skill.count) || [],
       backgroundColor: [
         'rgba(54, 162, 235, 0.6)',
         'rgba(255, 206, 86, 0.6)',
@@ -238,7 +378,7 @@ const StatsDashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6 bg-gray-900 min-h-screen">
+    <div className="space-y-6 p-4 md:p-6 bg-gray-900 min-h-screen" ref={reportRef}>
       {/* Header and Filters */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
         <div>
@@ -259,8 +399,21 @@ const StatsDashboard = () => {
           <button 
             onClick={generatePDF}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center gap-2"
+            disabled={isGeneratingPDF}
           >
-            <FaFilePdf /> PDF
+            {isGeneratingPDF ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating...
+              </span>
+            ) : (
+              <>
+                <FaFilePdf /> PDF
+              </>
+            )}
           </button>
           <button 
             onClick={() => window.print()}
@@ -313,10 +466,10 @@ const StatsDashboard = () => {
             <FaChartLine className="text-blue-400" /> Participation Trends
           </h2>
           <FaChevronDown className={`text-gray-400 transition-transform ${
-            expandedSection === 'participation' ? 'transform rotate-180' : ''
+            expandedSections.participation ? 'transform rotate-180' : ''
           }`} />
         </div>
-        {expandedSection === 'participation' && (
+        {expandedSections.participation && (
           <div className="p-4 md:p-6 pt-0">
             <div className="h-64 md:h-80">
               <Line options={chartOptions} data={participationTrendsData} />
@@ -335,10 +488,10 @@ const StatsDashboard = () => {
             <FaPercentage className="text-purple-400" /> Performance Metrics
           </h2>
           <FaChevronDown className={`text-gray-400 transition-transform ${
-            expandedSection === 'performance' ? 'transform rotate-180' : ''
+            expandedSections.performance ? 'transform rotate-180' : ''
           }`} />
         </div>
-        {expandedSection === 'performance' && (
+        {expandedSections.performance && (
           <div className="p-4 md:p-6 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <PercentageCard 
               icon={<FaCheckCircle className="text-green-400" />}
@@ -372,10 +525,10 @@ const StatsDashboard = () => {
             <FaUserGraduate className="text-green-400" /> Domain Participation
           </h2>
           <FaChevronDown className={`text-gray-400 transition-transform ${
-            expandedSection === 'domain' ? 'transform rotate-180' : ''
+            expandedSections.domain ? 'transform rotate-180' : ''
           }`} />
         </div>
-        {expandedSection === 'domain' && (
+        {expandedSections.domain && (
           <div className="p-4 md:p-6 pt-0">
             <div className="h-64">
               <Pie 
@@ -404,10 +557,10 @@ const StatsDashboard = () => {
             <FaGlobe className="text-green-400" /> SDG Engagement
           </h2>
           <FaChevronDown className={`text-gray-400 transition-transform ${
-            expandedSection === 'sdg' ? 'transform rotate-180' : ''
+            expandedSections.sdg ? 'transform rotate-180' : ''
           }`} />
         </div>
-        {expandedSection === 'sdg' && (
+        {expandedSections.sdg && (
           <div className="p-4 md:p-6 pt-0">
             <div className="h-64">
               <Bar 
@@ -455,10 +608,10 @@ const StatsDashboard = () => {
             <FaLightbulb className="text-yellow-400" /> Top Skills
           </h2>
           <FaChevronDown className={`text-gray-400 transition-transform ${
-            expandedSection === 'skills' ? 'transform rotate-180' : ''
+            expandedSections.skills ? 'transform rotate-180' : ''
           }`} />
         </div>
-        {expandedSection === 'skills' && (
+        {expandedSections.skills && (
           <div className="p-4 md:p-6 pt-0">
             <div className="h-64">
               <Bar 

@@ -1063,140 +1063,140 @@ const MyTeamsModal = ({ userId, onClose }) => {
       </div>
 
       {/* Students Table */}
-      <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-750">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Profile</th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-24">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Domain</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-gray-800 divide-y divide-gray-700">
-              {currentStudents.length > 0 ? (
-                currentStudents.map(student => (
-                  <tr key={student._id} className="hover:bg-gray-750/50 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <img
-                            className="h-10 w-10 rounded-full object-cover"
-                            src={student?.profilePicture ? `http://localhost:5000${student.profilePicture}` : "/default-profile.png"}
-                            alt={student.name}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-300 w-24 truncate">
-                      {student.uid}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{student.name}</div>
-                      <div className="text-sm text-gray-400">{student.contact}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {student.domain || 'N/A'}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        student.isPublic ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-300'
-                      }`}>
-                        {student.isPublic ? 'Public' : 'Private'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => openProfileModal(student)}
-                          className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-900/20"
-                          title="View Profile"
-                        >
-                          <FaEye />
-                        </button>
-                        <button
-                          onClick={() => openCompetitionsModal(student)}
-                          className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
-                          title="View Competitions"
-                        >
-                          <FaTrophy />
-                        </button>
-                        <button
-  onClick={() => openTeamsModal(student)}
-  className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
-  title="View Teams"
->
-  <FaUsers />
-</button>
-                        <button
-                          onClick={() => console.log('Initiate chat with:', student._id)}
-                          className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-purple-900/20"
-                          title="Chat"
-                        >
-                          <FaComments />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-400">
-                    No students found matching your criteria
-                    <button 
-                      onClick={refreshData}
-                      className="ml-4 text-blue-400 hover:text-blue-300"
-                    >
-                      Reset filters
-                    </button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {filteredStudents.length > studentsPerPage && (
-          <div className="px-6 py-4 bg-gray-750 flex items-center justify-between border-t border-gray-700">
-            <div className="text-sm text-gray-400">
-              Showing <span className="font-medium">{indexOfFirstStudent + 1}</span> to{' '}
-              <span className="font-medium">
-                {Math.min(indexOfLastStudent, filteredStudents.length)}
-              </span>{' '}
-              of <span className="font-medium">{filteredStudents.length}</span> students
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+      {/* Students Table */}
+<div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
+  <div className="overflow-x-auto">
+    <table className="w-full divide-y divide-gray-700">
+      <thead className="bg-gray-750">
+        <tr>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Profile</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Domain</th>
+          <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
+          <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody className="bg-gray-800 divide-y divide-gray-700">
+        {currentStudents.length > 0 ? (
+          currentStudents.map(student => (
+            <tr key={student._id} className="hover:bg-gray-750/50 transition-colors">
+              <td className="px-4 py-4">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-10 w-10">
+                    <img
+                      className="h-10 w-10 rounded-full object-cover"
+                      src={student?.profilePicture ? `http://localhost:5000${student.profilePicture}` : "/default-profile.png"}
+                      alt={student.name}
+                    />
+                  </div>
+                  <div className="ml-2 text-xs text-gray-400 hidden sm:block">
+                    {student.uid}
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-4">
+                <div className="text-sm font-medium text-white truncate max-w-[150px]">{student.name}</div>
+                <div className="text-xs text-gray-400 truncate max-w-[150px]">{student.contact}</div>
+              </td>
+              <td className="px-4 py-4 text-sm text-gray-300 truncate max-w-[100px]">
+                {student.domain || 'N/A'}
+              </td>
+              <td className="px-4 py-4">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                  student.isPublic ? 'bg-green-900 text-green-200' : 'bg-gray-700 text-gray-300'
+                }`}>
+                  {student.isPublic ? 'Public' : 'Private'}
+                </span>
+              </td>
+              <td className="px-4 py-4 text-right text-sm font-medium">
+                <div className="flex justify-end gap-1">
+                  <button
+                    onClick={() => openProfileModal(student)}
+                    className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-900/20"
+                    title="View Profile"
+                  >
+                    <FaEye />
+                  </button>
+                  <button
+                    onClick={() => openCompetitionsModal(student)}
+                    className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
+                    title="View Competitions"
+                  >
+                    <FaTrophy />
+                  </button>
+                  <button
+                    onClick={() => openTeamsModal(student)}
+                    className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
+                    title="View Teams"
+                  >
+                    <FaUsers />
+                  </button>
+                  <button
+                    onClick={() => console.log('Initiate chat with:', student._id)}
+                    className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-purple-900/20"
+                    title="Chat"
+                  >
+                    <FaComments />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="5" className="px-6 py-4 text-center text-gray-400">
+              No students found matching your criteria
+              <button 
+                onClick={refreshData}
+                className="ml-4 text-blue-400 hover:text-blue-300"
               >
-                Previous
+                Reset filters
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 rounded-md ${currentPage === page ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                >
-                  {page}
-                </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-              >
-                Next
-              </button>
-            </div>
-          </div>
+            </td>
+          </tr>
         )}
+      </tbody>
+    </table>
+  </div>
+
+  {/* Pagination - remains the same */}
+  {filteredStudents.length > studentsPerPage && (
+    <div className="px-6 py-4 bg-gray-750 flex items-center justify-between border-t border-gray-700">
+      <div className="text-sm text-gray-400">
+        Showing <span className="font-medium">{indexOfFirstStudent + 1}</span> to{' '}
+        <span className="font-medium">
+          {Math.min(indexOfLastStudent, filteredStudents.length)}
+        </span>{' '}
+        of <span className="font-medium">{filteredStudents.length}</span> students
       </div>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+        >
+          Previous
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`px-3 py-1 rounded-md ${currentPage === page ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
 
       {isCompetitionsModalOpen && (

@@ -1106,130 +1106,179 @@ const Mentors = () => {
       </div>
 
       <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-750">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Profile</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Domain</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Experience</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-gray-800 divide-y divide-gray-700">
-              {currentMentors.length > 0 ? (
-                currentMentors.map(mentor => (
-                  <tr key={mentor._id} className="hover:bg-gray-750/50 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <img
-                            className="h-10 w-10 rounded-full object-cover"
-                            src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
-                            alt={mentor.name}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-white">{mentor.name}</div>
-                      <div className="text-sm text-gray-400">{mentor.email}</div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {mentor.domain || 'N/A'}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-300">
-                      {mentor.experience || 'N/A'}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => openMentorModal(mentor)}
-                          className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-900/20"
-                          title="View Profile"
-                        >
-                          <FaEye />
-                        </button>
-                        <button
-                          onClick={() => openCompetitionsModal(mentor)}
-                          className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
-                          title="View Competitions"
-                        >
-                          <FaTrophy />
-                        </button>
-                        <button
-                          onClick={() => openTeamsModal(mentor)}
-                          className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
-                          title="View Teams"
-                        >
-                          <FaUsers />
-                        </button>
-                        <button
-                          onClick={() => console.log('Initiate chat with:', mentor._id)}
-                          className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-purple-900/20"
-                          title="Chat"
-                        >
-                          <FaComments />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-400">
-                    No mentors found matching your criteria
-                    <button 
-                      onClick={refreshData}
-                      className="ml-4 text-blue-400 hover:text-blue-300"
+  <div className="overflow-x-auto">
+    <div className="min-w-[800px]"> {/* Ensures table doesn't collapse too much */}
+      <table className="w-full divide-y divide-gray-700">
+        <thead className="bg-gray-750">
+          <tr>
+            {/* Profile Column (Fixed width) */}
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider w-16">
+              Profile
+            </th>
+            
+            {/* Name Column (Flexible but with min-width) */}
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider min-w-[180px]">
+              Name
+            </th>
+            
+            {/* Domain Column (Medium width) */}
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider min-w-[120px]">
+              Domain
+            </th>
+            
+            {/* Experience Column (Limited width with truncation) */}
+            <th className="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider min-w-[100px] max-w-[150px]">
+              Experience
+            </th>
+            
+            {/* Actions Column (Fixed width) */}
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider w-40">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        
+        <tbody className="bg-gray-800 divide-y divide-gray-700">
+          {currentMentors.length > 0 ? (
+            currentMentors.map(mentor => (
+              <tr key={mentor._id} className="hover:bg-gray-750/50 transition-colors">
+                {/* Profile Image Cell */}
+                <td className="px-4 py-4 whitespace-nowrap w-16">
+                  <div className="flex-shrink-0 h-10 w-10">
+                    <img
+                      className="h-10 w-10 rounded-full object-cover"
+                      src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+                      alt={mentor.name}
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = "/default-profile.png";
+                      }}
+                    />
+                  </div>
+                </td>
+                
+                {/* Name & Email Cell */}
+                <td className="px-4 py-4 min-w-[180px]">
+                  <div className="text-sm font-medium text-white truncate max-w-[180px]" title={mentor.name}>
+                    {mentor.name}
+                  </div>
+                  <div className="text-sm text-gray-400 truncate max-w-[180px]" title={mentor.email}>
+                    {mentor.email}
+                  </div>
+                </td>
+                
+                {/* Domain Cell */}
+                <td className="px-4 py-4 whitespace-nowrap min-w-[120px]">
+                  <div className="text-sm text-gray-300 truncate max-w-[120px]" title={mentor.domain}>
+                    {mentor.domain || 'N/A'}
+                  </div>
+                </td>
+                
+                {/* Experience Cell (with truncation) */}
+                <td className="px-4 py-4 whitespace-nowrap">
+                  <div 
+                    className="max-w-[150px] truncate text-sm text-gray-300" 
+                    title={mentor.experience}
+                  >
+                    {mentor.experience ? (
+                      mentor.experience.length > 20 
+                        ? `${mentor.experience.substring(0, 20)}...` 
+                        : mentor.experience
+                    ) : 'N/A'}
+                  </div>
+                </td>
+                
+                {/* Action Buttons Cell */}
+                <td className="px-4 py-4 whitespace-nowrap text-right w-40">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      onClick={() => openMentorModal(mentor)}
+                      className="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-900/20"
+                      title="View Profile"
                     >
-                      Reset filters
+                      <FaEye />
                     </button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredMentors.length > mentorsPerPage && (
-          <div className="px-6 py-4 bg-gray-750 flex items-center justify-between border-t border-gray-700">
-            <div className="text-sm text-gray-400">
-              Showing <span className="font-medium">{indexOfFirstMentor + 1}</span> to{' '}
-              <span className="font-medium">
-                {Math.min(indexOfLastMentor, filteredMentors.length)}
-              </span>{' '}
-              of <span className="font-medium">{filteredMentors.length}</span> mentors
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-              >
-                Previous
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 rounded-md ${currentPage === page ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                    <button
+                      onClick={() => openCompetitionsModal(mentor)}
+                      className="text-yellow-400 hover:text-yellow-300 p-2 rounded-lg hover:bg-yellow-900/20"
+                      title="View Competitions"
+                    >
+                      <FaTrophy />
+                    </button>
+                    <button
+                      onClick={() => openTeamsModal(mentor)}
+                      className="text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-green-900/20"
+                      title="View Teams"
+                    >
+                      <FaUsers />
+                    </button>
+                    <button
+                      onClick={() => console.log('Initiate chat with:', mentor._id)}
+                      className="text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-purple-900/20"
+                      title="Chat"
+                    >
+                      <FaComments />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="5" className="px-6 py-4 text-center text-gray-400">
+                No mentors found matching your criteria
+                <button 
+                  onClick={refreshData}
+                  className="ml-4 text-blue-400 hover:text-blue-300"
                 >
-                  {page}
+                  Reset filters
                 </button>
-              ))}
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className={`px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {/* Pagination - remains unchanged */}
+  {filteredMentors.length > mentorsPerPage && (
+    <div className="px-6 py-4 bg-gray-750 flex items-center justify-between border-t border-gray-700">
+      <div className="text-sm text-gray-400">
+        Showing <span className="font-medium">{indexOfFirstMentor + 1}</span> to{' '}
+        <span className="font-medium">
+          {Math.min(indexOfLastMentor, filteredMentors.length)}
+        </span>{' '}
+        of <span className="font-medium">{filteredMentors.length}</span> mentors
       </div>
+      <div className="flex space-x-2">
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded-md ${currentPage === 1 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+        >
+          Previous
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`px-3 py-1 rounded-md ${currentPage === page ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+          >
+            {page}
+          </button>
+        ))}
+        <button
+          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded-md ${currentPage === totalPages ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+        >
+          Next
+        </button>
+      </div>
+    </div>
+  )}
+</div>
 
       {isModalOpen && (
         <MentorProfileModal 

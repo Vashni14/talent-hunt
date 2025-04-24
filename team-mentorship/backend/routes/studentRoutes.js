@@ -57,30 +57,53 @@ router.get('/profile/username/:username', async (req, res) => {
   }
 });
 // 🔹 Create/Update Student Profile
-router.post("/profile", async (req, res) => {
+// 🔹 Create/Update Student Profile with optional profile picture upload
+router.post("/profile", upload.single("profilePicture"), async (req, res) => {
   try {
-    const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience,bio } = req.body;
+    const { uid, name, contact, domain, rolePreference, linkedin, github, portfolio, skills, projects, certifications, experience, bio } = req.body;
+
+    // Parse skills, projects, certifications, and experience if they're sent as strings
+    const parsedSkills = typeof skills === 'string' ? JSON.parse(skills) : skills;
+    const parsedProjects = typeof projects === 'string' ? JSON.parse(projects) : projects;
+    const parsedCertifications = typeof certifications === 'string' ? JSON.parse(certifications) : certifications;
+    const parsedExperience = typeof experience === 'string' ? JSON.parse(experience) : experience;
 
     let student = await StudentProfile.findOne({ uid });
 
     if (!student) {
       student = new StudentProfile({ uid, name, contact });
     }
+
+    // Update profile fields
     student.domain = domain;
     student.rolePreference = rolePreference;
     student.linkedin = linkedin;
     student.github = github;
     student.portfolio = portfolio;
-    student.skills = skills;
-    student.projects = projects;
-    student.certifications = certifications;
-    student.experience = experience;
-    student.bio=bio;
+    student.skills = parsedSkills || [];
+    student.projects = parsedProjects || [];
+    student.certifications = parsedCertifications || [];
+    student.experience = parsedExperience || [];
+    student.bio = bio;
+
+    // If a file was uploaded, update the profile picture
+    if (req.file) {
+      student.profilePicture = `/uploads/${req.file.filename}`;
+    }
 
     await student.save();
-    res.json({ message: "Profile updated successfully!", student });
+    
+    res.json({ 
+      message: "Profile updated successfully!", 
+      student,
+      profilePicture: student.profilePicture 
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error saving profile", error });
+    console.error("Error saving profile:", error);
+    res.status(500).json({ 
+      message: "Error saving profile", 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+    });
   }
 });
 
