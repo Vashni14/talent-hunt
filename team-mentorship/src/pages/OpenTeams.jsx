@@ -423,6 +423,15 @@ export default function OpenTeams() {
   const [activeTab, setActiveTab] = useState("find");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+   const [currentUser, setCurrentUser] = useState({
+      uid: "",
+      name: "",
+      contact: "",
+      department: "",
+      skills: [],
+      competitions: [],
+      profilePicture: "",
+    });
   const [loading, setLoading] = useState({
     teams: false,
     openings: false,
@@ -487,10 +496,33 @@ useEffect(() => {
     if (user) {
       setUserId(user.uid);
       fetchMyTeams();
-      fetchMyOpenings(); // Fetch user's posted openings
+      fetchStudentProfile();
     }
   }, [user]);
-
+    const fetchStudentProfile = async () => {
+      try {
+        setLoading(prev => ({ ...prev, user: true }));
+        const response = await axios.get(`http://localhost:5000/api/student/profile/${userId}`);
+        setCurrentUser({
+          uid: response.data._id,
+          name: response.data.name,
+          contact: response.data.contact,
+          department: response.data.department,
+          skills: response.data.skills || [],
+          competitions: response.data.experience || [],
+          profilePicture: response.data.profilePicture || "",
+        });
+        console.log("Current user data:", response.data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        toast.error("Failed to load user data");
+      } finally {
+        setLoading(prev => ({ ...prev, user: false }));
+      }
+    };
+    useEffect(() => {
+      fetchStudentProfile();
+    }, [userId]);
   // Fetch user's teams (for dropdown in create opening form)
   const fetchMyTeams = async () => {
     try {
@@ -547,48 +579,61 @@ useEffect(() => {
     fetchMyTeams();
   }, [userId]);
   // Fetch user's posted openings (for My Teams tab)
- // In the fetchMyOpenings function:
- const fetchMyOpenings = async () => {
-  console.log("Current userId when fetching:", userId);
+  const fetchMyOpenings = async () => {
+    console.log("Current userId when fetching:", userId);
   
-  if (!userId) {
-    console.warn("Skipping fetch - no userId available");
-    return; // Exit gracefully
-  }
-
-  try {
-    setLoading(prev => ({ ...prev, myOpenings: true }));
-    setError(null);
-    
-    const token = await auth.currentUser?.getIdToken();
-    if (!token) {
-      throw new Error("No authentication token available");
+    if (!userId) {
+      console.warn("Skipping fetch - no userId available");
+      return;
     }
-
-    const response = await axios.get(
-      `http://localhost:5000/api/invitations/openings/user/${userId}`, 
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
-        }
+  
+    try {
+      setLoading(prev => ({ ...prev, myOpenings: true }));
+      setError(null);
+  
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) {
+        throw new Error("No authentication token available");
       }
-    );
-
-    console.log("API response:", response.data);
-    setMyOpenings(Array.isArray(response.data) ? response.data : []);
-    
-  } catch (error) {
-    console.error("API Error:", error.response?.data || error.message);
-    setError(error.response?.data?.error || error.message);
-    setMyOpenings([]);
-    if (!error.message.includes("User ID")) {
-      toast.error("Failed to load openings");
+  
+      const response = await axios.get(
+        `http://localhost:5000/api/invitations/openings/user/${userId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache'
+          }
+        }
+      );
+  
+      console.log("API response:", response.data);
+      console.log("curr",currentUser);
+  
+      setMyOpenings(Array.isArray(response.data)
+        ? response.data.map(opening => ({
+            ...opening,
+            creator: {
+              ...opening.creator,
+              name: currentUser?.name || "Unknown",
+              profilePicture: currentUser?.profilePicture || ""
+            }
+          }))
+        : []);
+  
+    } catch (error) {
+      console.error("API Error:", error.response?.data || error.message);
+      setError(error.response?.data?.error || error.message);
+      setMyOpenings([]);
+      if (!error.message.includes("User ID")) {
+        toast.error("Failed to load openings");
+      }
+    } finally {
+      setLoading(prev => ({ ...prev, myOpenings: false }));
     }
-  } finally {
-    setLoading(prev => ({ ...prev, myOpenings: false }));
-  }
-};
+  };
+useEffect(() => {
+  fetchMyOpenings(currentUser);
+}, [userId, currentUser]);
 const fetchSentApplications = useCallback(async () => {
   try {
     if (!userId) {
@@ -693,19 +738,22 @@ const fetchReceivedApplications = useCallback(async () => {
   }
 }, [userId]); // Add userId as dependency
 useEffect(() => {
-  if (authInitialized && userId) {
-    console.log("Fetching data for user:", userId);
-    fetchMyOpenings();
-    fetchSentApplications();
-    fetchReceivedApplications();
-    // Add other fetch calls here if needed
-  } else if (authInitialized) {
-    console.log("User not authenticated - clearing data");
-    setMyOpenings([]);
-    setSentApplications([])
-    setReceivedApplications([])
-  }
-}, [authInitialized, userId]); // Only run when these change
+  const loadData = async () => {
+    if (authInitialized && userId) {
+      console.log("Fetching data for user:", userId);
+      await fetchMyTeams(); // Then load teams
+      fetchSentApplications();
+      fetchReceivedApplications();
+    } else if (authInitialized) {
+      console.log("User not authenticated - clearing data");
+      setMyOpenings([]);
+      setSentApplications([]);
+      setReceivedApplications([]);
+    }
+  };
+
+  loadData();
+}, [authInitialized, userId]);
 
 const fetchOpenings = useCallback(async () => {
   setLoading(prev => ({ ...prev, openings: true }));
