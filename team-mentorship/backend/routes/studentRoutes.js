@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 const StudentProfile = require("../models/StudentProfile");
 const upload = require("../middleware/upload");
+const Team = require("../models/Team");
+const Application = require("../models/Invitation");
+const CompApplication = require("../models/CompApplication");
 const fs = require("fs");
 const path = require("path");
 
@@ -158,6 +161,91 @@ router.get('/profile/username/:username', async (req, res) => {
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+});
+// Enhanced dashboard stats route
+router.get('/dashboard/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user document
+    const user = await StudentProfile.findOne({ uid: userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Get teams where user is a member or creator
+    const teams = await Team.find({
+      $or: [
+        { createdBy: userId },
+        { 'members.user': user._id }
+      ]
+    });
+
+    // Get pending applications to teams where user is creator
+    const pendingApplications = await Application.countDocuments({
+      opening: { 
+        $in: await TeamOpening.find({ createdBy: userId }).distinct('_id') 
+      },
+      status: 'pending'
+    });
+
+    // Get competitions user has applied to and been accepted
+    const competitionApplications = await CompApplication.find({
+      student: user._id,
+      status: 'accepted'
+    }).populate('competition');
+
+    // Get upcoming deadlines (competitions and teams)
+    const now = new Date();
+    
+    // Team deadlines from teams user is in
+    const teamDeadlines = teams
+      .filter(team => team.deadline && new Date(team.deadline) > now)
+      .map(team => ({
+        title: team.name,
+        date: team.deadline,
+        type: 'team',
+        link: `/my-teams/${team._id}`
+      }));
+
+    // Competition deadlines where user is accepted
+    const competitionDeadlines = competitionApplications
+      .filter(app => app.competition?.deadline && new Date(app.competition.deadline) > now)
+      .map(app => ({
+        title: app.competition.name,
+        date: app.competition.deadline,
+        type: 'competition',
+        link: `/competitions/${app.competition._id}`
+      }));
+
+    // Combine and sort all deadlines
+    const upcomingDeadlines = [...teamDeadlines, ...competitionDeadlines]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 5); // Limit to 5 upcoming events
+
+    // Count potential teammates (users with matching skills)
+    const potentialTeammates = await StudentProfile.countDocuments({
+      _id: { $ne: user._id },
+      skills: { $in: user.skills || [] }
+    });
+
+    res.json({
+      stats: {
+        potentialTeammates,
+        openTeams: await TeamOpening.countDocuments({ status: 'open' }),
+        myTeams: teams.length,
+        pendingApplications
+      },
+      upcomingDeadlines,
+      updates: [] // Can be populated from notifications later
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      message: "Error fetching dashboard data",
+      error: error.message 
     });
   }
 });

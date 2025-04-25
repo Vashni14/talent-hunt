@@ -4,8 +4,8 @@ import {
   FaComment, FaHandshake, FaBriefcase, FaCalendarAlt,
   FaGraduationCap, FaClock, FaMedal, FaStar, FaRegStar,
   FaFilter, FaPlus, FaUserPlus, FaChevronLeft, FaChevronDown,
-  FaMagic, FaHeart, FaRegHeart, FaLightbulb, FaUserTie, FaUserFriends, FaChevronRight, FaSignOutAlt,
-  FaGlobe, FaChartLine
+  FaMagic, FaHeart, FaRegHeart, FaLightbulb, FaUserTie, FaUserFriends, 
+  FaChevronRight, FaSignOutAlt, FaGlobe, FaChartLine, FaComments
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
@@ -23,21 +23,14 @@ const StudentLandingPage = () => {
   const [activeTab, setActiveTab] = useState('competitions');
   const [savedCompetitions, setSavedCompetitions] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [showMatchmaker, setShowMatchmaker] = useState(false);
-  const [matchmakerPreferences, setMatchmakerPreferences] = useState({
-    interests: [],
-    skills: [],
-    sdgs: []
-  });
-
+const [deadlinesLoading, setDeadlinesLoading] = useState(true);
   // Data states
   const [competitions, setCompetitions] = useState([]);
   const [suggestedTeams, setSuggestedTeams] = useState([]);
   const [suggestedMentors, setSuggestedMentors] = useState([]);
   const [upcomingDeadlines, setUpcomingDeadlines] = useState([]);
   const [sdgData, setSdgData] = useState({});
-  const [teamUpdates, setTeamUpdates] = useState([]);
-  const [mentorshipUpdates, setMentorshipUpdates] = useState([]);
+  const [userTeams, setUserTeams] = useState([]);
 
   const user = auth.currentUser;
 
@@ -63,6 +56,11 @@ const StudentLandingPage = () => {
         // Fetch saved competitions
         const savedResponse = await axios.get(`http://localhost:5000/api/compapp/me/${user.uid}`);
         setSavedCompetitions(savedResponse.data.map(app => app.competition._id));
+
+        // Fetch user teams - ensure we always get an array
+        const teamsResponse = await axios.get(`http://localhost:5000/api/teams/user/${user.uid}`);
+        // Ensure we have an array and each team has sdgs array
+        setUserTeams(teamsResponse);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -71,6 +69,7 @@ const StudentLandingPage = () => {
         rolePreference: "Aspiring Developer",
         profilePicture: "/default-profile.png",
       });
+      setUserTeams([]); // Ensure we always have an array
     } finally {
       setLoading(false);
     }
@@ -78,45 +77,88 @@ const StudentLandingPage = () => {
 
   const fetchAllData = async () => {
     try {
-      // Fetch competitions
-      const [compResponse, teamsResponse, mentorsResponse, sdgResponse] = await Promise.all([
-        axios.get('http://localhost:5000/api/competitions'),
-        axios.get('http://localhost:5000/api/invitations/openings'),
-        axios.get('http://localhost:5000/api/mentor/mentors'),
-        axios.get('http://localhost:5000/api/sdgs')
-      ]);
-
-      setCompetitions(compResponse.data);
-      setSuggestedTeams(teamsResponse.data);
-      setSuggestedMentors(mentorsResponse.data);
-
+      setDeadlinesLoading(true);
+      
+      // Fetch all data in parallel
+      const [compResponse, teamsResponse, mentorsResponse, sdgResponse, userTeamsResponse] = 
+        await Promise.all([
+          axios.get('http://localhost:5000/api/competitions').catch(() => ({ data: [] })),
+          axios.get('http://localhost:5000/api/invitations/openings?limit=4').catch(() => ({ data: [] })),
+          axios.get('http://localhost:5000/api/mentor/mentors?limit=4').catch(() => ({ data: [] })),
+          axios.get('http://localhost:5000/api/sdgs').catch(() => ({ data: [] })),
+        ]);
+  
+      // Update all states
+      setCompetitions(compResponse.data || []);
+      setSuggestedTeams(teamsResponse.data || []);
+      setSuggestedMentors(mentorsResponse.data || []);
+      setUserTeams(userTeamsResponse.data || { data: [] });
+  
       // Process SDG data
       const sdgMap = {};
-      sdgResponse.data.forEach(sdg => {
-        sdgMap[sdg.id] = sdg;
-      });
+      if (Array.isArray(sdgResponse.data)) {
+        sdgResponse.data.forEach(sdg => {
+          sdgMap[sdg.id] = {
+            name: sdg.name,
+            color: sdg.color,
+            icon: sdg.icon || '🎯',
+            description: sdg.description
+          };
+        });
+      }
       setSdgData(sdgMap);
-
-      // Calculate upcoming deadlines from competitions
-      const deadlines = compResponse.data
-        .filter(comp => comp.deadline && new Date(comp.deadline) > new Date())
-        .map(comp => ({
-          id: comp._id,
-          title: `${comp.name} Registration`,
-          date: new Date(comp.deadline).toLocaleDateString(),
-          daysLeft: Math.ceil((new Date(comp.deadline) - new Date()) / (1000 * 60 * 60 * 24)),
-          competitionId: comp._id
-        }));
-      setUpcomingDeadlines(deadlines);
-
-      // Fetch updates
-      const updatesResponse = await axios.get('http://localhost:5000/api/updates');
-      setTeamUpdates(updatesResponse.data.filter(update => update.type === 'team'));
-      setMentorshipUpdates(updatesResponse.data.filter(update => update.type === 'mentorship'));
-
+  
+      // Process deadlines with the latest team data
+      updateDeadlines(compResponse.data || [], userTeamsResponse.data?.data || []);
+      
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setDeadlinesLoading(false);
     }
+  };
+  
+  // Separate function to update deadlines
+  const updateDeadlines = (competitions, teams) => {
+    const processDeadline = (item, type) => {
+      if (!item?.deadline) return null;
+      
+      try {
+        const deadlineDate = new Date(item.deadline);
+        if (isNaN(deadlineDate.getTime())) return null;
+        
+        const today = new Date();
+        if (deadlineDate <= today) return null;
+        
+        return {
+          id: item._id,
+          title: type === 'competition' 
+            ? `${item.name} Registration` 
+            : `${item.name} Team Deadline`,
+          date: deadlineDate.toLocaleDateString(),
+          daysLeft: Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24)),
+          [`${type}Id`]: item._id,
+          type
+        };
+      } catch (error) {
+        console.error("Error processing deadline:", error);
+        return null;
+      }
+    };
+  
+    const compDeadlines = competitions
+      .map(comp => processDeadline(comp, 'competition'))
+      .filter(Boolean);
+  
+    const teamDeadlines = teams
+      .map(team => processDeadline(team, 'team'))
+      .filter(Boolean);
+  
+    const allDeadlines = [...compDeadlines, ...teamDeadlines]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 3);
+  
+    setUpcomingDeadlines(allDeadlines);
   };
 
   useEffect(() => {
@@ -164,15 +206,6 @@ const StudentLandingPage = () => {
     setCurrentSlide((prev) => (prev === 0 ? Math.ceil(competitions.length / 3) - 1 : prev - 1));
   };
 
-  const toggleSDGPreference = (sdg) => {
-    setMatchmakerPreferences(prev => ({
-      ...prev,
-      sdgs: prev.sdgs.includes(sdg) 
-        ? prev.sdgs.filter(s => s !== sdg) 
-        : [...prev.sdgs, sdg]
-    }));
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-900">
@@ -188,6 +221,22 @@ const StudentLandingPage = () => {
   };
 
   const profileData = student || defaultProfile;
+  console.log("userTeams", userTeams);
+
+  const teamSDGs = new Set();
+
+  const teamsArray = Array.isArray(userTeams?.data?.data) ? userTeams.data.data : [];
+  
+  teamsArray.forEach(team => {
+    if (Array.isArray(team.sdgs)) {
+      team.sdgs.forEach(sdg => {
+        if (typeof sdg === 'number' && sdg >= 1 && sdg <= 17) {
+          teamSDGs.add(sdg);
+        }
+      });
+    }
+  });
+
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans">
@@ -311,19 +360,25 @@ const StudentLandingPage = () => {
                 <FaSearch />
               </button>
             </div>
+{console.log("team sdg",teamSDGs)}
+            {/* Show SDGs from user teams */}
+            {teamSDGs.size > 0 && (
+  <div className="pt-2">
+    <p className="text-sm text-gray-400 mb-2">Your teams are working on:</p>
+    <div className="flex flex-wrap gap-3">
+      {Array.from(teamSDGs).map(sdg => (
+        <span 
+          key={sdg} 
+          className={`px-3 py-1 text-xs rounded-full text-white ${sdgData[sdg]?.color || 'bg-gray-600'} flex items-center gap-1`}
+        >
+          {sdgData[sdg]?.icon || '🎯'} SDG {sdg}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
 
-            {student?.sdgs && student.sdgs.length > 0 && (
-              <div className="flex flex-wrap gap-3 pt-2">
-                {student.sdgs.slice(0, 3).map(sdg => (
-                  <span 
-                    key={sdg} 
-                    className={`px-3 py-1 text-xs rounded-full text-white ${sdgData[sdg]?.color || 'bg-gray-600'} flex items-center gap-1`}
-                  >
-                    {sdgData[sdg]?.icon || '🎯'} SDG {sdg}
-                  </span>
-                ))}
-              </div>
-            )}
+
           </motion.div>
           
           <motion.div
@@ -345,12 +400,16 @@ const StudentLandingPage = () => {
                 </button>
               </div>
               <div className="space-y-3">
-                {upcomingDeadlines.slice(0, 3).map(deadline => (
+                {upcomingDeadlines.map(deadline => (
                   <motion.div 
                     key={deadline.id} 
                     whileHover={{ scale: 1.02 }}
                     className="bg-gray-700/50 p-4 rounded-lg border-l-4 border-blue-500 hover:bg-gray-700 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/competitions/${deadline.competitionId}`)}
+                    onClick={() => navigate(
+                      deadline.type === 'competition' 
+                        ? `/competitions/${deadline.competitionId}`
+                        : `/teams/${deadline.teamId}`
+                    )}
                   >
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-medium text-sm sm:text-base">{deadline.title}</span>
@@ -378,8 +437,8 @@ const StudentLandingPage = () => {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold">Featured Competitions</h2>
-              <p className="text-gray-400">Top picks based on your profile</p>
+              <h2 className="text-2xl sm:text-3xl font-bold">All Competitions</h2>
+              <p className="text-gray-400">Browse all available competitions</p>
             </div>
             <div className="flex gap-2">
               <button 
@@ -435,7 +494,7 @@ const StudentLandingPage = () => {
                             <span 
                               key={sdg} 
                               className={`px-2 py-1 text-xs rounded-full text-white ${sdgData[sdg]?.color || 'bg-gray-600'} flex items-center gap-1`}
-                              title={sdgData[sdg]?.title}
+                              title={sdgData[sdg]?.name}
                             >
                               {sdgData[sdg]?.icon || '🎯'} {sdg}
                             </span>
@@ -579,18 +638,14 @@ const StudentLandingPage = () => {
             </motion.div>
 
             <motion.div
-              className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'matchmaker' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
+              className={`p-4 rounded-xl cursor-pointer transition-all ${activeFeature === 'chats' ? 'bg-gray-700 scale-105 shadow-lg' : 'bg-gray-800 hover:bg-gray-700'}`}
               whileHover={{ y: -5 }}
-              onClick={() => {
-                setActiveFeature('matchmaker');
-                setActiveTab('competitions');
-                setShowMatchmaker(true);
-              }}
+              onClick={() => navigate("/chats")}
             >
               <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3 mx-auto bg-gradient-to-br from-red-500 to-purple-600 shadow-md">
-                <FaMagic className="text-xl" />
+                <FaComments className="text-xl" />
               </div>
-              <h3 className="text-center text-sm font-medium">Matchmaker</h3>
+              <h3 className="text-center text-sm font-medium">Chats</h3>
             </motion.div>
           </div>
         </div>
@@ -667,7 +722,7 @@ const StudentLandingPage = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {competitions.map((comp) => (
+              {competitions.slice(0, 4).map((comp) => (
                 <motion.div 
                   key={comp._id}
                   className="bg-gray-800 rounded-xl overflow-hidden hover:shadow-xl transition-shadow border border-gray-700 hover:border-blue-500/30 group"
@@ -695,7 +750,7 @@ const StudentLandingPage = () => {
                           <span 
                             key={sdg} 
                             className={`px-2 py-1 text-xs rounded-full text-white ${sdgData[sdg]?.color || 'bg-gray-600'} flex items-center gap-1`}
-                            title={sdgData[sdg]?.title}
+                            title={sdgData[sdg]?.name}
                           >
                             {sdgData[sdg]?.icon || '🎯'} {sdg}
                           </span>
@@ -743,87 +798,6 @@ const StudentLandingPage = () => {
                 </motion.div>
               ))}
             </div>
-
-            {/* Matchmaker Section */}
-            <AnimatePresence>
-              {showMatchmaker && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden mt-12"
-                >
-                  <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                    <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-xl font-bold flex items-center gap-2">
-                        <FaMagic className="text-purple-400" /> Competition Matchmaker
-                      </h2>
-                      <button 
-                        onClick={() => setShowMatchmaker(false)}
-                        className="text-gray-400 hover:text-white"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h3 className="font-bold mb-3">Which SDGs interest you?</h3>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(sdgData).map(([sdg, data]) => (
-                            <button
-                              key={sdg}
-                              onClick={() => toggleSDGPreference(Number(sdg))}
-                              className={`px-3 py-1 text-xs rounded-full flex items-center gap-1 transition-all ${
-                                matchmakerPreferences.sdgs.includes(Number(sdg))
-                                  ? `${data.color} text-white`
-                                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                              }`}
-                            >
-                              {data.icon} SDG {sdg}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="font-bold mb-3">Your perfect competition would be...</h3>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
-                            <input type="checkbox" id="hackathon" className="accent-blue-500" />
-                            <label htmlFor="hackathon" className="text-sm">Fast-paced hackathon</label>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
-                            <input type="checkbox" id="research" className="accent-blue-500" />
-                            <label htmlFor="research" className="text-sm">In-depth research project</label>
-                          </div>
-                          <div className="flex items-center gap-3 p-3 bg-gray-700/50 rounded-lg border border-gray-600">
-                            <input type="checkbox" id="case" className="accent-blue-500" />
-                            <label htmlFor="case" className="text-sm">Business case competition</label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button 
-                      className="mt-6 w-full bg-gradient-to-r from-purple-600 to-blue-500 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2"
-                      onClick={async () => {
-                        try {
-                          const response = await axios.post('http://localhost:5000/api/competitions/match', {
-                            sdgs: matchmakerPreferences.sdgs,
-                            userId: user.uid
-                          });
-                          setCompetitions(response.data);
-                          setShowMatchmaker(false);
-                        } catch (error) {
-                          console.error("Matchmaker error:", error);
-                        }
-                      }}
-                    >
-                      <FaMagic /> Find My Matches
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </section>
         )}
 
@@ -832,21 +806,19 @@ const StudentLandingPage = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6">Suggested Teams</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {suggestedTeams.map(team => (
+              {suggestedTeams.slice(0, 4).map(team => (
                 <motion.div 
                   key={team._id}
                   className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-blue-500/30 transition-colors"
                   whileHover={{ y: -2 }}
                 >
+                   {console.log("teasm:",team)}
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 bg-gray-700 rounded-full overflow-hidden border-2 border-blue-500/50">
-                      <img src={team.photo || "https://randomuser.me/api/portraits/women/44.jpg"} alt={team.name} className="w-full h-full object-cover" />
-                    </div>
                     <div>
-                      <h3 className="font-bold text-lg">{team.name}</h3>
-                      <p className="text-gray-400 text-sm">{team.competition || 'Various competitions'}</p>
+                      <h3 className="font-bold text-lg">{team.team.name}</h3>
+                      <p className="text-gray-400 text-sm">{team.team.description || 'Various competitions'}</p>
                       <p className="text-xs text-blue-400 mt-1">
-                        {team.members?.length || 0} members • Looking for {team.seatsAvailable || 1} more
+                        {team.team.members?.length || 0} members • Looking for {team.seatsAvailable || 1} more
                       </p>
                     </div>
                   </div>
@@ -871,28 +843,6 @@ const StudentLandingPage = () => {
                 </motion.div>
               ))}
             </div>
-
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6">Team Updates</h2>
-              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                <div className="space-y-4">
-                  {teamUpdates.map((update, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex items-start gap-4 ${index < teamUpdates.length - 1 ? 'pb-4 border-b border-gray-700' : ''}`}
-                    >
-                      <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-blue-400">
-                        <FaLightbulb />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{update.title}</h3>
-                        <p className="text-gray-400 text-sm mt-1">{update.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </section>
         )}
 
@@ -901,7 +851,7 @@ const StudentLandingPage = () => {
           <section>
             <h2 className="text-2xl font-bold mb-6">Suggested Mentors</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {suggestedMentors.map(mentor => (
+              {suggestedMentors.slice(0, 4).map(mentor => (
                 <motion.div 
                   key={mentor._id}
                   className="bg-gray-800 rounded-xl p-5 border border-gray-700 hover:border-blue-500/30 transition-colors"
@@ -932,28 +882,6 @@ const StudentLandingPage = () => {
                   </button>
                 </motion.div>
               ))}
-            </div>
-
-            <div className="mt-12">
-              <h2 className="text-2xl font-bold mb-6">Mentorship Updates</h2>
-              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                <div className="space-y-4">
-                  {mentorshipUpdates.map((update, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex items-start gap-4 ${index < mentorshipUpdates.length - 1 ? 'pb-4 border-b border-gray-700' : ''}`}
-                    >
-                      <div className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-purple-400">
-                        <FaUserTie />
-                      </div>
-                      <div>
-                        <h3 className="font-medium">{update.title}</h3>
-                        <p className="text-gray-400 text-sm mt-1">{update.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </section>
         )}
