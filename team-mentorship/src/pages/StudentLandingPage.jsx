@@ -86,14 +86,14 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
           axios.get('http://localhost:5000/api/invitations/openings?limit=4').catch(() => ({ data: [] })),
           axios.get('http://localhost:5000/api/mentor/mentors?limit=4').catch(() => ({ data: [] })),
           axios.get('http://localhost:5000/api/sdgs').catch(() => ({ data: [] })),
-  
+          axios.get(`http://localhost:5000/api/teams/user/${user.uid}`).catch(() => ({ data: { data: [] } }))
         ]);
   
       // Update all states
       setCompetitions(compResponse.data || []);
       setSuggestedTeams(teamsResponse.data || []);
       setSuggestedMentors(mentorsResponse.data || []);
- 
+      setUserTeams(userTeamsResponse.data || { data: [] });
   
       // Process SDG data
       const sdgMap = {};
@@ -226,7 +226,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
 
   const teamSDGs = new Set();
 
-  const teamsArray = Array.isArray(userTeams?.data?.data) ? userTeams.data.data : [];
+  const teamsArray = Array.isArray(userTeams?.data) ? userTeams.data : [];
   
   teamsArray.forEach(team => {
     if (Array.isArray(team.sdgs)) {
@@ -363,7 +363,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
             </div>
 {console.log("team sdg",teamSDGs)}
             {/* Show SDGs from user teams */}
-            {teamSDGs.size > 0 && (
+  {teamSDGs.size > 0 && (
   <div className="pt-2">
     <p className="text-sm text-gray-400 mb-2">Your teams are working on:</p>
     <div className="flex flex-wrap gap-3">
@@ -378,7 +378,6 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
     </div>
   </div>
 )}
-
 
           </motion.div>
           
