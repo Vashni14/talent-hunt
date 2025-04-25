@@ -5,6 +5,7 @@ const StudentProfileSchema = new mongoose.Schema({
   name: { type: String, required: true },
   contact: { type: String, required: true },
   domain: { type: String },
+  department: { type: String },
   rolePreference: { type: String },
   profilePicture: { type: String }, // Stores the image URL
   skills: [{ name: String, level: String }], // Skill with proficiency

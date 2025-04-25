@@ -11,6 +11,7 @@ function StudentDashboard() {
     name: "",
     contact: "",
     domain: "",
+    department: "",
     rolePreference: "",
     skills: [],
     projects: [],
@@ -37,7 +38,6 @@ function StudentDashboard() {
     }
   }, [user]);
 
-  // Generate bio whenever relevant data changes
   useEffect(() => {
     const summary = `${studentData.name} is an aspiring ${
       studentData.rolePreference ? studentData.rolePreference : "individual"
@@ -67,6 +67,7 @@ function StudentDashboard() {
         name: data.name || "",
         contact: data.contact || "",
         domain: data.domain || "",
+        department: data.department || "",
         rolePreference: data.rolePreference || "",
         linkedin: data.linkedin || "",
         github: data.github || "",
@@ -91,7 +92,6 @@ function StudentDashboard() {
   };
   
   const addItem = (type, value, setValue, setLevel = null) => {
-    // Validate input
     if (typeof value === "string" && !value.trim()) return;
     if (typeof value === "object" && !value.name?.trim()) return;
   
@@ -133,6 +133,7 @@ function StudentDashboard() {
         name: studentData.name,
         contact: studentData.contact,
         domain: studentData.domain,
+        department: studentData.department,
         rolePreference: studentData.rolePreference,
         linkedin: studentData.linkedin,
         github: studentData.github,
@@ -144,27 +145,20 @@ function StudentDashboard() {
         bio: studentData.bio,
       };
   
-      console.log("Saving payload:", payload);
+      const response = await axios.post(
+        "http://localhost:5000/api/student/profile", 
+        payload
+      );
 
-    const response = await axios.post(
-      "http://localhost:5000/api/student/profile", 
-      payload
-    );
-
-    // Debug: Log the response
-    console.log("Save response:", response.data);
-
-    if (response.data) {
-      alert("✅ Profile updated successfully!");
-      setStudentData(response.data.profile);
-      navigate('/student/dashboard');
-    } else {
-      throw new Error("Bio not saved in response");
+      if (response.data) {
+        alert("✅ Profile updated successfully!");
+        setStudentData(response.data.profile);
+        navigate('/student/dashboard');
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert(`❌ Error saving profile: ${error.message}`);
     }
-  } catch (error) {
-    console.error("Error saving profile:", error);
-    alert(`❌ Error saving profile: ${error.message}`);
-  }
   };
 
   const handleProfilePictureUpload = async (event) => {
@@ -223,20 +217,23 @@ function StudentDashboard() {
             />
           </div>
 
-          {/* Profile Picture Upload */}
-          <div className="col-span-2 flex flex-col items-center">
-            <label className="block font-semibold">Profile Picture</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleProfilePictureUpload}
-              className="mt-2 bg-gray-700 text-white p-2 rounded border border-gray-600 w-full cursor-pointer
-                       file:bg-white file:text-black file:font-semibold file:px-3 file:py-2 
-                       file:rounded file:border-none file:cursor-pointer"
-            />
+          {/* Department & Domain */}
+          <div>
+            <label className="block font-semibold">Department</label>
+            <select 
+              name="department" 
+              value={studentData.department} 
+              onChange={handleChange}
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 text-white"
+            >
+              <option value="">Select Department</option>
+              <option value="Computer Engineering">Computer Engineering</option>
+              <option value="AIDS">AIDS</option>
+              <option value="ECS">ECS</option>
+              <option value="Mechanical Engineering">Mechanical Engineering</option>
+            </select>
           </div>
 
-          {/* Domain of Interest & Role Preference */}
           <div>
             <label className="block font-semibold">Domain of Interest</label>
             <input 
@@ -248,6 +245,29 @@ function StudentDashboard() {
             />
           </div>
 
+          {/* Profile Picture Upload */}
+          <div className="col-span-2 flex flex-col items-center">
+            <label className="block font-semibold">Profile Picture</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleProfilePictureUpload}
+              className="mt-2 bg-gray-700 text-white p-2 rounded border border-gray-600 w-full cursor-pointer
+                       file:bg-white file:text-black file:font-semibold file:px-3 file:py-2 
+                       file:rounded file:border-none file:cursor-pointer"
+            />
+            {studentData.profilePicture && (
+              <div className="mt-2">
+                <img 
+                  src={studentData.profilePicture} 
+                  alt="Profile" 
+                  className="h-20 w-20 rounded-full object-cover"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Role Preference */}
           <div>
             <label className="block font-semibold">Role Preference</label>
             <select 

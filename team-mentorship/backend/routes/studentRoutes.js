@@ -1,7 +1,109 @@
 const express = require("express");
 const router = express.Router();
 const StudentProfile = require("../models/StudentProfile");
-const upload = require("../middleware/upload"); // Import image upload middleware
+const upload = require("../middleware/upload");
+const fs = require("fs");
+const path = require("path");
+
+// Helper function to delete files
+const deleteFile = (filePath) => {
+  const fullPath = path.join(__dirname, '../..', filePath);
+  if (fs.existsSync(fullPath)) {
+    fs.unlink(fullPath, (err) => {
+      if (err) console.error("Error deleting file:", err);
+    });
+  }
+};
+
+// 🔹 Upload Profile Picture
+router.post("/uploadProfile", upload.single("profilePicture"), async (req, res) => {
+  try {
+    const { uid } = req.body;
+    
+    if (!uid) {
+      if (req.file) deleteFile(req.file.path);
+      return res.status(400).json({ message: "UID is required" });
+    }
+
+    const profilePictureUrl = `/uploads/${req.file.filename}`;
+    
+    // Update profile with new picture immediately
+    const updatedProfile = await StudentProfile.findOneAndUpdate(
+      { uid },
+      { profilePicture: profilePictureUrl },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Profile picture uploaded successfully",
+      profilePictureUrl,
+      profile: updatedProfile
+    });
+
+  } catch (error) {
+    if (req.file) deleteFile(req.file.path);
+    console.error("Upload error:", error);
+    res.status(500).json({ 
+      message: "Error uploading profile picture",
+      error: error.message 
+    });
+  }
+});
+
+// 🔹 Create/Update Student Profile
+router.post("/profile", async (req, res) => {
+  try {
+    const { uid } = req.body;
+    
+    if (!uid) {
+      return res.status(400).json({ message: "UID is required" });
+    }
+
+    // Prepare profile data
+    const profileData = {
+      ...req.body,
+      skills: parseField(req.body.skills),
+      projects: parseField(req.body.projects),
+      certifications: parseField(req.body.certifications),
+      experience: parseField(req.body.experience)
+    };
+
+    // Create or update profile
+    const student = await StudentProfile.findOneAndUpdate(
+      { uid },
+      profileData,
+      { 
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true 
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Profile saved successfully",
+      profile: student
+    });
+
+  } catch (error) {
+    console.error("Profile save error:", error);
+    res.status(500).json({
+      message: "Error saving profile",
+      error: error.message
+    });
+  }
+});
+
+// Helper function to parse stringified fields
+function parseField(field) {
+  if (!field) return [];
+  try {
+    return typeof field === 'string' ? JSON.parse(field) : field;
+  } catch {
+    return [];
+  }
+}
 
 // 🔹 Get Student Profile by UID
 router.get("/profile/:uid", async (req, res) => {
@@ -13,6 +115,8 @@ router.get("/profile/:uid", async (req, res) => {
     res.status(500).json({ message: "Error fetching profile", error });
   }
 });
+
+// 🔹 Get All Student Profiles
 router.get("/profile", async (req, res) => {
   try {
     const students = await StudentProfile.find({});
@@ -24,7 +128,8 @@ router.get("/profile", async (req, res) => {
     res.status(500).json({ message: "Error fetching profiles", error });
   }
 });
-// In your student profile routes
+
+// 🔹 Get Profile by Username
 router.get('/profile/username/:username', async (req, res) => {
   try {
     const user = await StudentProfile.findOne({ 
@@ -56,90 +161,14 @@ router.get('/profile/username/:username', async (req, res) => {
     });
   }
 });
-// 🔹 Create/Update Student Profile
-router.post("/profile", upload.single("profilePicture"), async (req, res) => {
-  try {
-    const { uid } = req.body;
-    
-    if (!uid) {
-      // Delete uploaded file if validation fails
-      if (req.file) deleteFile(req.file.path);
-      return res.status(400).json({ 
-        success: false,
-        message: "UID is required" 
-      });
-    }
 
-    // Prepare profile data
-    const profileData = {
-      ...req.body,
-      // Parse array/object fields
-      skills: parseField(req.body.skills),
-      projects: parseField(req.body.projects),
-      certifications: parseField(req.body.certifications),
-      experience: parseField(req.body.experience),
-      isPublic: req.body.isPublic === 'true' || req.body.isPublic === true
-    };
-
-    // Handle profile picture
-    if (req.file) {
-      profileData.profilePicture = `/uploads/${req.file.filename}`;
-      
-      // Delete old picture if updating
-      const existingProfile = await StudentProfile.findOne({ uid });
-      if (existingProfile?.profilePicture) {
-        deleteFile(existingProfile.profilePicture);
-      }
-    }
-
-    // Create or update profile
-    const student = await StudentProfile.findOneAndUpdate(
-      { uid },
-      profileData,
-      { 
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true 
-      }
-    );
-
-    res.json({
-      success: true,
-      message: "Profile saved successfully",
-      student
-    });
-
-  } catch (error) {
-    // Clean up uploaded file on error
-    if (req.file) deleteFile(req.file.path);
-    
-    console.error("Profile save error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error saving profile",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
-// Helper function to parse stringified fields
-function parseField(field) {
-  if (!field) return [];
-  try {
-    return typeof field === 'string' ? JSON.parse(field) : field;
-  } catch {
-    return [];
-  }
-}
-
-// Add this to your backend routes (likely in your studentProfileRoutes.js or similar)
+// 🔹 Get Basic Profile by UID
 router.get('/profile/uid/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
 
-    // Find the student by UID and only return the _id field
     const student = await StudentProfile.findOne({ uid })
-      .select('_id name profilePicture skills rolePreference domain')
+      .select('_id name profilePicture skills rolePreference domain department')
       .lean();
 
     if (!student) {
@@ -156,7 +185,8 @@ router.get('/profile/uid/:uid', async (req, res) => {
       profilePicture: student.profilePicture,
       skills: student.skills,
       rolePreference: student.rolePreference,
-      domain: student.domain
+      domain: student.domain,
+      department: student.department
     });
 
   } catch (error) {
@@ -164,8 +194,9 @@ router.get('/profile/uid/:uid', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error finding student',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: error.message
     });
   }
 });
+
 module.exports = router;

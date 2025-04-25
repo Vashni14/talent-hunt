@@ -176,6 +176,29 @@ router.get("/dashboard", async (req, res) => {
         console.error("Error processing mentor data:", err);
       }
     });
+      // Get department participation statistics
+      const departmentStats = await StudentProfile.aggregate([
+        { 
+          $match: { 
+            department: { $exists: true, $ne: null } // Only include profiles with department set
+          } 
+        },
+        { 
+          $group: { 
+            _id: "$department", 
+            count: { $sum: 1 } 
+          } 
+        },
+        { $sort: { count: -1 } } // Sort by count descending
+      ]);
+  
+      // Convert to object format { "Computer Engineering": 120, ... }
+      const departments = {};
+      departmentStats.forEach(dept => {
+        if (dept._id) { // Only include if department exists
+          departments[dept._id] = dept.count;
+        }
+      });
     // Get domain participation
     const domainStats = await StudentProfile.aggregate([
       { $group: { _id: "$domain", count: { $sum: 1 } } },
@@ -277,6 +300,7 @@ router.get("/dashboard", async (req, res) => {
           monthlyMentors,
           byDomain,
         },
+        departments, // Add this line to include department stats
         sdgs: {
           top: sdgStats,
           totalCoverage: sdgStats.length,

@@ -61,7 +61,8 @@ const StatsDashboard = () => {
     performance: false,
     domain: false,
     sdg: false,
-    skills: false
+    skills: false,
+    department:false
   });
   const [error, setError] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -88,7 +89,8 @@ const StatsDashboard = () => {
             performance: true,
             domain: true,
             sdg: true,
-            skills: true
+            skills: true,
+            department:true
           });
         } else {
           throw new Error(data.message || 'Failed to load dashboard data');
@@ -233,6 +235,30 @@ const StatsDashboard = () => {
       document.querySelectorAll('[style*="z-index: 99999"]').forEach(el => el.remove());
       setIsGeneratingPDF(false);
     }
+  };
+  const departmentParticipationData = {
+    labels: stats?.departments ? Object.keys(stats.departments) : [],
+    datasets: [{
+      label: 'Students by Department',
+      data: stats?.departments ? Object.values(stats.departments) : [],
+      backgroundColor: [
+        'rgba(255, 99, 132, 0.7)',
+        'rgba(54, 162, 235, 0.7)',
+        'rgba(255, 206, 86, 0.7)',
+        'rgba(75, 192, 192, 0.7)',
+        'rgba(153, 102, 255, 0.7)',
+        'rgba(255, 159, 64, 0.7)'
+      ],
+      borderColor: [
+        'rgba(255, 99, 132, 1)',
+        'rgba(54, 162, 235, 1)',
+        'rgba(255, 206, 86, 1)',
+        'rgba(75, 192, 192, 1)',
+        'rgba(153, 102, 255, 1)',
+        'rgba(255, 159, 64, 1)'
+      ],
+      borderWidth: 1
+    }]
   };
 
   // Chart data configurations
@@ -511,6 +537,89 @@ const StatsDashboard = () => {
               value={stats.performance.taskCompletion}
               description="of tasks are completed"
             />
+          </div>
+        )}
+      </div>
+      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+        <div 
+          className="flex justify-between items-center p-4 md:p-6 cursor-pointer hover:bg-gray-750 transition-colors"
+          onClick={() => toggleSection('department')}
+        >
+          <h2 className="text-lg md:text-xl font-semibold text-white flex items-center gap-2">
+            <FaUserFriends className="text-indigo-400" /> Department Participation
+          </h2>
+          <FaChevronDown className={`text-gray-400 transition-transform ${
+            expandedSections.department ? 'transform rotate-180' : ''
+          }`} />
+        </div>
+        {expandedSections.department && (
+          <div className="p-4 md:p-6 pt-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-64 md:h-80">
+                <Bar 
+                  data={departmentParticipationData} 
+                  options={{
+                    ...chartOptions,
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
+                    },
+                    scales: {
+                      ...chartOptions.scales,
+                      y: {
+                        ...chartOptions.scales.y,
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return value % 1 === 0 ? value : '';
+                          }
+                        }
+                      }
+                    }
+                  }} 
+                />
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white">Department Breakdown</h3>
+                <div className="space-y-3">
+                  {stats?.departments && Object.entries(stats.departments).map(([dept, count], index) => (
+                    <div key={dept} className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ 
+                            backgroundColor: departmentParticipationData.datasets[0].backgroundColor[index]
+                          }}
+                        ></div>
+                        <span className="text-gray-300">{dept}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white font-medium">{count}</span>
+                        <span className="text-gray-400 text-sm">
+                          ({Math.round((count / stats.totals.students) * 100)}%)
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 bg-gray-750 p-3 rounded-lg">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-300 text-sm">Top Department</span>
+                    <span className="text-white font-medium">
+                      {stats?.departments && 
+                        Object.entries(stats.departments).reduce((a, b) => a[1] > b[1] ? a : b)[0]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 text-sm">Total Students</span>
+                    <span className="text-white font-medium">
+                      {stats?.totals.students.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
