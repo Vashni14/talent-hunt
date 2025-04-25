@@ -86,13 +86,14 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
           axios.get('http://localhost:5000/api/invitations/openings?limit=4').catch(() => ({ data: [] })),
           axios.get('http://localhost:5000/api/mentor/mentors?limit=4').catch(() => ({ data: [] })),
           axios.get('http://localhost:5000/api/sdgs').catch(() => ({ data: [] })),
+  
         ]);
   
       // Update all states
       setCompetitions(compResponse.data || []);
       setSuggestedTeams(teamsResponse.data || []);
       setSuggestedMentors(mentorsResponse.data || []);
-      setUserTeams(userTeamsResponse.data || { data: [] });
+ 
   
       // Process SDG data
       const sdgMap = {};
