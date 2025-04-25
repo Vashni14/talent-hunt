@@ -20,6 +20,9 @@ import {
   FaUserCheck,
   FaTasks,
   FaLightbulb,
+  FaClock,
+  FaTimes,
+  FaFilter
 } from "react-icons/fa";
 import axios from "axios";
 
@@ -33,26 +36,46 @@ const MentorDashboard = () => {
     profilePicture: "",
   });
   const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      mentoredTeams: 0,
+      activeStudents: 0,
+      pendingApplications: 0,
+      pendingTasks: 0
+    },
+    upcomingDeadlines: [],
+    recentUpdates: [],
+    activeTeams: []
+  });
+  const [showUpdatesModal, setShowUpdatesModal] = useState(false);
+  const [showDeadlinesModal, setShowDeadlinesModal] = useState(false);
+  const [updateFilter, setUpdateFilter] = useState("all");
+  const [deadlineFilter, setDeadlineFilter] = useState("all");
 
   const logout = async () => {
     await signOut(auth);
   };
 
-  // Fetch mentor data
+  // Fetch mentor profile and dashboard data
   useEffect(() => {
-    const fetchMentorProfile = async (userId) => {
+    const fetchMentorData = async (userId) => {
       try {
-        // Replace with your actual API endpoint for mentors
-        const response = await axios.get(
+        // Fetch mentor profile
+        const profileResponse = await axios.get(
           `http://localhost:5000/api/mentor/profile/${userId}`
         );
         setUser({
-          name: response.data.name,
-          email: response.data.email,
-          domain: response.data.domain,
-          profilePicture:
-            response.data.profilePicture || "/default-profile.png",
+          name: profileResponse.data.name,
+          email: profileResponse.data.email,
+          domain: profileResponse.data.domain,
+          profilePicture: profileResponse.data.profilePicture || "/default-profile.png",
         });
+
+        // Fetch dashboard data
+        const dashboardResponse = await axios.get(
+          `http://localhost:5000/api/mentor-dashboard/stats/${userId}`
+        );
+        setDashboardData(dashboardResponse.data);
       } catch (error) {
         console.error("Error fetching mentor data:", error);
       } finally {
@@ -62,7 +85,7 @@ const MentorDashboard = () => {
 
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
-        fetchMentorProfile(user.uid);
+        fetchMentorData(user.uid);
       } else {
         navigate("/login");
       }
@@ -71,96 +94,113 @@ const MentorDashboard = () => {
     return () => unsubscribe();
   }, [navigate]);
 
-  // Stats data
+  // Stats data from backend
   const stats = [
     {
       title: "Mentored Teams",
-      value: "12",
+      value: dashboardData.stats.mentoredTeams,
       icon: <FaChalkboardTeacher className="text-blue-400" />,
       link: "/mentored-teams",
     },
     {
       title: "Active Students",
-      value: "24",
+      value: dashboardData.stats.activeStudents,
       icon: <FaUserCheck className="text-green-400" />,
-      link: "/my-students",
+      link: "/mentor-students",
+    },
+    {
+      title: "Pending Applications",
+      value: dashboardData.stats.pendingApplications,
+      icon: <FaTasks className="text-yellow-400" />,
+      link: "/mentored-teams",
     },
     {
       title: "Pending Tasks",
-      value: "5",
-      icon: <FaTasks className="text-yellow-400" />,
-      link: "/tasks",
-    },
-    {
-      title: "Suggestions",
-      value: "8",
-      icon: <FaLightbulb className="text-purple-400" />,
-      link: "/suggestions",
+      value: dashboardData.stats.pendingTasks || 0,
+      icon: <FaTasks className="text-purple-400" />,
+      link: "/mentor-tasks",
     },
   ];
 
-  // Recent updates
-  const updates = [
-    {
-      type: "message",
-      message: "Team Web Wizards needs your review",
-      time: "30 minutes ago",
-      link: "/team/web-wizards",
-    },
-    {
-      type: "task",
-      message: "New project submission from Data Dynamos",
-      time: "2 hours ago",
-      link: "/review/project-123",
-    },
-    {
-      type: "request",
-      message: "3 new mentorship requests",
-      time: "5 hours ago",
-      link: "/mentorship-requests",
-    },
-  ];
+  // Format updates with icons and messages
+  const formatUpdate = (update) => {
+    let message = '';
+    let icon = null;
+    let type = '';
+    
+    switch(update.lastActivityType) {
+      case 'new_member':
+        message = `New member joined ${update.name}`;
+        icon = <FaUserPlus className="text-green-400" />;
+        type = 'member';
+        break;
+      case 'new_mentor':
+        message = `New mentor added to ${update.name}`;
+        icon = <FaChalkboardTeacher className="text-blue-400" />;
+        type = 'mentor';
+        break;
+      case 'new_task':
+        message = `${update.name} added new task (${update.lastActivityDetails.completed}/${update.lastActivityDetails.total})`;
+        icon = <FaTasks className="text-yellow-400" />;
+        type = 'task';
+        break;
+      case 'meeting':
+        message = `${update.name} had a meeting`;
+        icon = <FaComments className="text-purple-400" />;
+        type = 'meeting';
+        break;
+      default:
+        message = `${update.name} was updated`;
+        icon = <FaBell className="text-gray-400" />;
+        type = 'update';
+    }
 
-  // Upcoming sessions
-  const upcomingSessions = [
-    {
-      title: "Weekly Check-in: Web Wizards",
-      date: "Today, 4:00 PM",
-      type: "meeting",
-    },
-    {
-      title: "Project Review Session",
-      date: "Apr 12, 2:00 PM",
-      type: "review",
-    },
-    {
-      title: "Mentor Training Workshop",
-      date: "Apr 15, 10:00 AM",
-      type: "workshop",
-    },
-  ];
+    return {
+      ...update,
+      formattedMessage: message,
+      icon,
+      type,
+      time: formatTimeAgo(update.lastActivity),
+      link: `/team/${update.name.toLowerCase().replace(/\s+/g, '-')}`
+    };
+  };
 
-  // Active teams
-  const activeTeams = [
-    {
-      name: "Web Wizards",
-      project: "E-commerce Platform",
-      progress: "75%",
-      lastMeeting: "2 days ago",
-    },
-    {
-      name: "Data Dynamos",
-      project: "ML Prediction Model",
-      progress: "50%",
-      lastMeeting: "1 week ago",
-    },
-    {
-      name: "App Architects",
-      project: "Mobile Prototype",
-      progress: "30%",
-      lastMeeting: "3 days ago",
-    },
-  ];
+  // Format all updates
+  const allUpdates = dashboardData.recentUpdates.map(formatUpdate);
+  
+  // Filter updates based on selected filter
+  const filteredUpdates = updateFilter === "all" 
+    ? allUpdates 
+    : allUpdates.filter(update => update.type === updateFilter);
+
+  // Format upcoming deadlines from backend
+  const allDeadlines = dashboardData.upcomingDeadlines.map(deadline => ({
+    ...deadline,
+    formattedTitle: `${deadline.teamName} - ${deadline.competitionName}`,
+    formattedDate: `Due in ${deadline.daysLeft} day${deadline.daysLeft !== 1 ? 's' : ''}`,
+    deadlineDate: new Date(deadline.deadline)
+  }));
+
+  // Filter deadlines based on selected filter
+  const filteredDeadlines = deadlineFilter === "all" 
+    ? allDeadlines 
+    : allDeadlines.filter(deadline => 
+        deadlineFilter === "upcoming" 
+          ? deadline.daysLeft <= 7 
+          : deadline.daysLeft > 7
+      );
+
+  // Helper function to format time ago
+  function formatTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  }
 
   if (loading) {
     return (
@@ -255,10 +295,10 @@ const MentorDashboard = () => {
 
           <div className="mt-8 pt-4 border-t border-gray-700">
             <button
-               onClick={() => {
-                              auth.signOut()
-                              navigate('/login')
-                            }}
+              onClick={() => {
+                auth.signOut()
+                navigate('/login')
+              }}
               className="flex items-center w-full px-3 py-2 text-sm rounded-lg mb-1 text-gray-300 hover:text-white hover:bg-gray-700/70"
             >
               <FaSignOutAlt className="mr-2 text-base" />
@@ -270,47 +310,11 @@ const MentorDashboard = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center">
-          <button
-            className="md:hidden text-gray-400 hover:text-white"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-          <div className="relative max-w-md w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FaSearch className="text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search teams, students..."
-              className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
-            />
-          </div>
-        </header>
 
         {/* Dashboard Content */}
         <main className="flex-1 overflow-auto p-3 md:p-5 lg:p-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
             <h1 className="text-2xl md:text-3xl font-bold">Mentor Dashboard</h1>
-            <div className="flex gap-3">
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors">
-                Schedule Session
-              </button>
-            </div>
           </div>
 
           {/* Stats Cards */}
@@ -339,39 +343,27 @@ const MentorDashboard = () => {
             <div className="lg:col-span-2 bg-gray-800 rounded-xl p-6 border border-gray-700">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold">Recent Updates</h2>
-                <Link
-                  to="/mentor-notifications"
+                <button
+                  onClick={() => setShowUpdatesModal(true)}
                   className="text-sm text-blue-400 hover:text-blue-300"
                 >
                   View all
-                </Link>
+                </button>
               </div>
               <div className="space-y-4">
-                {updates.map((update, index) => (
+                {allUpdates.slice(0, 3).map((update, index) => (
                   <Link
                     key={index}
                     to={update.link}
                     className="flex items-start p-3 hover:bg-gray-700/50 rounded-lg transition-colors"
                   >
                     <div className="flex-shrink-0 mt-1">
-                      {update.type === "message" && (
-                        <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center">
-                          <FaComments />
-                        </div>
-                      )}
-                      {update.type === "task" && (
-                        <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center">
-                          <FaTasks />
-                        </div>
-                      )}
-                      {update.type === "request" && (
-                        <div className="w-10 h-10 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center">
-                          <FaUserPlus />
-                        </div>
-                      )}
+                      <div className="w-10 h-10 bg-gray-700/50 rounded-full flex items-center justify-center">
+                        {update.icon}
+                      </div>
                     </div>
                     <div className="ml-4">
-                      <p className="text-sm font-medium">{update.message}</p>
+                      <p className="text-sm font-medium">{update.formattedMessage}</p>
                       <p className="text-xs text-gray-500 mt-1">
                         {update.time}
                       </p>
@@ -381,38 +373,43 @@ const MentorDashboard = () => {
               </div>
             </div>
 
-            {/* Upcoming Sessions */}
-            <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold">Upcoming Sessions</h2>
-                <Link
-                  to="/mentor-calendar"
-                  className="text-sm text-blue-400 hover:text-blue-300"
-                >
-                  View calendar
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {upcomingSessions.map((session, index) => (
-                  <div
-                    key={index}
-                    className="p-3 hover:bg-gray-700/50 rounded-lg transition-colors"
+            {/* Upcoming Deadlines */}
+            {allDeadlines.length > 0 && (
+              <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Upcoming Deadlines</h2>
+                  <button
+                    onClick={() => setShowDeadlinesModal(true)}
+                    className="text-sm text-blue-400 hover:text-blue-300"
                   >
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mr-3">
-                        <FaCalendarAlt />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{session.title}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {session.date}
-                        </p>
+                    View calendar
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  {allDeadlines.slice(0, 3).map((deadline, index) => (
+                    <div
+                      key={index}
+                      className="p-3 hover:bg-gray-700/50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mr-3">
+                          <FaClock />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{deadline.formattedTitle}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {deadline.formattedDate}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Due: {deadline.deadlineDate.toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Active Teams Section */}
@@ -431,53 +428,41 @@ const MentorDashboard = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="bg-gray-700/50">
-                      <th className="text-left py-3 px-4 text-sm font-medium">
-                        Team Name
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium">
-                        Project
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium">
-                        Progress
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium">
-                        Last Meeting
-                      </th>
-                      <th className="text-left py-3 px-4 text-sm font-medium">
-                        Actions
-                      </th>
+                      <th className="text-left py-3 px-4 text-sm font-medium">Team Name</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium">Project</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium">Progress</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium">Members</th>
+                      <th className="text-left py-3 px-4 text-sm font-medium">Tasks</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-700">
-                    {activeTeams.map((team, index) => (
+                    {dashboardData.activeTeams.map((team, index) => (
                       <tr key={index} className="hover:bg-gray-700/30">
                         <td className="py-3 px-4">
                           <div className="font-medium">{team.name}</div>
+                          {team.leader && (
+                            <div className="text-xs text-gray-400">
+                              Leader: {team.leader.name}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-4">{team.project}</td>
                         <td className="py-3 px-4">
                           <div className="w-full bg-gray-600 rounded-full h-2">
                             <div
                               className="bg-blue-500 h-2 rounded-full"
-                              style={{ width: team.progress }}
+                              style={{ width: `${team.progress}%` }}
                             ></div>
                           </div>
                           <span className="text-xs text-gray-400 mt-1 block">
-                            {team.progress}
+                            {team.progress}%
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-400">
-                          {team.lastMeeting}
+                        <td className="py-3 px-4 text-sm">
+                          {team.members}
                         </td>
-                        <td className="py-3 px-4">
-                          <Link
-                            to={`/team/${team.name
-                              .toLowerCase()
-                              .replace(" ", "-")}`}
-                            className="text-blue-400 hover:text-blue-300 text-sm"
-                          >
-                            View
-                          </Link>
+                        <td className="py-3 px-4 text-sm">
+                          {team.tasks?.completed || 0}/{team.tasks?.total || 0}
                         </td>
                       </tr>
                     ))}
@@ -488,6 +473,130 @@ const MentorDashboard = () => {
           </div>
         </main>
       </div>
+
+      {/* Updates Modal */}
+      {showUpdatesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">All Updates</h2>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <select
+                      value={updateFilter}
+                      onChange={(e) => setUpdateFilter(e.target.value)}
+                      className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 pr-8"
+                    >
+                      <option value="all">All Updates</option>
+                      <option value="member">New Members</option>
+                      <option value="mentor">New Mentors</option>
+                      <option value="task">Task Updates</option>
+                      <option value="meeting">Meetings</option>
+                    </select>
+                    <FaFilter className="absolute right-3 top-3 text-gray-400" />
+                  </div>
+                  <button
+                    onClick={() => setShowUpdatesModal(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <FaTimes className="text-xl" />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {filteredUpdates.length > 0 ? (
+                  filteredUpdates.map((update, index) => (
+                    <Link
+                      key={index}
+                      to={update.link}
+                      className="flex items-start p-3 hover:bg-gray-700/50 rounded-lg transition-colors"
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        <div className="w-10 h-10 bg-gray-700/50 rounded-full flex items-center justify-center">
+                          {update.icon}
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium">{update.formattedMessage}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {update.time}
+                        </p>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    No updates found matching your filter
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deadlines Modal */}
+      {showDeadlinesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">All Deadlines</h2>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <select
+                      value={deadlineFilter}
+                      onChange={(e) => setDeadlineFilter(e.target.value)}
+                      className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 pr-8"
+                    >
+                      <option value="all">All Deadlines</option>
+                      <option value="upcoming">Upcoming (≤7 days)</option>
+                      <option value="later">Later (&gt;7 days)</option>
+                    </select>
+                    <FaFilter className="absolute right-3 top-3 text-gray-400" />
+                  </div>
+                  <button
+                    onClick={() => setShowDeadlinesModal(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <FaTimes className="text-xl" />
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-4">
+                {filteredDeadlines.length > 0 ? (
+                  filteredDeadlines.map((deadline, index) => (
+                    <div
+                      key={index}
+                      className="p-3 hover:bg-gray-700/50 rounded-lg transition-colors"
+                    >
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mr-3">
+                          <FaClock />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{deadline.formattedTitle}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {deadline.formattedDate}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Due: {deadline.deadlineDate.toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-400">
+                    No deadlines found matching your filter
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

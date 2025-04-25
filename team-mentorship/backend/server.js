@@ -33,5 +33,7 @@ app.use("/api/compapp", require("./routes/compapp"));
 app.use("/api/sdgadmin", require("./routes/sdgadmin"));
 app.use("/api/reports", require("./routes/reports"));
 app.use("/api/admindash", require("./routes/admindash"));
+// Add this to your server.js file after other route imports
+app.use("/api/mentor-dashboard", require("./routes/mentordash"));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
