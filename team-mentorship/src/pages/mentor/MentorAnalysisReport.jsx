@@ -81,6 +81,11 @@ const MentorAnalysisReport = () => {
         const teamsRes = await axios.get(`http://localhost:5000/api/teams/mentor/${userId}/members`);
         data.teams = Array.isArray(teamsRes.data?.teams) ? teamsRes.data.teams : [];
         data.students = Array.isArray(teamsRes.data?.members) ? teamsRes.data.members : [];
+        data.teams = (teamsRes.data?.teams || []).map(team => ({
+          ...team,
+          tasks: team.tasks || { total: 0, completed: 0 } // Default empty tasks
+        }));
+        console.log("Mentor teams data:", data.teams);    
       } catch (error) {
         console.error("Teams fetch error:", error);
       }
@@ -105,7 +110,6 @@ const MentorAnalysisReport = () => {
           (successfulComps / data.competitions.length) * 100
         );
       }
-  
       if (data.teams.length > 0) {
         const completedTeams = data.teams.filter(team => 
           team.status === 'completed'
@@ -137,35 +141,38 @@ const MentorAnalysisReport = () => {
       }));
     }
   };
-  // Calculate team progress with safety checks
-  const calculateTeamProgress = (team) => {
-    if (!team?.tasks || typeof team.tasks.total !== 'number' || team.tasks.total === 0) {
-      return 0;
-    }
-    const completed = typeof team.tasks.completed === 'number' ? team.tasks.completed : 0;
-    return Math.round((completed / team.tasks.total) * 100);
-  };
-
-  // Safely get teams data for rendering
-  const getValidTeams = () => {
-    return Array.isArray(reportData.teams) ? 
-           reportData.teams.filter(team => team && typeof team === 'object') : 
-           [];
-  };
-
-  // Chart data configurations
-  const teamProgressData = {
-    labels: getValidTeams().map(team => team.name || 'Unnamed Team'),
-    datasets: [{
-      label: 'Team Progress (%)',
-      data: getValidTeams().map(calculateTeamProgress),
-      backgroundColor: getValidTeams().map((_, i) => 
-        `hsl(${(i * 360) / Math.max(getValidTeams().length, 1)}, 70%, 50%)`),
-      borderColor: getValidTeams().map((_, i) => 
-        `hsl(${(i * 360) / Math.max(getValidTeams().length, 1)}, 70%, 30%)`),
-      borderWidth: 1
-    }]
-  };
+    // Calculate team progress based on tasks
+    const calculateTeamProgress = (team) => {
+      if (!team?.tasks || typeof team.tasks.total !== 'number' || team.tasks.total === 0) {
+        return 0;
+      }
+      const completed = Math.min(
+        typeof team.tasks.completed === 'number' ? team.tasks.completed : 0,
+        team.tasks.total
+      );
+      return Math.round((completed / team.tasks.total) * 100);
+    };
+  
+    // Safely get teams data for rendering
+    const getValidTeams = () => {
+      return Array.isArray(reportData.teams) ? 
+             reportData.teams.filter(team => team && typeof team === 'object') : 
+             [];
+    };
+  
+    // Chart data configurations
+    const teamProgressData = {
+      labels: getValidTeams().map(team => team.name || 'Unnamed Team'),
+      datasets: [{
+        label: 'Team Progress (%)',
+        data: getValidTeams().map(calculateTeamProgress),
+        backgroundColor: getValidTeams().map((_, i) => 
+          `hsl(${(i * 360) / Math.max(getValidTeams().length, 1)}, 70%, 50%)`),
+        borderColor: getValidTeams().map((_, i) => 
+          `hsl(${(i * 360) / Math.max(getValidTeams().length, 1)}, 70%, 30%)`),
+        borderWidth: 1
+      }]
+    };
 
   const competitionPerformanceData = {
     labels: reportData.competitions.map(comp => 

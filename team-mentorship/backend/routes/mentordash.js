@@ -61,6 +61,7 @@ router.get('/stats/:mentorId', async (req, res) => {
       }},
       { $project: {
           teamName: '$name',
+          projectName: '$project',
           deadline: 1,
           daysLeft: {
             $ceil: {

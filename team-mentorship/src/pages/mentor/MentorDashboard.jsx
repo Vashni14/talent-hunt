@@ -176,7 +176,7 @@ const MentorDashboard = () => {
   // Format upcoming deadlines from backend
   const allDeadlines = dashboardData.upcomingDeadlines.map(deadline => ({
     ...deadline,
-    formattedTitle: `${deadline.teamName} - ${deadline.competitionName}`,
+    formattedTitle: `${deadline.teamName} - ${deadline.projectName}`,
     formattedDate: `Due in ${deadline.daysLeft} day${deadline.daysLeft !== 1 ? 's' : ''}`,
     deadlineDate: new Date(deadline.deadline)
   }));

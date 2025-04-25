@@ -538,7 +538,7 @@ router.get('/mentor/:mentorUid/members', async (req, res) => {
         model: 'StudentProfile',
         select: 'name email contact profilePicture rolePreference domain skills bio lastActive userId'
       })
-      .select('name members sdgs status createdBy')
+      .select('name members sdgs status createdBy tasks')
       .lean();
   
     if (!teams || teams.length === 0) {
@@ -630,11 +630,16 @@ router.get('/mentor/:mentorUid/members', async (req, res) => {
       name: t.name,
       status: t.status,
       sdgs: t.sdgs,
+      tasks: {
+        total: t.tasks?.total || 0,
+        completed: t.tasks?.completed || 0
+      },
       createdBy: t.createdBy ? {
         _id: t.createdBy,
         name: creatorMap.get(t.createdBy)?.name || 'Unknown'
       } : null
     }));
+    console.log('Team info:', teamInfo);
 
     res.json({
       success: true,
