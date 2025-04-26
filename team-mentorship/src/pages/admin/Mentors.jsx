@@ -11,6 +11,7 @@ import {
   FaCalendarAlt,
   FaComments,
   FaUsers,
+  FaTrash,
   FaTrophy,
   FaSearch,
   FaFilter,
@@ -1034,6 +1035,30 @@ const Mentors = () => {
     setCurrentPage(1);
     fetchMentors();
   };
+  const handleDeleteMentor = async (mentorId) => {
+    if (!window.confirm('Are you sure you want to delete this mentor? This action cannot be undone.')) {
+      return;
+    }
+  
+    try {
+      setLoading(true);
+      const response = await axios.delete(`http://localhost:5000/api/mentor/profile/${mentorId}`);
+      
+      if (response.data.success) {
+        // Remove the deleted mentor from the local state
+        setMentors(prevMentors => prevMentors.filter(mentor => mentor._id !== mentorId));
+        // Show success message
+        alert('Mentor deleted successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to delete mentor');
+      }
+    } catch (err) {
+      console.error('Error deleting mentor:', err);
+      alert(err.response?.data?.message || err.message || 'Failed to delete mentor');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading && mentors.length === 0) {
     return (
@@ -1219,6 +1244,13 @@ const Mentors = () => {
                     >
                       <FaComments />
                     </button>
+                    <button
+  onClick={() => handleDeleteMentor(mentor._id)}
+  className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-900/20"
+  title="Delete Mentor"
+>
+  <FaTrash />
+</button>
                   </div>
                 </td>
               </tr>

@@ -19,7 +19,32 @@ const deleteFile = (filePath) => {
     });
   }
 };
+router.delete('/:id', async (req, res) => {
+  try {
+    // Find the student by ID
+    const student = await StudentProfile.findById(req.params.id);
+    
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found' });
+    }
 
+
+    // Delete the student
+    await StudentProfile.findByIdAndDelete(req.params.id);
+
+    res.json({ 
+      success: true, 
+      message: 'Student profile deleted successfully' 
+    });
+  } catch (err) {
+    console.error('Error deleting student:', err);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error while deleting student',
+      error: err.message 
+    });
+  }
+});
 // 🔹 Upload Profile Picture
 router.post("/uploadProfile", upload.single("profilePicture"), async (req, res) => {
   try {

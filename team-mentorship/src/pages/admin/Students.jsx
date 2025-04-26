@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaEye, FaFilter, FaPlus, FaComments, FaUsers, FaTrophy } from 'react-icons/fa';
+import { FaSearch, FaEye, FaFilter, FaPlus, FaComments, FaUsers, FaTrophy,FaTrash } from 'react-icons/fa';
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaUserPlus, 
@@ -873,6 +873,33 @@ const MyTeamsModal = ({ userId, onClose }) => {
       setLoading(false);
     }
   };
+  const handleDeleteStudent = async (studentId) => {
+    if (!window.confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await axios.delete(`http://localhost:5000/api/student/${studentId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`, // If using JWT
+        },
+      });
+      
+      if (response.data.success) {
+        setStudents(prevStudents => prevStudents.filter(student => student._id !== studentId));
+        // You could use a toast notification here instead of alert
+        alert('Student deleted successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to delete student');
+      }
+    } catch (err) {
+      console.error('Error deleting student:', err);
+      alert(err.response?.data?.message || err.message || 'Failed to delete student');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Search students by username
   const searchStudents = async (username) => {
@@ -1137,6 +1164,13 @@ const MyTeamsModal = ({ userId, onClose }) => {
                     title="Chat"
                   >
                     <FaComments />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteStudent(student._id)}
+                    className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-900/20"
+                    title="Delete Student"
+                  >
+                    <FaTrash />
                   </button>
                 </div>
               </td>
