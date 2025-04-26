@@ -3,8 +3,10 @@ const router = express.Router();
 const StudentProfile = require("../models/StudentProfile");
 const upload = require("../middleware/upload");
 const Team = require("../models/Team");
-const Application = require("../models/Invitation");
+const Application = require("../models/Application");
+const TeamOpening = require("../models/TeamOpening");
 const CompApplication = require("../models/CompApplication");
+const Invitation = require("../models/Invitation");
 const fs = require("fs");
 const path = require("path");
 
@@ -175,21 +177,27 @@ router.get('/dashboard/:userId', async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Get teams where user is a member or creator
-    const teams = await Team.find({
-      $or: [
-        { createdBy: userId },
-        { 'members.user': user._id }
-      ]
-    });
-
-    // Get pending applications to teams where user is creator
-    const pendingApplications = await Application.countDocuments({
-      opening: { 
-        $in: await TeamOpening.find({ createdBy: userId }).distinct('_id') 
-      },
+    // 🟦 1. Get pending applications from Application model (via openings)
+    const openings = await TeamOpening.find({ createdBy: userId }).select('_id');
+    const openingIds = openings.map(opening => opening._id);
+  
+    let pendingFromApplications = 0;
+    if (openingIds.length > 0) {
+      pendingFromApplications = await Application.countDocuments({
+        opening: { $in: openingIds },
+        status: 'pending'
+      });
+    }
+    console.log("✅ Pending from Application model:", pendingFromApplications);
+  
+  let pendingFromInvitations = 0;
+    pendingFromInvitations = await Invitation.countDocuments({
+user: user._id,
       status: 'pending'
     });
+    console.log("✅ Pending from Invitation model:", pendingFromInvitations);
+    let pendingApplications = pendingFromApplications + pendingFromInvitations;
+    console.log("✅ Total pending applications:", pendingApplications);
 
     // Get competitions user has applied to and been accepted
     const competitionApplications = await CompApplication.find({
@@ -199,8 +207,31 @@ router.get('/dashboard/:userId', async (req, res) => {
 
     // Get upcoming deadlines (competitions and teams)
     const now = new Date();
-    
-    // Team deadlines from teams user is in
+    const teams = await Team.find({
+      $or: [
+        { createdBy: userId },
+        { 'members.user': user._id }
+      ]
+    }).populate('tasks.items');
+console.log("✅ Teams found:", teams.length);
+    // Calculate progress for each team
+    const activeProjects = teams.map(team => {
+      const totalTasks = team.tasks?.items?.length || 0;
+      const completedTasks = team.tasks?.items?.filter(task => task.completed).length || 0;
+      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      return {
+        name: team.name,
+        teamId: team._id,
+        teamName: team.name,
+        deadline: team.deadline,
+        status: progress === 100 ? 'completed' : 
+               progress > 0 ? 'in-progress' : 'planning',
+        progress,
+        totalTasks,
+        completedTasks
+      };
+    }).filter(project => project.status !== 'completed');
     const teamDeadlines = teams
       .filter(team => team.deadline && new Date(team.deadline) > now)
       .map(team => ({
@@ -239,7 +270,8 @@ router.get('/dashboard/:userId', async (req, res) => {
         pendingApplications
       },
       upcomingDeadlines,
-      updates: [] // Can be populated from notifications later
+      updates: [], // Can be populated from notifications later
+      activeProjects
     });
 
   } catch (error) {

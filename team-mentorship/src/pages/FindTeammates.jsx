@@ -9,36 +9,19 @@ import { toast } from "react-hot-toast";
 import {
   FaSearch, FaFilter, FaUserPlus, FaComment, FaTimes, FaChevronDown,
   FaLinkedin, FaGithub, FaLink, FaMagic, FaBell, FaUser, FaTrophy,
-  FaGraduationCap, FaSignOutAlt, FaUsers, FaEnvelope, FaCheck, FaClock,
-  FaLightbulb, FaCode, FaPython, FaJs
+  FaGraduationCap, FaSignOutAlt, FaUsers, FaEnvelope, FaCheck, FaClock
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
 const API_URL = "http://localhost:5000/api";
-const DJANGO_URL = "http://127.0.0.1:8000";
 
 function TeammateCard({ teammate, onView, onConnect }) {
-  const skillIcons = {
-    python: <FaPython className="text-blue-400" />,
-    javascript: <FaJs className="text-yellow-400" />,
-    react: <FaCode className="text-blue-500" />,
-    nodejs: <FaCode className="text-green-500" />,
-    html: <FaCode className="text-orange-500" />,
-    css: <FaCode className="text-purple-500" />,
-    java: <FaCode className="text-red-500" />,
-    csharp: <FaCode className="text-teal-500" />,
-    ruby: <FaCode className="text-pink-500" />,
-    php: <FaCode className="text-gray-500" />,
-    go: <FaCode className="text-green-400" />,
-    swift: <FaCode className="text-orange-400" />,
-  };
-
   return (
     <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:border-blue-500/30 transition-all duration-300">
       <div className="p-4">
         <div className="flex items-start gap-3">
           <img
-            src={teammate?.profilePicture ? `http://localhost:5000${teammate.profilePicture}` : "/default-profile.png"}
+             src={teammate?.profilePicture  ?  `http://localhost:5000${teammate.profilePicture}`  :  "/default-profile.png"}
             alt={teammate.name}
             className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/30"
             onError={(e) => {
@@ -51,7 +34,7 @@ function TeammateCard({ teammate, onView, onConnect }) {
               <div>
                 <h3 className="font-medium text-white">{teammate.name}</h3>
                 <p className="text-sm text-gray-400">{teammate.rolePreference}</p>
-                <p className="text-xs text-gray-500 mt-1">{teammate.department}</p>
+                <p className="text-xs text-gray-500 mt-1">{teammate.domain}</p>
               </div>
               {teammate.compatibility && (
                 <span className="bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full text-xs font-medium">
@@ -63,40 +46,41 @@ function TeammateCard({ teammate, onView, onConnect }) {
         </div>
 
         <div className="mt-4">
+        {/* Skills display */}
+        
           <p className="text-xs text-gray-400 line-clamp-2 mb-2">
             {teammate.bio}
           </p>
           <div className="flex flex-wrap gap-1 mb-3">
-            {teammate.skills?.slice(0, 3).map((skill, index) => (
-              <span 
-                key={index} 
-                className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300 flex items-center gap-1"
-                title={`Level: ${skill.level}`}
-              >
-                {skillIcons[skill.name.toLowerCase()] || <FaCode />}
-                <span>{skill.name}</span>
-                <span className="text-[0.6rem] text-blue-400">({skill.level})</span>
-              </span>
-            ))}
-            {teammate.skills?.length > 3 && (
-              <span className="px-2 py-0.5 rounded-full text-xs bg-gray-700 text-gray-300">
-                +{teammate.skills.length - 3}
-              </span>
-            )}
-          </div>
-          
-          {teammate.competitions && teammate.competitions.length > 0 && (
-            <div className="mt-3">
-              <h4 className="text-xs font-medium text-gray-400 mb-1">Competitions</h4>
-              <div className="flex flex-wrap gap-2">
-                {teammate.competitions.map((comp, idx) => (
-                  <span key={idx} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
-                    {comp.competition}
-                  </span>
-                ))}
-              </div>
+  {teammate.skills.slice(0, 3).map((skill, index) => (
+    <span 
+      key={index} 
+      className="px-2 py-0.5 bg-gray-700 rounded-full text-xs text-gray-300 flex items-center gap-1"
+      title={`Level: ${skill.level}`}
+    >
+      <span>{skill.name}</span>
+      <span className="text-[0.6rem] text-blue-400">({skill.level})</span>
+    </span>
+  ))}
+  {teammate.skills.length > 3 && (
+    <span className="px-2 py-0.5 rounded-full text-xs bg-gray-700 text-gray-300">
+      +{teammate.skills.length - 3}
+    </span>
+  )}
+</div>
+           {/* Competitions - Fixed rendering */}
+        {teammate.competitions && teammate.competitions.length > 0 && (
+          <div className="mt-3">
+            <h4 className="text-xs font-medium text-gray-400 mb-1">Competitions</h4>
+            <div className="flex flex-wrap gap-2">
+              {teammate.competitions.map((comp, idx) => (
+                <span key={idx} className="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">
+                  {comp.competition} {/* Render name property instead of object */}
+                </span>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
           {teammate.mutualInterests && teammate.mutualInterests.length > 0 && (
             <div className="mt-3">
@@ -152,17 +136,12 @@ export default function FindTeammatesPage() {
   const [selectedTeam, setSelectedTeam] = useState("");
   const [activeTab, setActiveTab] = useState("find");
   const [invitationFilter, setInvitationFilter] = useState("all");
-  const [aiRecommendations, setAiRecommendations] = useState({
-    by_skill: {},
-    similar_users: []
-  });
 
   const [loading, setLoading] = useState({
     user: true,
     teammates: true,
     teams: false,
     invitations: false,
-    aiRecommendations: false
   });
 
   const [user, setUser] = useState({
@@ -180,10 +159,10 @@ export default function FindTeammatesPage() {
   const [sentInvitations, setSentInvitations] = useState([]);
   const [receivedInvitations, setReceivedInvitations] = useState([]);
   const [refreshInvitations, setRefreshInvitations] = useState(false);
-  const [myTeams, setMyTeams] = useState([]);
-  const [teamsLoading, setTeamsLoading] = useState(false);
-  const [teamsError, setTeamsError] = useState(null);
-  const [userId, setUserId] = useState(null);
+   const [myTeams, setMyTeams] = useState([]);
+    const [teamsLoading, setTeamsLoading] = useState(false);
+    const [teamsError, setTeamsError] = useState(null);
+    const [userId, setUserId] = useState(null);
 
   const skillsList = [
     "AI", "Machine Learning", "Web Development", "UI/UX Design", 
@@ -201,113 +180,22 @@ export default function FindTeammatesPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const filterOutCurrentUser = (data) => {
-    if (!userId || !data) return data;
-    
-    console.log('Filtering out current user from recommendations', { userId, data });
-    
-    const filteredSimilarUsers = (data.similar_users || []).filter(
-      (teammate) => teammate.user_id !== userId
-    );
-    
-    const filteredBySkill = {};
-    Object.entries(data.by_skill || {}).forEach(([skill, teammates]) => {
-      filteredBySkill[skill] = teammates.filter(
-        (teammate) => teammate.user_id !== userId
-      );
-    });
-    
-    return {
-      ...data,
-      similar_users: filteredSimilarUsers,
-      by_skill: filteredBySkill,
-    };
-  };
-
-  const fetchAIRecommendations = async () => {
-    if (!userId) {
-      console.log('No user ID, skipping AI recommendations');
-      return;
-    }
-
-    try {
-      console.log('Fetching AI recommendations for user:', userId);
-      setLoading(prev => ({ ...prev, aiRecommendations: true }));
-
-      // Get profile
-      const profileRes = await axios.get(
-        `${DJANGO_URL}/api/student-profile/${userId}/`
-      );
-      console.log('Profile response:', profileRes.data);
-
-      // Process skills
-      let userSkills = [];
-      if (profileRes.data?.skills) {
-        userSkills = profileRes.data.skills
-          .map((skill) => {
-            if (typeof skill === "object")
-              return skill.name || skill.skill || null;
-            if (typeof skill === "string") return skill;
-            return null;
-          })
-          .filter((skill) => skill)
-          .map((skill) => skill.toLowerCase().trim());
-      }
-
-      console.log('Processed skills for AI recommendations:', userSkills);
-
-      // Get recommendations
-      const recRes = await axios.post(
-        `${DJANGO_URL}/api/find-complementary-teammates`,
-        {
-          userId: userId,
-          skills: userSkills,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log('AI recommendations response:', recRes.data);
-
-      const filteredResults = filterOutCurrentUser({
-        by_skill: recRes.data.by_skill || {},
-        similar_users: recRes.data.similar_users || [],
-      });
-
-      console.log('Filtered AI recommendations:', filteredResults);
-      setAiRecommendations(filteredResults);
-    } catch (error) {
-      console.error("Error fetching AI recommendations:", {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
-      toast.error("Failed to load AI recommendations");
-    } finally {
-      setLoading(prev => ({ ...prev, aiRecommendations: false }));
-    }
-  };
-
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        console.log('User authenticated:', user.uid);
         setUserId(user.uid);
-        await fetchStudentProfile(user.uid);
-        await fetchTeammates(user.uid);
-        await fetchUserTeams(user.uid);
-        await fetchAIRecommendations();
-
+        fetchStudentProfile(user.uid);
+        fetchTeammates(user.uid);
+        fetchUserTeams(user.uid);
+  
         try {
           const res = await fetch(`${API_URL}/student/profile/${user.uid}`);
-          const text = await res.text();
-          const result = JSON.parse(text);
+          const text = await res.text(); // raw response
+  
+          const result = JSON.parse(text); // now parse it
           if (result && result._id) {
             const objectId = result._id;
-            console.log('Fetched user object ID:', objectId);
-            await fetchInvitations(objectId);
+            fetchInvitations(objectId);
           } else {
             console.error("User not found in DB");
           }          
@@ -315,22 +203,19 @@ export default function FindTeammatesPage() {
           console.error("Error fetching ObjectId for invitations:", err);
         }
       } else {
-        console.log('No user, redirecting to dashboard');
         navigate("/student/dashboard");
       }
     });
   
     return () => unsubscribe();
-  }, [navigate, refreshInvitations]);
+  }, [navigate,refreshInvitations]);
 
+  
   const fetchStudentProfile = async (userId) => {
     try {
-      console.log('Fetching student profile for:', userId);
       setLoading(prev => ({ ...prev, user: true }));
       const response = await axios.get(`${API_URL}/student/profile/${userId}`);
-      console.log('Profile data:', response.data);
-      
-      const profileData = {
+      setUser({
         uid: response.data._id,
         name: response.data.name,
         contact: response.data.contact,
@@ -338,16 +223,9 @@ export default function FindTeammatesPage() {
         skills: response.data.skills || [],
         competitions: response.data.experience || [],
         profilePicture: response.data.profilePicture || "",
-      };
-      
-      setUser(profileData);
-      console.log('Set user profile:', profileData);
-    } catch (error) {
-      console.error("Error fetching user data:", {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
       });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
       toast.error("Failed to load user data");
     } finally {
       setLoading(prev => ({ ...prev, user: false }));
@@ -356,189 +234,134 @@ export default function FindTeammatesPage() {
 
   const fetchTeammates = async (userId) => {
     try {
-      console.log('Fetching teammates for user:', userId);
       setLoading(prev => ({ ...prev, teammates: true }));
       const response = await axios.get(`${API_URL}/student/profile`);
-      console.log('All teammates response:', response.data);
-
       const teammates = response.data
-        .filter(profile => {
-          const isNotCurrentUser = profile.uid !== userId;
-          if (!isNotCurrentUser) {
-            console.log('Filtering out current user:', profile.uid);
-          }
-          return isNotCurrentUser;
-        })
-        .map(profile => {
-          const compatibility = calculateCompatibility(user, profile);
-          console.log(`Calculated compatibility for ${profile.name}:`, compatibility);
-          
-          return {
-            _id: profile._id,
-            uid: profile._id,
-            name: profile.name,
-            rolePreference: profile.rolePreference,
-            contact: profile.contact,
-            linkedin: profile.linkedin,
-            github: profile.github,
-            portfolio: profile.portfolio,
-            department: profile.department,
-            projects: profile.projects || [],
-            certifications: profile.certifications || [],
-            skills: profile.skills || [],
-            competitions: profile.experience || [],
-            availability: "Available",
-            bio: profile.bio || `${profile.name} is a ${profile.department} student`,
-            profilePicture: profile.profilePicture,
-            mutualInterests: calculateMutualInterests(user, profile),
-            compatibility: compatibility,
-          };
-        });
+        .filter(profile => profile.uid !== userId)
+        .map(profile => ({
+          _id: profile._id,
+          uid: profile._id,
+          name: profile.name,
+          rolePreference: profile.rolePreference,
+          contact: profile.contact,
+          linkedin: profile.linkedin,
+          github: profile.github,
+          portfolio: profile.portfolio,
+          department: profile.department,
+          projects: profile.projects || [],
+          certifications: profile.certifications || [],
+          skills: profile.skills || [],
+          competitions: profile.experience || [],
+          availability: "Available",
+          bio: profile.bio || `${profile.name} is a ${profile.department} student`,
+          profilePicture: profile.profilePicture,
+          mutualInterests: calculateMutualInterests(user, profile),
+          compatibility: calculateCompatibility(user, profile),
+        }));
       
-      console.log('Processed teammates:', teammates);
       setPotentialTeammates(teammates);
     } catch (error) {
-      console.error("Error fetching teammates:", {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
+      console.error("Error fetching teammates:", error);
       toast.error("Failed to load teammates");
     } finally {
       setLoading(prev => ({ ...prev, teammates: false }));
     }
   };
 
-  const fetchUserTeams = async () => {
-    try {
-      if (!userId) {
-        console.log('No user ID available for fetching teams');
-        return;
-      }
-  
-      console.log('Fetching teams for user:', userId);
-      setTeamsLoading(true);
-      setTeamsError(null);
-      
-      const response = await axios.get(`${API_URL}/teams/user/${userId}`);
-      console.log('Teams response:', response.data);
-  
-      let teamsData = [];
-      if (Array.isArray(response.data)) {
-        teamsData = response.data;
-      } else if (response.data.success && Array.isArray(response.data.data)) {
-        teamsData = response.data.data;
-      }
-  
-      const myTeams = teamsData.filter(team => {
-        const createdById = typeof team.createdBy === 'object' 
-          ? team.createdBy._id 
-          : team.createdBy;
-        const isUserTeam = createdById === userId;
-        console.log(`Team ${team.name} created by ${createdById}, isUserTeam: ${isUserTeam}`);
-        return isUserTeam;
-      });
-  
-      console.log("Filtered user teams:", myTeams);
-      setTeams(myTeams);
-      
-    } catch (err) {
-      console.error('Error in fetchMyTeams:', {
-        message: err.message,
-        response: err.response?.data,
-        stack: err.stack
-      });
-      setTeamsError(err.message);
-      setTeams([]);
-    } finally {
-      setTeamsLoading(false);
-    }
-  };
+ const fetchUserTeams = async () => {
+     try {
+       if (!userId) {
+         console.log('No user ID available');
+         return;
+       }
+   
+       setTeamsLoading(true);
+       setTeamsError(null);
+       
+       const response = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+   
+       let teamsData = [];
+       if (Array.isArray(response.data)) {
+         teamsData = response.data;
+       } else if (response.data.success && Array.isArray(response.data.data)) {
+         teamsData = response.data.data;
+       }
+   
+       const myTeams = teamsData.filter(team => {
+         const createdById = typeof team.createdBy === 'object' 
+           ? team.createdBy._id 
+           : team.createdBy;
+         return createdById === userId;
+       });
+   
+       console.log("filtered teams", myTeams);
+       setTeams(myTeams);
+       
+     } catch (err) {
+       console.error('Error in fetchMyTeams:', err);
+       setTeamsError(err.message);
+       setTeams([]);
+     } finally {
+       setTeamsLoading(false);
+     }
+   };
+   
+   useEffect(() => {
+     fetchUserTeams();
+   }, [userId]);
+ 
 
   const fetchInvitations = async (userId) => {
     try {
-      console.log('Fetching invitations for user:', userId);
-      setLoading(prev => ({ ...prev, invitations: true }));
-      
+      setLoading(prev => ({ ...prev, invitations: true }))
       // Fetch SENT invitations
       try {
         const sentResponse = await axios.get(`${API_URL}/teams/invitations/sent/${userId}`);
-        console.log('Sent invitations:', sentResponse.data);
         if (sentResponse.data && sentResponse.data.success) {
           setSentInvitations(sentResponse.data.data);
         } else {
-          console.log('No sent invitations data');
-          setSentInvitations([]);
+          setSentInvitations([]); // Ensure fallback to empty array
         }
       } catch (error) {
-        console.error('Error fetching sent invitations:', error);
-        setSentInvitations([]);
+        setSentInvitations([]); // Prevent crash
       }
 
       // Fetch RECEIVED invitations
       const receivedResponse = await axios.get(`${API_URL}/teams/invitations/received/${userId}`);
-      console.log('Received invitations:', receivedResponse.data);
       setReceivedInvitations(receivedResponse.data?.data || []);
   
     } catch (error) {
-      console.error("Error fetching invitations:", error);
       toast.error("Failed to load invitations");
     } finally {
       setLoading(prev => ({ ...prev, invitations: false }));
     }
   };  
-
-  const triggerRefreshInvitations = () => {
-    console.log('Triggering refresh of invitations');
-    setRefreshInvitations(prev => !prev);
-  };
-
+  const triggerRefreshInvitations = () => setRefreshInvitations(prev => !prev);
   const calculateMutualInterests = (currentUser, profile) => {
-    if (!currentUser?.skills || !profile?.skills) {
-      console.log('No skills data for mutual interests calculation', { currentUser, profile });
-      return [];
-    }
-
+    // Handle both cases where skills might be strings or objects
     const userSkills = currentUser.skills.map(skill => 
-      typeof skill === 'string' ? skill.toLowerCase().trim() : skill.name.toLowerCase().trim()
+      typeof skill === 'string' ? skill : skill.name
     );
     const profileSkills = (profile.skills || []).map(skill => 
-      typeof skill === 'string' ? skill.toLowerCase().trim() : skill.name.toLowerCase().trim()
+      typeof skill === 'string' ? skill : skill.name
     );
     
-    const mutual = [...new Set(userSkills)].filter(skill => 
+    return [...new Set(userSkills)].filter(skill => 
       new Set(profileSkills).has(skill)
     );
-    
-    console.log('Calculated mutual interests:', {
-      userSkills,
-      profileSkills,
-      mutual
-    });
-    
-    return mutual;
   };
 
   const calculateCompatibility = (currentUser, profile) => {
-    if (!currentUser?.skills || !profile?.skills) {
-      console.log('No skills data for compatibility calculation', { currentUser, profile });
-      return 0;
-    }
-
     const sharedSkills = calculateMutualInterests(currentUser, profile).length;
-    const maxPossible = Math.max(currentUser.skills.length, profile.skills.length, 1);
-    const score = (sharedSkills / maxPossible) * 100;
-    const roundedScore = Math.floor(score);
-    
-    console.log('Calculated compatibility score:', {
-      sharedSkills,
-      maxPossible,
-      score,
-      roundedScore
-    });
-    
-    return roundedScore;
+    const maxPossible =
+      Math.max(currentUser.skills.length, 1) 
+  
+    const score =
+      (sharedSkills) / maxPossible;
+  
+    return Math.floor(score * 100);
   };
+  
 
   const toggleSkill = (skill) => {
     setSelectedSkills(prev => 
@@ -549,13 +372,11 @@ export default function FindTeammatesPage() {
   };
 
   const clearFilters = () => {
-    console.log('Clearing all filters');
     setSearchQuery("");
     setSelectedSkills([]);
   };
 
   const handleConnect = (teammate) => {
-    console.log('Connecting with teammate:', teammate.name);
     setSelectedTeammate(teammate);
     setShowInviteModal(true);
   };
@@ -563,17 +384,9 @@ export default function FindTeammatesPage() {
   const sendConnectionRequest = async () => {
     try {
       if (!selectedTeammate || !selectedTeam) {
-        console.log('Missing data for connection request', { selectedTeammate, selectedTeam });
         toast.error("Please select a team");
         return;
       }
-  
-      console.log('Sending connection request:', {
-        teamId: selectedTeam,
-        teammateId: selectedTeammate._id,
-        message: message,
-        createdBy: user.uid
-      });
   
       const response = await axios.post(`${API_URL}/teams/invite`, {
         teamId: selectedTeam,
@@ -581,7 +394,6 @@ export default function FindTeammatesPage() {
         message: message,
         createdBy: user.uid
       });
-      console.log('Invitation response:', response.data);
   
       const team = teams.find(t => t._id === selectedTeam);
       const newInvitation = {
@@ -603,25 +415,18 @@ export default function FindTeammatesPage() {
         createdAt: new Date().toISOString()
       };
   
-      console.log('Created new invitation:', newInvitation);
+     
       toast.success(`Invitation sent to ${selectedTeammate.name}`);
       setShowInviteModal(false);
       setMessage("");
       setSelectedTeam("");
-      triggerRefreshInvitations();
     } catch (error) {
-      console.error("Error sending invitation:", {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
+      console.error("Error sending invitation:", error);
       toast.error(error.response?.data?.message || "Failed to send invitation");
     }
   };
-
   const handleInvitationResponse = async (invitationId, accepted) => {
     try {
-      console.log(`Responding to invitation ${invitationId} with ${accepted ? 'accept' : 'reject'}`);
       const response = await axios.put(`${API_URL}/teams/invitations/${invitationId}`, {
         status: accepted ? "accepted" : "rejected"
       }, {
@@ -630,7 +435,6 @@ export default function FindTeammatesPage() {
           'Authorization': `Bearer ${await auth.currentUser.getIdToken()}`
         }
       });
-      console.log('Invitation response:', response.data);
       
       setReceivedInvitations(prev => 
         prev.map(inv => 
@@ -650,18 +454,13 @@ export default function FindTeammatesPage() {
         fetchUserTeams(user.uid);
       }
     } catch (error) {
-      console.error("Error responding to invitation:", {
-        message: error.message,
-        response: error.response?.data,
-        stack: error.stack
-      });
+      console.error("Error responding to invitation:", error);
       const errorMessage = error.response?.data?.message || 
         error.message || 
         "Failed to update invitation status";
       toast.error(errorMessage);
     }
   };
-
   const withdrawInvitation = async (invitationId) => {
     try {
       console.log('Withdrawing invitation:', invitationId);
@@ -712,14 +511,13 @@ export default function FindTeammatesPage() {
     const matchesSkills = 
       selectedSkills.length === 0 || 
       selectedSkills.some(skill => 
-        teammate.skills.some(s => 
-          (typeof s === 'string' ? s : s.name).toLowerCase() === skill.toLowerCase()
-        )
+        teammate.skills.includes(skill)
       );
 
     return matchesSearch && matchesSkills;
   });
 
+  // Filter invitations based on selected status
   const filteredSentInvitations = sentInvitations.filter(inv => {
     if (invitationFilter === "all") return true;
     return inv.status === invitationFilter;
@@ -730,63 +528,7 @@ export default function FindTeammatesPage() {
     return inv.status === invitationFilter;
   });
 
-  const mapAiRecommendationsToTeammates = () => {
-    if (!aiRecommendations) {
-      console.log('No AI recommendations data');
-      return [];
-    }
-
-    // Combine similar users and by_skill teammates
-    const allAiTeammates = [
-      ...(aiRecommendations.similar_users || []),
-      ...Object.values(aiRecommendations.by_skill || {}).flat()
-    ];
-    
-    // Remove duplicates
-    const uniqueTeammates = allAiTeammates.filter(
-      (teammate, index, self) => 
-        index === self.findIndex(t => t.user_id === teammate.user_id)
-    );
-    
-    console.log('Unique AI teammates:', uniqueTeammates);
-
-    // Map to the teammate format used in the app
-    const mappedTeammates = uniqueTeammates.map(teammate => {
-      const existingTeammate = potentialTeammates.find(t => t.uid === teammate.user_id);
-      
-      if (existingTeammate) {
-        console.log('Found existing teammate for AI recommendation:', existingTeammate.name);
-        return {
-          ...existingTeammate,
-          compatibility: Math.round((teammate.similarity_score || 0) * 100)
-        };
-      }
-      
-      console.log('Creating new teammate from AI recommendation:', teammate.name);
-      return {
-        _id: teammate.user_id,
-        uid: teammate.user_id,
-        name: teammate.name,
-        rolePreference: teammate.role_preference || "Not specified",
-        contact: teammate.contact || "",
-        department: teammate.department || "",
-        skills: teammate.skills?.map(skill => ({ name: skill, level: "Intermediate" })) || [],
-        competitions: [],
-        bio: teammate.bio || `${teammate.name} is looking for teammates`,
-        profilePicture: teammate.profile_picture || "",
-        compatibility: Math.round((teammate.similarity_score || 0) * 100),
-        mutualInterests: teammate.matching_skills || []
-      };
-    });
-
-    console.log('Mapped AI teammates:', mappedTeammates);
-    return mappedTeammates;
-  };
-
-  const aiRecommendedTeammates = mapAiRecommendationsToTeammates();
-
   const handleNavigateToTeams = () => {
-    console.log('Navigating to teams page');
     navigate('/my-teams');
   };
 
@@ -805,7 +547,7 @@ export default function FindTeammatesPage() {
         <div className="relative group">
           <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-all duration-200">
             <img
-              src={user?.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
+               src={user?.profilePicture  ?  `http://localhost:5000${user.profilePicture}`  :  "/default-profile.png"}
               alt="Profile"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -1034,35 +776,24 @@ export default function FindTeammatesPage() {
                     <>
                       <div className="mb-8">
                         <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                          <FaLightbulb className="text-yellow-400" /> AI-Recommended Teammates
+                          <FaMagic className="text-purple-400" /> AI-Recommended Teammates
                         </h2>
-                        {loading.aiRecommendations ? (
-                          <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 text-center">
-                            <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                            <p>Loading AI recommendations...</p>
-                          </div>
-                        ) : aiRecommendedTeammates.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {aiRecommendedTeammates
-                              .filter(teammate => teammate.compatibility >= 70) // Only show high compatibility matches
-                              .slice(0, 4) // Limit to 4 recommendations
-                              .map((teammate) => (
-                                <TeammateCard 
-                                  key={teammate._id}
-                                  teammate={teammate}
-                                  onView={() => {
-                                    setSelectedProfile(teammate);
-                                    setShowProfileModal(true);
-                                  }}
-                                  onConnect={() => handleConnect(teammate)}
-                                />
-                              ))}
-                          </div>
-                        ) : (
-                          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700 text-center">
-                            <p className="text-gray-400">No AI recommendations available yet</p>
-                          </div>
-                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {filteredTeammates
+                            .filter((teammate) => teammate.compatibility >= 85)
+                            .slice(0, 2)
+                            .map((teammate) => (
+                              <TeammateCard 
+                                key={teammate._id}
+                                teammate={teammate}
+                                onView={() => {
+                                  setSelectedProfile(teammate);
+                                  setShowProfileModal(true);
+                                }}
+                                onConnect={() => handleConnect(teammate)}
+                              />
+                            ))}
+                        </div>
                       </div>
 
                       <div>
@@ -1106,7 +837,7 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                  src={invitation.createdBy?.profilePicture ? `http://localhost:5000${invitation.createdBy.profilePicture}` : "/default-profile.png"}
+                                   src={invitation.createdBy?.profilePicture  ?  `http://localhost:5000${invitation.createdBy.profilePicture}`  :  "/default-profile.png"}
                                   alt={invitation.createdBy?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
@@ -1207,7 +938,7 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                  src={invitation.user?.profilePicture ? `http://localhost:5000${invitation.user.profilePicture}` : "/default-profile.png"}
+                                   src={invitation.user?.profilePicture  ?  `http://localhost:5000${invitation.user.profilePicture}`  :  "/default-profile.png"}
                                   alt={invitation.user?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
@@ -1310,7 +1041,7 @@ export default function FindTeammatesPage() {
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700">
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img
-                    src={selectedTeammate?.profilePicture ? `http://localhost:5000${selectedTeammate.profilePicture}` : "/default-profile.png"}
+                     src={selectedTeammate?.profilePicture  ?  `http://localhost:5000${selectedTeammate.profilePicture}`  :  "/default-profile.png"}
                     alt={selectedTeammate.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
