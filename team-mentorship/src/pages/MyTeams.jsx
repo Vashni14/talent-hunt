@@ -1362,7 +1362,7 @@ export default function MyTeams() {
                               <h4 className="text-sm font-medium text-white">Mentors</h4>
                               {isCreator && (
                                 <button 
-                                  onClick={() => handleAddMentor(team._id)}
+                                onClick={() => navigate("/mentorfind")}
                                   className="flex items-center gap-1 text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded"
                                 >
                                   <FaPlus size={10} /> Add Mentor
@@ -1499,13 +1499,6 @@ export default function MyTeams() {
                   
                   <div className="border-t border-gray-700 p-3 flex justify-between items-center">
                     <div className="flex gap-3">
-                      <button 
-                        className="flex items-center gap-1 text-xs text-gray-300 hover:text-white"
-                        onClick={() => navigate(`/team-chat/${team._id}`)}
-                      >
-                        <FaComments className="mr-1" />
-                        <span>Chat</span>
-                      </button>
                     </div>
                     {team.status === "active" && (
                       <button 

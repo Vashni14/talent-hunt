@@ -367,11 +367,6 @@ export default function FindTeammatesPage() {
               <div className="space-y-4">
                 {dashboardData.upcomingDeadlines.length > 0 ? (
                   dashboardData.upcomingDeadlines.slice(0, 5).map((event, index) => (
-                    <Link
-                      key={index}
-                      to={event.link}
-                      className="p-3 hover:bg-gray-700/50 rounded-lg transition-colors block group"
-                    >
                       <div className="flex items-center">
                         <div className={`w-10 h-10 ${event.type === 'competition' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'} rounded-full flex items-center justify-center mr-3`}>
                           <FaCalendarAlt />
@@ -388,7 +383,6 @@ export default function FindTeammatesPage() {
                           </div>
                         </div>
                       </div>
-                    </Link>
                   ))
                 ) : (
                   <div className="text-center py-6">
@@ -407,7 +401,7 @@ export default function FindTeammatesPage() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               <Link
-                to="/find-teammates"
+                to="/dashboard"
                 className="bg-gray-800 p-4 rounded-xl border border-gray-700 hover:border-blue-500/30 transition-colors flex items-center hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 group"
               >
                 <div className="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-full flex items-center justify-center mr-3 group-hover:bg-blue-500/20 transition-colors">

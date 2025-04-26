@@ -115,7 +115,6 @@ useEffect(() => {
       [name]: value
     }));
   };
-
   const submitApplication = async () => {
     try {
       const token = await auth.currentUser.getIdToken();

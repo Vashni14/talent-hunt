@@ -674,7 +674,6 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
                 <button 
                   className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center gap-2"
                   onClick={async () => {
-                    await auth.signOut();
                     navigate("/login");
                   }}
                 >
@@ -897,12 +896,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
                             <FaMedal className="inline mr-1" /> {comp.prizePool || 'Various prizes'}
                           </p>
                         </div>
-                        <button 
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                          onClick={() => navigate(`/competitions/${comp._id}`)}
-                        >
-                          View Details
-                        </button>
+                       
                       </div>
                     </div>
                   </motion.div>
@@ -1153,12 +1147,6 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
                           <FaMedal className="inline mr-1" /> {comp.prizePool || 'Various prizes'}
                         </p>
                       </div>
-                      <button 
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-                        onClick={() => navigate(`/competitions/${comp._id}`)}
-                      >
-                        View Details
-                      </button>
                     </div>
                   </div>
                 </motion.div>

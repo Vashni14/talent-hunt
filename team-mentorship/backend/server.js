@@ -12,6 +12,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const mentorApplicationRoutes = require("./routes/mentorApplicationRoutes");
 const ChatMessage = require("./models/ChatMessage");
 const Team = require("./models/Team");
+const path = require('path');
 
 dotenv.config();
 connectDB();
@@ -146,6 +147,6 @@ io.on("connection", (socket) => {
 
 // Attach io to app for use in routes
 app.set("io", io);
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
