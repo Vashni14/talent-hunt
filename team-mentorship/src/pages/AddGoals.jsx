@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { auth } from "../config/firebase";
 import { FaTrash, FaEdit, FaSave, FaCheckCircle, FaUndoAlt } from "react-icons/fa";
+import Shepherd from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
 
 function AddGoals() {
   const navigate = useNavigate();
@@ -14,11 +16,17 @@ function AddGoals() {
   const [editedTitle, setEditedTitle] = useState("");
   const [editedTotal, setEditedTotal] = useState("");
   const [editedDeadline, setEditedDeadline] = useState("");
+  const tourRef = useRef(null);
 
   const user = auth.currentUser;
 
   useEffect(() => {
     if (user) fetchGoals();
+    return () => {
+      if (tourRef.current) {
+        tourRef.current.complete();
+      }
+    };
   }, [user]);
 
   const fetchGoals = async () => {
@@ -29,6 +37,90 @@ function AddGoals() {
     } catch (error) {
       console.error("Error fetching goals:", error);
     }
+  };
+
+  const startTour = () => {
+    // If tour already exists, destroy it before creating a new one
+    if (tourRef.current) {
+      tourRef.current.complete();
+    }
+
+    tourRef.current = new Shepherd.Tour({
+      defaultStepOptions: {
+        classes: 'shepherd-theme-arrows',
+        scrollTo: true,
+        cancelIcon: {
+          enabled: true
+        }
+      }
+    });
+
+    // Step 1: Goal Form
+    tourRef.current.addStep({
+      id: 'goalForm',
+      title: 'Add Your Goal',
+      text: 'Here you can enter a new goal title, total tasks needed to complete it, and the deadline.',
+      attachTo: {
+        element: 'form',
+        on: 'bottom'
+      },
+      buttons: [
+        {
+          text: 'Next',
+          action: tourRef.current.next
+        }
+      ]
+    });
+
+    // Step 2: Goals List
+    tourRef.current.addStep({
+      id: 'goalList',
+      title: 'Manage Your Goals',
+      text: 'This is your list of goals. You can edit, mark progress, or delete them.',
+      attachTo: {
+        element: 'ul',
+        on: 'bottom'
+      },
+      buttons: [
+        {
+          text: 'Next',
+          action: tourRef.current.next
+        }
+      ]
+    });
+
+    // Step 3: Goal Actions
+    if (goals.length > 0) {
+      tourRef.current.addStep({
+        id: 'goalActions',
+        title: 'Goal Actions',
+        text: 'Use these buttons to edit, mark progress, undo progress, or delete your goals.',
+        attachTo: {
+          element: goals[0] ? `.goal-actions-${goals[0]._id}` : 'ul',
+          on: 'left'
+        },
+        buttons: [
+          {
+            text: 'Finish',
+            action: tourRef.current.complete
+          }
+        ]
+      });
+    } else {
+      tourRef.current.addStep({
+        id: 'noGoals',
+        title: 'No Goals Yet',
+        text: 'When you add goals, you\'ll see them here with action buttons.',
+        buttons: [
+          {
+            text: 'Finish',
+            action: tourRef.current.complete
+          }
+        ]
+      });
+    }
+
+    tourRef.current.start();
   };
 
   const handleSubmit = async (e) => {
@@ -48,7 +140,7 @@ function AddGoals() {
       });
   
       alert("✅ Goal added successfully!");
-      await fetchGoals(); // Fetch the latest goals from the server
+      await fetchGoals();
       setTitle("");
       setTotal("");
       setDeadline("");
@@ -62,7 +154,7 @@ function AddGoals() {
     try {
       await axios.delete(`http://localhost:5000/api/goals/${goalId}`);
       alert("❌ Goal deleted!");
-      setGoals(goals.filter((goal) => goal._id !== goalId)); // Update UI immediately
+      setGoals(goals.filter((goal) => goal._id !== goalId));
     } catch (error) {
       console.error("Error deleting goal:", error);
       alert("❌ Error deleting goal.");
@@ -70,29 +162,23 @@ function AddGoals() {
   };
 
   const handleEdit = (goal) => {
-    console.log("Editing Goal:", goal); // Debugging
     setEditingId(goal._id);
     setEditedTitle(goal.title);
-    setEditedTotal(goal.total.toString()); // Ensure total is a string for the input field
+    setEditedTotal(goal.total.toString());
     setEditedDeadline(goal.deadline);
   };
 
   const handleSaveEdit = async () => {
     try {
-      const response = await axios.put(`http://localhost:5000/api/goals/${editingId}`, {
+      await axios.put(`http://localhost:5000/api/goals/${editingId}`, {
         title: editedTitle,
         total: parseInt(editedTotal),
         deadline: editedDeadline,
       });
 
-      console.log("Backend Response:", response.data); // Debugging
-
       alert("✅ Goal updated successfully!");
-
-      // Fetch updated goals from the backend
       fetchGoals();
-
-      setEditingId(null); // Exit edit mode
+      setEditingId(null);
     } catch (error) {
       console.error("Error updating goal:", error);
       alert("❌ Error updating goal.");
@@ -105,7 +191,6 @@ function AddGoals() {
         const updatedGoal = { ...goal, completed: goal.completed + 1 };
         await axios.put(`http://localhost:5000/api/goals/${goal._id}`, updatedGoal);
 
-        // Update UI Immediately
         setGoals((prevGoals) =>
           prevGoals.map((g) =>
             g._id === goal._id ? { ...g, completed: g.completed + 1 } : g
@@ -124,7 +209,6 @@ function AddGoals() {
         const updatedGoal = { ...goal, completed: goal.completed - 1 };
         await axios.put(`http://localhost:5000/api/goals/${goal._id}`, updatedGoal);
 
-        // Update UI Immediately
         setGoals((prevGoals) =>
           prevGoals.map((g) =>
             g._id === goal._id ? { ...g, completed: g.completed - 1 } : g
@@ -146,7 +230,13 @@ function AddGoals() {
       <div className="w-full max-w-4xl bg-gray-800 p-8 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-teal-400 text-center">🎯 Manage Your Goals</h2>
 
-        {/* Add Goal Form */}
+        <button
+          onClick={startTour}
+          className="mt-4 bg-purple-600 px-4 py-2 rounded font-bold hover:bg-purple-700 w-full"
+        >
+          Take a Quick Tour
+        </button>
+
         <form onSubmit={handleSubmit} className="mt-6">
           <input
             type="text"
@@ -174,12 +264,10 @@ function AddGoals() {
           </button>
         </form>
 
-        {/* Goals List */}
         <ul className="mt-6 space-y-3">
           {goals.map((goal) => (
             <li key={goal._id} className="bg-gray-700 p-4 rounded-lg flex flex-col">
               {editingId === goal._id ? (
-                // Edit Form
                 <div className="w-full">
                   <input
                     type="text"
@@ -208,7 +296,7 @@ function AddGoals() {
                       <FaSave />
                     </button>
                     <button
-                      onClick={() => setEditingId(null)} // Cancel Edit
+                      onClick={() => setEditingId(null)}
                       className="bg-gray-500 px-3 py-1 rounded font-bold hover:bg-gray-600"
                     >
                       <FaUndoAlt />
@@ -216,25 +304,23 @@ function AddGoals() {
                   </div>
                 </div>
               ) : (
-                // Display Goal
                 <div className="w-full flex justify-between items-center">
-                <div className="w-full">  {/* Ensure it takes full width */}
-                  <p className="text-white font-medium">
-                    {goal.title} (Tasks: {goal.completed}/{goal.total})
-                  </p>
-                  <p className="text-sm text-gray-300">
-                    📅 {new Date(goal.deadline).toLocaleDateString()}
-                  </p>
-                  {/* 🔹 Make Progress Bar Full Width */}
-                  <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
-                    <div 
-                      className="bg-teal-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(goal.completed / goal.total) * 100}%`, maxWidth: "100%" }} // Ensure it fills the width
-                    ></div>
+                  <div className="w-full">
+                    <p className="text-white font-medium">
+                      {goal.title} (Tasks: {goal.completed}/{goal.total})
+                    </p>
+                    <p className="text-sm text-gray-300">
+                      📅 {new Date(goal.deadline).toLocaleDateString()}
+                    </p>
+                    <div className="w-full bg-gray-600 rounded-full h-2 mt-3">
+                      <div 
+                        className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${(goal.completed / goal.total) * 100}%`, maxWidth: "100%" }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
               
-                  <div className="flex space-x-2">
+                  <div className={`flex space-x-2 goal-actions-${goal._id}`}>
                     <button
                       onClick={() => handleEdit(goal)}
                       className="text-blue-400 hover:text-blue-300"

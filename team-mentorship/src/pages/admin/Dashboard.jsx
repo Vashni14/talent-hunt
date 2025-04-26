@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from "react-router-dom";
 import {
   FaTrophy,
@@ -9,9 +9,12 @@ import {
   FaTimes,
   FaCalendarAlt,
   FaChevronDown,
-  FaSearch
+  FaSearch,
+  FaQuestionCircle
 } from "react-icons/fa";
 import axios from 'axios';
+import Shepherd from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
 
 const Dashboard = () => {
   const [stats, setStats] = useState([]);
@@ -25,6 +28,7 @@ const Dashboard = () => {
     search: ''
   });
   const [allActivities, setAllActivities] = useState([]);
+  const tour = useRef(null);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -125,6 +129,9 @@ const Dashboard = () => {
         setRecentActivity(processedActivity);
         setAllActivities(processedActivity);
         setLoading(false);
+        
+        // Initialize tour after data loads
+        initTour();
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err);
         setError('Failed to load dashboard data. Please try again later.');
@@ -133,7 +140,149 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
+
+    return () => {
+      if (tour.current) {
+        tour.current.complete();
+      }
+    };
   }, []);
+
+  const initTour = () => {
+    tour.current = new Shepherd.Tour({
+      useModalOverlay: true,
+      defaultStepOptions: {
+        classes: 'shadow-md bg-gray-800 border border-gray-700',
+        scrollTo: { behavior: 'smooth', block: 'center' }
+      }
+    });
+
+    // Welcome step
+    tour.current.addStep({
+      id: 'welcome',
+      text: 'Welcome to your Admin Dashboard! Let me show you around.',
+      buttons: [
+        {
+          text: 'Next',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.dashboard-title',
+        on: 'bottom'
+      }
+    });
+
+    // Sidebar navigation step
+    tour.current.addStep({
+      id: 'sidebar-nav',
+      text: 'Use this sidebar to navigate between different sections of the admin dashboard.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.current.back
+        },
+        {
+          text: 'Next',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.sidebar-nav',
+        on: 'right'
+      }
+    });
+
+    // Stats cards
+    tour.current.addStep({
+      id: 'stats-cards',
+      text: 'These cards show important statistics at a glance. Click any card to view more details.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.current.back
+        },
+        {
+          text: 'Next',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.stats-grid',
+        on: 'bottom'
+      }
+    });
+
+    // Recent activity
+    tour.current.addStep({
+      id: 'recent-activity',
+      text: 'Here you can see recent activities. Click "View All" to see a filtered list of all activities.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.current.back
+        },
+        {
+          text: 'Next',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.recent-activity-section',
+        on: 'bottom'
+      }
+    });
+
+    // Quick links
+    tour.current.addStep({
+      id: 'quick-links',
+      text: 'Quick access to all major sections of the dashboard.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.current.back
+        },
+        {
+          text: 'Next',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.quick-links-section',
+        on: 'bottom'
+      }
+    });
+
+    // Create competition button
+    tour.current.addStep({
+      id: 'create-competition',
+      text: 'Start here to create a new competition for students.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.current.back
+        },
+        {
+          text: 'Finish',
+          action: tour.current.next
+        }
+      ],
+      attachTo: {
+        element: '.create-competition-btn',
+        on: 'bottom'
+      }
+    });
+  };
+
+  const startTour = () => {
+    if (tour.current) {
+      const isFirstVisit = localStorage.getItem('dashboardTourCompleted') !== 'true';
+      if (isFirstVisit) {
+        localStorage.setItem('dashboardTourCompleted', 'true');
+      }
+      tour.current.start();
+    }
+  };
 
   const formatTimeAgo = (dateString) => {
     if (!dateString) return "Recently";
@@ -211,19 +360,26 @@ const Dashboard = () => {
       {/* Dashboard Content */}
       <main className="flex-1 overflow-auto p-3 md:p-5 lg:p-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
+          <h1 className="dashboard-title text-2xl md:text-3xl font-bold text-white">Admin Dashboard</h1>
           <div className="flex gap-3">
             <Link 
               to="/admin-dashboard/competitions" 
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
+              className="create-competition-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-colors"
             >
               Create New Competition
             </Link>
+            <button 
+              onClick={startTour}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              title="Take a tour"
+            >
+              <FaQuestionCircle /> Help
+            </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <div className="stats-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
           {stats.map((stat, index) => (
             <Link
               key={index}
@@ -242,7 +398,7 @@ const Dashboard = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <div className="recent-activity-section bg-gray-800 rounded-xl p-6 border border-gray-700">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-white">Recent Activity</h2>
             {recentActivity.length > 0 && (
@@ -281,7 +437,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Links Section */}
-        <div className="mt-8">
+        <div className="quick-links-section mt-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-white">Quick Access</h2>
           </div>
