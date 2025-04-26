@@ -11,6 +11,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { auth } from "../config/firebase";
+import Shepherd from 'shepherd.js';
+import 'shepherd.js/dist/css/shepherd.css';
+import { FaQuestionCircle } from 'react-icons/fa';  
 
 const StudentLandingPage = () => {
   const navigate = useNavigate();
@@ -33,6 +36,337 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
   const [userTeams, setUserTeams] = useState([]);
 
   const user = auth.currentUser;
+
+  const initTour = () => {
+    const tour = new Shepherd.Tour({
+      defaultStepOptions: {
+        cancelIcon: {
+          enabled: true
+        },
+        classes: 'shadow-md bg-gray-800 border border-gray-700',
+        scrollTo: { behavior: 'smooth', block: 'center' }
+      },
+      useModalOverlay: true
+    });
+  
+    // Step 1: Welcome
+    tour.addStep({
+      id: 'welcome',
+      text: 'Welcome to ScholarCompete! This tour will help you navigate the platform.',
+      buttons: [
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.flex.items-center.gap-3', // Logo area
+        on: 'bottom'
+      }
+    });
+  
+    // Step 2: Navigation
+    tour.addStep({
+      id: 'navigation',
+      text: 'Use these tabs to switch between Competitions, Team Match, and Mentorship sections.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.hidden.md\\:flex.items-center.gap-4', // Main nav
+        on: 'bottom'
+      }
+    });
+  
+    // Step 3: Profile
+    tour.addStep({
+      id: 'profile',
+      text: 'Access your profile, notifications, and account settings here.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.relative.group', // Profile dropdown
+        on: 'left'
+      }
+    });
+  
+    // Step 4: Search
+    tour.addStep({
+      id: 'search',
+      text: 'Search for competitions, teammates, or resources across the platform.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.relative.max-w-md', // Search bar
+        on: 'bottom'
+      }
+    });
+  
+    // Step 5: Deadlines
+    tour.addStep({
+      id: 'deadlines',
+      text: 'Keep track of your upcoming deadlines and important dates here.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.lg\\:w-1\\/2.w-full.max-w-xl', // Deadlines card
+        on: 'left'
+      }
+    });
+  
+    // Step 6: Competitions
+    tour.addStep({
+      id: 'competitions',
+      text: 'Browse featured competitions. Click on any to see details and register.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.container.mx-auto.px-4.sm\\:px-6', // Competitions section
+        on: 'top'
+      }
+    });
+  
+    // Step 7: Features
+    tour.addStep({
+      id: 'features',
+      text: 'Quick access to all platform features from this dashboard.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Next',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.grid.grid-cols-2.sm\\:grid-cols-3.md\\:grid-cols-4.lg\\:grid-cols-4.gap-4', // Features grid
+        on: 'top'
+      }
+    });
+  
+    // Step 8: Main Content
+    tour.addStep({
+      id: 'content',
+      text: 'This area changes based on your selected tab - Competitions, Team Match, or Mentorship.',
+      buttons: [
+        {
+          text: 'Back',
+          action: tour.back
+        },
+        {
+          text: 'Finish',
+          action: tour.next
+        }
+      ],
+      attachTo: {
+        element: '.container.mx-auto.px-4.sm\\:px-6.py-8', // Main content
+        on: 'top'
+      }
+    });
+
+      // Step 9: Profile Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-profile',
+    text: '<strong>Profile</strong>: Manage your personal information and competition history.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-blue-500.to-blue-600 + h3', // Targets profile feature title
+      on: 'top'
+    }
+  });
+
+  // Step 10: Competitions Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-competitions',
+    text: '<strong>Competitions</strong>: Browse and join competitions.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-purple-500.to-purple-600 + h3', // Targets competitions feature title
+      on: 'top'
+    }
+  });
+
+  // Step 11: Team Match Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-team-match',
+    text: '<strong>Team Match</strong>: Connect with skilled peers or join open teams to compete together.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-green-500.to-green-600 + h3', // Targets team match feature title
+      on: 'top'
+    }
+  });
+
+  // Step 12: Mentorship Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-mentorship',
+    text: '<strong>Mentorship</strong>: Connect with experienced mentors in your field.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-yellow-500.to-yellow-600 + h3', // Targets mentorship feature title
+      on: 'top'
+    }
+  });
+
+  // Step 13: SDG Tracker Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-sdg',
+    text: '<strong>SDG Tracker</strong>: Track your progress on Sustainable Development Goals.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-teal-500.to-teal-600 + h3', // Targets SDG feature title
+      on: 'top'
+    }
+  });
+
+  // Step 14: Progress Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-progress',
+    text: '<strong>Progress</strong>: Track your goals and tasks to stay on top of competitions.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-orange-500.to-orange-600 + h3', // Targets progress feature title
+      on: 'top'
+    }
+  });
+
+  // Step 15: Analysis Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-analysis',
+    text: '<strong>Analysis</strong>: Get insights into your performance.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Next',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-indigo-500.to-indigo-600 + h3', // Targets analysis feature title
+      on: 'top'
+    }
+  });
+
+  // Step 16: Chats Toolkit Feature
+  tour.addStep({
+    id: 'toolkit-chats',
+    text: '<strong>Chats</strong>: Communicate with your teams and mentors.',
+    buttons: [
+      {
+        text: 'Back',
+        action: tour.back
+      },
+      {
+        text: 'Finish',
+        action: tour.next
+      }
+    ],
+    attachTo: {
+      element: '.bg-gradient-to-br.from-red-500.to-purple-600 + h3', // Targets chats feature title
+      on: 'top'
+    }
+  });
+  
+    return tour;
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -118,6 +452,28 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
       setDeadlinesLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Check if this is the user's first visit
+    const firstVisit = localStorage.getItem('firstVisit') === null;
+    
+    if (firstVisit) {
+      const tour = initTour();
+      tour.start();
+      localStorage.setItem('firstVisit', 'false');
+      
+      // Add a help button to restart the tour
+      const helpButton = document.createElement('button');
+      helpButton.className = 'fixed bottom-6 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg z-50 hover:bg-blue-700 transition-colors';
+      helpButton.innerHTML = '<FaQuestionCircle className="text-xl" />';
+      helpButton.title = 'Help / Restart Tour';
+      helpButton.onclick = () => {
+        const newTour = initTour();
+        newTour.start();
+      };
+      document.body.appendChild(helpButton);
+    }
+  }, []);
   
   // Separate function to update deadlines
   const updateDeadlines = (competitions, teams) => {
@@ -277,6 +633,16 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
               <FaBell />
               <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
+            <button 
+  className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 transition-colors"
+  onClick={() => {
+    const tour = initTour();
+    tour.start();
+  }}
+  title="Help / Restart Tour"
+>
+  <FaQuestionCircle />
+</button>
             
             {/* Enhanced Profile Photo with Dropdown */}
             <div className="relative group">
