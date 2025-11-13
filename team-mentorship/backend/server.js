@@ -150,8 +150,6 @@ app.set("io", io);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static(path.join(__dirname, '../dist')));
 
-const path = require("path");
-
 // Serve frontend build
 app.use(express.static(path.join(__dirname, "dist")));
 
