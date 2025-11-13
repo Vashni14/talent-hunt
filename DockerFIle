@@ -1,5 +1,5 @@
 # ===== FRONTEND BUILD =====
-FROM node:18 AS frontend
+FROM node:20 AS frontend
 WORKDIR /app/frontend
 
 # Copy only frontend (public + src + package.json)
@@ -10,7 +10,7 @@ COPY team-mentorship/ ./
 RUN npm run build
 
 # ===== BACKEND =====
-FROM node:18 AS backend
+FROM node:20 AS backend
 WORKDIR /app
 
 # Copy backend package.json and install dependencies
