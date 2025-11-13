@@ -63,7 +63,7 @@ const MentorProfileModal = ({ mentor, onClose }) => {
             <div className="overflow-y-auto max-h-[80vh]">
               <div className="h-64 w-full bg-gray-700 overflow-hidden relative">
                 <img 
-                  src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+                  src={mentor?.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentor.profilePicture}` : "/default-profile.png"}
                   alt={mentor.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -239,7 +239,7 @@ const MentorCompetitionsModal = ({ mentorId, onClose }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get(`http://localhost:5000/api/compapp/mentor/${mentorId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/compapp/mentor/${mentorId}`);
       console.log(response)
       if (response.data?.success) {
         setCompetitions(response.data.data || []); // Ensure we set an array
@@ -537,7 +537,7 @@ const MentorTeamsModal = ({ mentorId, onClose }) => {
     try {
       if (studentDetails[studentId]) return;
 
-      const response = await axios.get(`http://localhost:5000/api/student/profile/id/${studentId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/id/${studentId}`);
       if (response.data) {
         setStudentDetails(prev => ({
           ...prev,
@@ -563,7 +563,7 @@ const MentorTeamsModal = ({ mentorId, onClose }) => {
       setError(null);
   
       // 1. Fetch teams data
-      const { data } = await axios.get(`http://localhost:5000/api/teams/mentor/${mentorId}`);
+      const { data } = await axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/mentor/${mentorId}`);
       if (!data.success) throw new Error(data.message || 'Failed to fetch teams');
   
       // 2. Process teams and collect creator UIDs
@@ -587,7 +587,7 @@ const MentorTeamsModal = ({ mentorId, onClose }) => {
       const creatorProfiles = await Promise.all(
         Array.from(creatorUids).map(async uid => {
           try {
-            const response = await axios.get(`http://localhost:5000/api/student/profile/uid/${uid}`);
+            const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/uid/${uid}`);
             return response.data.success ? { uid, ...response.data } : null;
           } catch (error) {
             console.error(`Failed to fetch creator ${uid}:`, error);
@@ -841,7 +841,7 @@ const MentorTeamsModal = ({ mentorId, onClose }) => {
                                   (typeof team.createdBy === 'object' 
                                     ? team.createdBy.profilePicture 
                                     : studentDetails[team.createdBy]?.profilePicture)
-                                    ? `http://localhost:5000${typeof team.createdBy === 'object' ? team.createdBy.profilePicture : studentDetails[team.createdBy]?.profilePicture}`
+                                    ? `https://resurgenet-team-match.up.railway.app${typeof team.createdBy === 'object' ? team.createdBy.profilePicture : studentDetails[team.createdBy]?.profilePicture}`
                                     : "/default-profile.png"
                                 }
                                 alt={
@@ -871,9 +871,9 @@ const MentorTeamsModal = ({ mentorId, onClose }) => {
                                 className="w-6 h-6 rounded-full mr-2"
                                 src={
                                   member.user?.profilePicture 
-                                    ? `http://localhost:5000${member.user.profilePicture}`
+                                    ? `https://resurgenet-team-match.up.railway.app${member.user.profilePicture}`
                                     : studentDetails[member.user]?.profilePicture
-                                      ? `http://localhost:5000${studentDetails[member.user].profilePicture}`
+                                      ? `https://resurgenet-team-match.up.railway.app${studentDetails[member.user].profilePicture}`
                                       : "/default-profile.png"
                                 }
                                 alt={member.user?.name || studentDetails[member.user]?.name || member.name}
@@ -971,7 +971,7 @@ const Mentors = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:5000/api/mentor/mentors');
+      const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/mentor/mentors');
       
       if (response.status === 200) {
         if (Array.isArray(response.data)) {
@@ -1042,7 +1042,7 @@ const Mentors = () => {
   
     try {
       setLoading(true);
-      const response = await axios.delete(`http://localhost:5000/api/mentor/profile/${mentorId}`);
+      const response = await axios.delete(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/${mentorId}`);
       
       if (response.data.success) {
         // Remove the deleted mentor from the local state
@@ -1172,7 +1172,7 @@ const Mentors = () => {
                   <div className="flex-shrink-0 h-10 w-10">
                     <img
                       className="h-10 w-10 rounded-full object-cover"
-                      src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+                      src={mentor?.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentor.profilePicture}` : "/default-profile.png"}
                       alt={mentor.name}
                       onError={(e) => {
                         e.target.onerror = null; 

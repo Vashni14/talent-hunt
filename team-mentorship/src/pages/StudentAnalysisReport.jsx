@@ -78,7 +78,7 @@ const StudentAnalysisReport = () => {
 
      // Fetch profile data
 try {
-    const profileRes = await axios.get(`http://localhost:5000/api/student/profile/${userId}`);
+    const profileRes = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${userId}`);
     data.profile = profileRes.data || null;
   } catch (error) {
     console.error("Profile fetch error:", error);
@@ -87,7 +87,7 @@ try {
   // Fetch teams data with multiple fallbacks
   let userTeams = [];
   try {
-    const teamsRes = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+    const teamsRes = await axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/user/${userId}`);
     userTeams = Array.isArray(teamsRes.data?.data) ? teamsRes.data.data :
                 Array.isArray(teamsRes.data) ? teamsRes.data : [];
     data.teams = userTeams;
@@ -104,7 +104,7 @@ try {
       
       if (teamIds.length > 0) {
         // Fetch mentors for these teams
-        const mentorsRes = await axios.post(`http://localhost:5000/api/teams`, { teamIds });
+        const mentorsRes = await axios.post(`https://resurgenet-team-match.up.railway.app/api/teams`, { teamIds });
         data.mentors = Array.isArray(mentorsRes.data) ? mentorsRes.data : [];
       }
     } catch (error) {
@@ -114,7 +114,7 @@ try {
   
   // Fetch competition applications
   try {
-    const compAppsRes = await axios.get(`http://localhost:5000/api/compapp/me/${userId}`);
+    const compAppsRes = await axios.get(`https://resurgenet-team-match.up.railway.app/api/compapp/me/${userId}`);
     data.competitions = Array.isArray(compAppsRes.data) ? compAppsRes.data : [];
   } catch (error) {
     console.error("Competitions fetch error:", error);
@@ -122,7 +122,7 @@ try {
   
   // Fetch goals
   try {
-    const goalsRes = await axios.get(`http://localhost:5000/api/goals/${userId}`);
+    const goalsRes = await axios.get(`https://resurgenet-team-match.up.railway.app/api/goals/${userId}`);
     data.goals = Array.isArray(goalsRes.data) ? goalsRes.data : [];
   } catch (error) {
     console.error("Goals fetch error:", error);
@@ -412,7 +412,7 @@ const skillsUsageData = {
           <div className="flex items-center gap-6">
             <img 
               src={reportData.profile.profilePicture 
-                ? `http://localhost:5000${reportData.profile.profilePicture}`
+                ? `https://resurgenet-team-match.up.railway.app${reportData.profile.profilePicture}`
                 : "/default-profile.png"}
               alt="Profile" 
               className="w-24 h-24 rounded-full object-cover border-2 border-purple-500"

@@ -61,7 +61,7 @@ function StudentDashboard() {
 
   const fetchStudentData = async () => {
     try {
-      const { data } = await axios.get(`http://localhost:5000/api/student/profile/${user.uid}`);
+      const { data } = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${user.uid}`);
       
       setStudentData({
         name: data.name || "",
@@ -146,7 +146,7 @@ function StudentDashboard() {
       };
   
       const response = await axios.post(
-        "http://localhost:5000/api/student/profile", 
+        "https://resurgenet-team-match.up.railway.app/api/student/profile", 
         payload
       );
 
@@ -171,7 +171,7 @@ function StudentDashboard() {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/student/uploadProfile", 
+        "https://resurgenet-team-match.up.railway.app/api/student/uploadProfile", 
         formData, 
         { headers: { "Content-Type": "multipart/form-data" } }
       );

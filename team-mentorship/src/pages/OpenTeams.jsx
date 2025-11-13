@@ -502,7 +502,7 @@ useEffect(() => {
     const fetchStudentProfile = async () => {
       try {
         setLoading(prev => ({ ...prev, user: true }));
-        const response = await axios.get(`http://localhost:5000/api/student/profile/${userId}`);
+        const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${userId}`);
         setCurrentUser({
           uid: response.data._id,
           name: response.data.name,
@@ -534,7 +534,7 @@ useEffect(() => {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch(`http://localhost:5000/api/teams/user/${userId}`);
+      const response = await fetch(`https://resurgenet-team-match.up.railway.app/api/teams/user/${userId}`);
   
       console.log('Response status:', response.status);
       
@@ -597,7 +597,7 @@ useEffect(() => {
       }
   
       const response = await axios.get(
-        `http://localhost:5000/api/invitations/openings/user/${userId}`,
+        `https://resurgenet-team-match.up.railway.app/api/invitations/openings/user/${userId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -648,7 +648,7 @@ const fetchSentApplications = useCallback(async () => {
     }
 
     const response = await axios.get(
-      `http://localhost:5000/api/invitations/applications/sent/${userId}`, 
+      `https://resurgenet-team-match.up.railway.app/api/invitations/applications/sent/${userId}`, 
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -662,7 +662,7 @@ const fetchSentApplications = useCallback(async () => {
       response.data.map(async app => {
         try {
           const creatorResponse = await axios.get(
-            `http://localhost:5000/api/student/profile/${app.opening.createdBy}`,
+            `https://resurgenet-team-match.up.railway.app/api/student/profile/${app.opening.createdBy}`,
             {
               headers: {
                 'Authorization': `Bearer ${token}`
@@ -719,7 +719,7 @@ const fetchReceivedApplications = useCallback(async () => {
     }
 
     const response = await axios.get(
-      `http://localhost:5000/api/invitations/applications/received/${userId}`, 
+      `https://resurgenet-team-match.up.railway.app/api/invitations/applications/received/${userId}`, 
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -762,7 +762,7 @@ const fetchOpenings = useCallback(async () => {
     if (searchQuery) params.search = searchQuery;
     if (selectedSkills.length) params.skills = selectedSkills.join(',');
     
-    const response = await axios.get('http://localhost:5000/api/invitations/openings', { params });
+    const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/invitations/openings', { params });
     
     // Filter out openings created by the current user
     const filteredOpenings = Array.isArray(response?.data) 
@@ -777,7 +777,7 @@ const fetchOpenings = useCallback(async () => {
             })
             .map(async opening => {
               try {
-                const creatorResponse = await axios.get(`http://localhost:5000/api/student/profile/${opening.createdBy}`);
+                const creatorResponse = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${opening.createdBy}`);
                 return {
                   ...opening,
                   creator: {
@@ -816,8 +816,8 @@ const fetchOpenings = useCallback(async () => {
   
       const token = await user.getIdToken();
       const endpoint = selectedOpening 
-        ? `http://localhost:5000/api/invitations/openings/${selectedOpening._id}`
-        : 'http://localhost:5000/api/invitations/teams/openings';
+        ? `https://resurgenet-team-match.up.railway.app/api/invitations/openings/${selectedOpening._id}`
+        : 'https://resurgenet-team-match.up.railway.app/api/invitations/teams/openings';
   
       const method = selectedOpening ? 'put' : 'post';
   
@@ -874,7 +874,7 @@ const fetchOpenings = useCallback(async () => {
   const deleteTeamOpening = async (openingId) => {
     try {
       console.log(openingId)
-      await axios.delete(`http://localhost:5000/api/invitations/openings/${openingId}`);
+      await axios.delete(`https://resurgenet-team-match.up.railway.app/api/invitations/openings/${openingId}`);
       toast.success('Opening deleted successfully');
       fetchMyOpenings(); // Refresh the list
     } catch (error) {
@@ -897,7 +897,7 @@ const fetchOpenings = useCallback(async () => {
       });
   
       const response = await axios.post(
-        `http://localhost:5000/api/invitations/openings/${openingId}/apply`, // Fixed endpoint
+        `https://resurgenet-team-match.up.railway.app/api/invitations/openings/${openingId}/apply`, // Fixed endpoint
         { 
           message,
           userId
@@ -937,7 +937,7 @@ const fetchOpenings = useCallback(async () => {
       if (!user) throw new Error("User not authenticated");
       const token = await user.getIdToken();
   
-      const response = await axios.put(`http://localhost:5000/api/invitations/applications/${applicationId}`, { status },
+      const response = await axios.put(`https://resurgenet-team-match.up.railway.app/api/invitations/applications/${applicationId}`, { status },
      {
              headers: {
                'Authorization': `Bearer ${token}`,
@@ -966,7 +966,7 @@ const fetchOpenings = useCallback(async () => {
   
       console.log('[withdrawApplication] Making DELETE request...');
       const response = await axios.delete(
-        `http://localhost:5000/api/invitations/applications/${applicationId}/withdraw`,
+        `https://resurgenet-team-match.up.railway.app/api/invitations/applications/${applicationId}/withdraw`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -1068,7 +1068,7 @@ const fetchOpenings = useCallback(async () => {
   
       console.log("[handleViewProfile] Making API call...");
       const response = await axios.get(
-        `http://localhost:5000/api/student/profile/${userId}`,
+        `https://resurgenet-team-match.up.railway.app/api/student/profile/${userId}`,
       );
   
       console.log("[handleViewProfile] API response:", response.data);
@@ -1590,7 +1590,7 @@ const fetchOpenings = useCallback(async () => {
                       <h4 className="text-xs font-medium text-gray-400 mb-1">Posted By</h4>
                       <div className="flex items-center gap-2">
                         <img
-                          src={selectedOpening.creator?.profilePicture ? `http://localhost:5000${selectedOpening.creator.profilePicture}` : "/default-profile.png"}
+                          src={selectedOpening.creator?.profilePicture ? `https://resurgenet-team-match.up.railway.app${selectedOpening.creator.profilePicture}` : "/default-profile.png"}
                           alt={selectedOpening.creator?.name}
                           className="w-6 h-6 rounded-full"
                         />

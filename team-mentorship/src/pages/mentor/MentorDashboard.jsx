@@ -367,7 +367,7 @@ tour.current.addStep({
         try {
           // Fetch mentor profile
           const profileResponse = await axios.get(
-            `http://localhost:5000/api/mentor/profile/${userId}`
+            `https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`
           );
           setUser({
             name: profileResponse.data.name,
@@ -378,13 +378,13 @@ tour.current.addStep({
   
           // Fetch dashboard data
           const dashboardResponse = await axios.get(
-            `http://localhost:5000/api/mentor-dashboard/stats/${userId}`
+            `https://resurgenet-team-match.up.railway.app/api/mentor-dashboard/stats/${userId}`
           );
           setDashboardData(dashboardResponse.data);
   
           // Fetch initial chat messages
           const chatResponse = await axios.get(
-            `http://localhost:5000/api/mentor-chat/${userId}`
+            `https://resurgenet-team-match.up.railway.app/api/mentor-chat/${userId}`
           );
           setChatMessages(chatResponse.data.messages || []);
         } catch (error) {
@@ -473,7 +473,7 @@ tour.current.addStep({
         setNewMessage('');
   
         // Send to backend
-        await axios.post(`http://localhost:5000/api/mentor-chat/${auth.currentUser.uid}`, {
+        await axios.post(`https://resurgenet-team-match.up.railway.app/api/mentor-chat/${auth.currentUser.uid}`, {
           message: message
         });
   
@@ -565,7 +565,7 @@ tour.current.addStep({
                 <img
                   src={
                     user?.profilePicture
-                      ? `http://localhost:5000${user.profilePicture}`
+                      ? `https://resurgenet-team-match.up.railway.app${user.profilePicture}`
                       : "/default-profile.png"
                   }
                   alt="Profile"

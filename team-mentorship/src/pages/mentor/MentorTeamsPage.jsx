@@ -67,11 +67,11 @@ const MentorTeamsPage = () => {
       setError(null);
       
       // First get the mentor's ID based on the logged-in user
-      const mentorResponse = await axios.get(`http://localhost:5000/api/mentor/profile/${userId}`);
+      const mentorResponse = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`);
       const mentorId = mentorResponse.data._id;
       
       // Then fetch teams where this mentor is a mentor
-      const response = await axios.get(`http://localhost:5000/api/teams/mentor/${mentorId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/mentor/${mentorId}`);
       
       setTeams(response.data.teams || []);
     } catch (err) {
@@ -90,11 +90,11 @@ const MentorTeamsPage = () => {
       setError(null);
       
       // First get the mentor's ID based on the logged-in user
-      const mentorResponse = await axios.get(`http://localhost:5000/api/mentor/profile/${userId}`);
+      const mentorResponse = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`);
       const mentorId = mentorResponse.data._id;
       
       // Then fetch applications for this mentor
-      const response = await axios.get(`http://localhost:5000/api/mentor/applications/mentor/${mentorId}`, {
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/applications/mentor/${mentorId}`, {
         params: {
           status: applicationFilter === "all" ? undefined : applicationFilter
         }
@@ -120,7 +120,7 @@ const MentorTeamsPage = () => {
       setLoading(true);
       
       const response = await axios.patch(
-        `http://localhost:5000/api/mentor/applications/${applicationId}`,
+        `https://resurgenet-team-match.up.railway.app/api/mentor/applications/${applicationId}`,
         { status: action },
         {
           headers: {
@@ -366,7 +366,7 @@ const MentorTeamsPage = () => {
                                   member?.avatar
                                     ? member.avatar.startsWith('http') 
                                       ? member.avatar
-                                      : `http://localhost:5000${member.avatar}`
+                                      : `https://resurgenet-team-match.up.railway.app${member.avatar}`
                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=random`
                                 }
                                 alt={member.name}
@@ -498,7 +498,7 @@ const MentorTeamsPage = () => {
                                   member?.avatar
                                     ? member.avatar.startsWith('http')
                                       ? member.avatar
-                                      : `http://localhost:5000${member.avatar}`
+                                      : `https://resurgenet-team-match.up.railway.app${member.avatar}`
                                     : `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=random`
                                 }
                                 alt={member.name}

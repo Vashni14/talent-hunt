@@ -21,7 +21,7 @@ const Teams = () => {
     try {
       setIsLoading(true);
       const token = await auth.currentUser.getIdToken();
-      const response = await axios.get('http://localhost:5000/api/compapp', {
+      const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/compapp', {
         headers: { Authorization: `Bearer ${token}` },
         params: filters
       });
@@ -31,7 +31,7 @@ const Teams = () => {
       const teamPromises = response.data
         .filter(app => app.team)
         .map(app => 
-          axios.get(`http://localhost:5000/api/teams/${app.team._id}`, {
+          axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/${app.team._id}`, {
             headers: { Authorization: `Bearer ${token}` }
           })
         );
@@ -45,7 +45,7 @@ const Teams = () => {
         if (team.mentors && team.mentors.length > 0) {
           // Fetch details for each mentor
           const mentorPromises = team.mentors.map(mentorId => 
-            axios.get(`http://localhost:5000/api/mentor/profile/id/${mentorId}`, {
+            axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/id/${mentorId}`, {
               headers: { Authorization: `Bearer ${token}` }
             })
           );
@@ -72,7 +72,7 @@ const Teams = () => {
     try {
       const token = await auth.currentUser.getIdToken();
       await axios.put(
-        `http://localhost:5000/api/compapp/${selectedApplication._id}/status`,
+        `https://resurgenet-team-match.up.railway.app/api/compapp/${selectedApplication._id}/status`,
         { 
           status,
           feedback: feedback || undefined 
@@ -249,7 +249,7 @@ const Teams = () => {
                         <div className="flex-shrink-0 h-10 w-10">
                           <img 
                             className="h-10 w-10 rounded-full" 
-                            src={app.student?.profilePicture ? `http://localhost:5000${app.student.profilePicture}` : "/default-profile.png"}
+                            src={app.student?.profilePicture ? `https://resurgenet-team-match.up.railway.app${app.student.profilePicture}` : "/default-profile.png"}
                             alt={app.student.name}
                           />
                         </div>
@@ -340,7 +340,7 @@ const Teams = () => {
               <div className="flex items-center space-x-3">
                 <img 
                   className="h-12 w-12 rounded-full" 
-                  src={selectedApplication.student?.profilePicture ? `http://localhost:5000${selectedApplication.student.profilePicture}` : "/default-profile.png"}
+                  src={selectedApplication.student?.profilePicture ? `https://resurgenet-team-match.up.railway.app${selectedApplication.student.profilePicture}` : "/default-profile.png"}
                   alt={selectedApplication.student.name}
                 />
                 <div>
@@ -448,7 +448,7 @@ const Teams = () => {
                         <div className="flex items-center space-x-3">
                           <img 
                             className="h-8 w-8 rounded-full" 
-                            src={member.user?.profilePicture ? `http://localhost:5000${member.user.profilePicture}` : "/default-profile.png"}
+                            src={member.user?.profilePicture ? `https://resurgenet-team-match.up.railway.app${member.user.profilePicture}` : "/default-profile.png"}
                             alt={member.name || member.user?.name}
                           />
                           <div>
@@ -472,7 +472,7 @@ const Teams = () => {
         <div key={index} className="flex items-center space-x-3">
           <img 
             className="h-8 w-8 rounded-full" 
-            src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+            src={mentor?.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentor.profilePicture}` : "/default-profile.png"}
             alt={mentor.name}
           />
           <div>

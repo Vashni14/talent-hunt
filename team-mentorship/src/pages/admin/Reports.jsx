@@ -75,7 +75,7 @@ const StatsDashboard = () => {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('http://localhost:5000/api/reports/dashboard');
+        const response = await fetch('https://resurgenet-team-match.up.railway.app/api/reports/dashboard');
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');
         }

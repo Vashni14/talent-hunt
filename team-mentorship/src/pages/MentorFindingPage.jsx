@@ -82,7 +82,7 @@ const MentorFindingPage = () => {
       setTeamsLoading(true);
       setTeamsError(null);
       
-      const response = await axios.get(`http://localhost:5000/api/teams/user/${userId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/user/${userId}`);
   
       let teamsData = [];
       if (Array.isArray(response.data)) {
@@ -126,7 +126,7 @@ const MentorFindingPage = () => {
     for (const team of myTeams) {
       try {
         const appsResponse = await axios.get(
-          `http://localhost:5000/api/mentor/applications/team/${team._id}`
+          `https://resurgenet-team-match.up.railway.app/api/mentor/applications/team/${team._id}`
         );
         if (appsResponse.data.applications) {
           allApplications.push(...appsResponse.data.applications);
@@ -156,7 +156,7 @@ useEffect(() => {
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/mentor/mentors');
+        const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/mentor/mentors');
         setMentors(response.data);
         setFilteredMentors(response.data);
         setLoading(false);
@@ -204,7 +204,7 @@ useEffect(() => {
     setCurrentMentor(mentor);
     setProfileLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/mentor/profile/${mentor.userId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/${mentor.userId}`);
       setMentorDetails(response.data);
       setShowProfileModal(true);
     } catch (err) {
@@ -226,7 +226,7 @@ useEffect(() => {
         throw new Error("Selected team not found");
       }
       
-      const response = await axios.post('http://localhost:5000/api/mentor/applications', {
+      const response = await axios.post('https://resurgenet-team-match.up.railway.app/api/mentor/applications', {
         mentor: currentMentor._id,
         team: selectedTeam._id,
         message: requestData.message
@@ -249,7 +249,7 @@ useEffect(() => {
   // Handle withdraw application
   const handleWithdraw = async (applicationId) => {
     try {
-      const response = await axios.delete(`http://localhost:5000/api/mentor/applications/${applicationId}`);
+      const response = await axios.delete(`https://resurgenet-team-match.up.railway.app/api/mentor/applications/${applicationId}`);
       
       if (response.data.success) {
         alert(`Application withdrawn successfully`);
@@ -386,7 +386,7 @@ useEffect(() => {
                     <div className="flex items-start gap-4">
                       <div className="w-16 h-16 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/30 flex-shrink-0">
                         <img 
-                          src={mentor.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"} 
+                          src={mentor.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentor.profilePicture}` : "/default-profile.png"} 
                           alt={mentor.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -500,7 +500,7 @@ useEffect(() => {
     <img
       src={
         app.mentor?.profilePicture
-          ? `http://localhost:5000${app.mentor.profilePicture}`
+          ? `https://resurgenet-team-match.up.railway.app${app.mentor.profilePicture}`
           : "https://ui-avatars.com/api/?name=" + encodeURIComponent(app.mentor?.name || "Mentor")
       }
       alt={app.mentor?.name || "Mentor"}
@@ -652,7 +652,7 @@ useEffect(() => {
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                     <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500/30 flex-shrink-0">
                       <img 
-                        src={mentorDetails?.profilePicture ? `http://localhost:5000${mentorDetails.profilePicture}` : "/default-profile.png"}
+                        src={mentorDetails?.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentorDetails.profilePicture}` : "/default-profile.png"}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {

@@ -36,7 +36,7 @@ export default function SDGMapping() {
   useEffect(() => {
     const fetchSDGs = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/sdgs');
+        const response = await fetch('https://resurgenet-team-match.up.railway.app/api/sdgs');
         if (!response.ok) throw new Error('Failed to fetch SDGs');
         const data = await response.json();
         setAllSDGs(data);
@@ -63,7 +63,7 @@ export default function SDGMapping() {
       
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`http://localhost:5000/api/teams/user/${userId}`);
+      const response = await fetch(`https://resurgenet-team-match.up.railway.app/api/teams/user/${userId}`);
       
       if (!response.ok) throw new Error('Failed to fetch teams');
       
@@ -88,7 +88,7 @@ export default function SDGMapping() {
     if (showDashboardModal) {
       const fetchStats = async () => {
         try {
-          const response = await fetch('http://localhost:5000/api/sdgs/stats');
+          const response = await fetch('https://resurgenet-team-match.up.railway.app/api/sdgs/stats');
           if (!response.ok) throw new Error('Failed to fetch SDG stats');
           const data = await response.json();
           setSdgStats(data);
@@ -168,7 +168,7 @@ export default function SDGMapping() {
       if (!user) throw new Error('Not authenticated');
   
       const token = await user.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/sdgs/team/${selectedTeamForMapping._id}`, {
+      const response = await fetch(`https://resurgenet-team-match.up.railway.app/api/sdgs/team/${selectedTeamForMapping._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

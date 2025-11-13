@@ -87,7 +87,7 @@ const MentorProfile = () => {
   useEffect(() => {
     const fetchMentorProfile = async (userId) => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/mentor/profile/${userId}`);
+        const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`);
         const mentorData = response.data;
         
         if (mentorData) {
@@ -106,7 +106,7 @@ const MentorProfile = () => {
           });
           
           if (mentorData.profilePicture) {
-            setImagePreview(`http://localhost:5000${mentorData.profilePicture}`);
+            setImagePreview(`https://resurgenet-team-match.up.railway.app${mentorData.profilePicture}`);
           }
         }
       } catch (error) {
@@ -157,7 +157,7 @@ const MentorProfile = () => {
       }
   
       const response = await axios.put(
-        `http://localhost:5000/api/mentor/profile/${userId}`,
+        `https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`,
         formDataToSend,
       );
   
@@ -179,7 +179,7 @@ const MentorProfile = () => {
       // Clear the image preview and file if successful
       if (profileImage) {
         setProfileImage(null);
-        setImagePreview(`http://localhost:5000${updatedMentor.profilePicture}`);
+        setImagePreview(`https://resurgenet-team-match.up.railway.app${updatedMentor.profilePicture}`);
       }
   
       setEditMode(false);
@@ -220,7 +220,7 @@ const MentorProfile = () => {
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50">
               <img 
-                src={user?.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png"}
+                src={user?.profilePicture ? `https://resurgenet-team-match.up.railway.app${user.profilePicture}` : "/default-profile.png"}
                 alt="Profile" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -354,7 +354,7 @@ const MentorProfile = () => {
               <div className="relative group">
                 <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500/30 flex-shrink-0">
                   <img 
-                    src={imagePreview || (user?.profilePicture ? `http://localhost:5000${user.profilePicture}` : "/default-profile.png")}
+                    src={imagePreview || (user?.profilePicture ? `https://resurgenet-team-match.up.railway.app${user.profilePicture}` : "/default-profile.png")}
                     alt="Profile" 
                     className="w-full h-full object-cover"
                     onError={(e) => {

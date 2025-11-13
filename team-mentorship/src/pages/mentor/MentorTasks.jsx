@@ -50,7 +50,7 @@ const MentorTasks = () => {
     try {
       setLoading(prev => ({ ...prev, mentor: true }));
       const response = await axios.get(
-        `http://localhost:5000/api/mentor/profile/${userId}`);
+        `https://resurgenet-team-match.up.railway.app/api/mentor/profile/${userId}`);
         setMentorId(response.data._id); // Store mentorId in state
       return response.data._id;
     } catch (err) {
@@ -68,7 +68,7 @@ const MentorTasks = () => {
       setError(null);
       
       const response = await axios.get(
-        `http://localhost:5000/api/teams/mentor/${mentorId}`);
+        `https://resurgenet-team-match.up.railway.app/api/teams/mentor/${mentorId}`);
       
       setTeams(response.data.teams || []);
     } catch (err) {
@@ -89,7 +89,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       const response = await axios.post(
-        `http://localhost:5000/api/teams/${newTask.teamId}/tasks`,
+        `https://resurgenet-team-match.up.railway.app/api/teams/${newTask.teamId}/tasks`,
         {
           name: newTask.name,
           description: newTask.description
@@ -118,7 +118,7 @@ const MentorTasks = () => {
       if (!taskToUpdate) return;
       
       const response = await axios.patch(
-        `http://localhost:5000/api/teams/${teamId}/tasks/${taskId}`,
+        `https://resurgenet-team-match.up.railway.app/api/teams/${teamId}/tasks/${taskId}`,
         { completed: !taskToUpdate.completed });
 
         await fetchMentorTeamsWithTasks(mentorId);
@@ -138,7 +138,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       await axios.delete(
-        `http://localhost:5000/api/teams/${teamId}/tasks/${taskId}`);
+        `https://resurgenet-team-match.up.railway.app/api/teams/${teamId}/tasks/${taskId}`);
 
         await fetchMentorTeamsWithTasks(mentorId);
       
@@ -161,7 +161,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       const response = await axios.put(
-        `http://localhost:5000/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
+        `https://resurgenet-team-match.up.railway.app/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
         editingTask);
 
         await fetchMentorTeamsWithTasks(mentorId);

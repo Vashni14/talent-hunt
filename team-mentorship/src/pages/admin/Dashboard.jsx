@@ -36,11 +36,11 @@ const Dashboard = () => {
         setLoading(true);
         
         const [reportsRes, competitionsRes, teamsRes, mentorsRes, applicationsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/admindash/reports/dashboard'),
-          axios.get('http://localhost:5000/api/admindash/competitions'),
-          axios.get('http://localhost:5000/api/admindash/teams'),
-          axios.get('http://localhost:5000/api/admindash/mentor/mentors'),
-          axios.get('http://localhost:5000/api/admindash/applications?status=pending')
+          axios.get('https://resurgenet-team-match.up.railway.app/api/admindash/reports/dashboard'),
+          axios.get('https://resurgenet-team-match.up.railway.app/api/admindash/competitions'),
+          axios.get('https://resurgenet-team-match.up.railway.app/api/admindash/teams'),
+          axios.get('https://resurgenet-team-match.up.railway.app/api/admindash/mentor/mentors'),
+          axios.get('https://resurgenet-team-match.up.railway.app/api/admindash/applications?status=pending')
         ]);
 
         const dashboardData = reportsRes.data.data || {};

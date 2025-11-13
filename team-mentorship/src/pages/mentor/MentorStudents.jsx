@@ -82,7 +82,7 @@ const MentorStudents = () => {
       }
   
       const response = await fetch(
-        `http://localhost:5000/api/teams/mentor/${userId}/members`
+        `https://resurgenet-team-match.up.railway.app/api/teams/mentor/${userId}/members`
       );
       
       if (!response.ok) {
@@ -314,7 +314,7 @@ const MentorStudents = () => {
                 <div className="flex-shrink-0">
                   <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-blue-500/50">
                     <img
-                      src={member?.profilePicture  ?  `http://localhost:5000${member.profilePicture}`  :  "/default-profile.png"}
+                      src={member?.profilePicture  ?  `https://resurgenet-team-match.up.railway.app${member.profilePicture}`  :  "/default-profile.png"}
                       alt={member.name}
                       className="w-full h-full object-cover"
                     />
@@ -403,7 +403,7 @@ const MentorStudents = () => {
                 <div className="md:col-span-1 flex flex-col items-center">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500/50 mb-4">
                     <img
-                    src={selectedMember?.profilePicture  ?  `http://localhost:5000${selectedMember.profilePicture}`  :  "/default-profile.png"}
+                    src={selectedMember?.profilePicture  ?  `https://resurgenet-team-match.up.railway.app${selectedMember.profilePicture}`  :  "/default-profile.png"}
                       alt={selectedMember.name}
                       className="w-full h-full object-cover"
                     />

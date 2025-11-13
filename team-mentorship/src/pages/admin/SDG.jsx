@@ -37,7 +37,7 @@ const SDG = () => {
         setLoading(true);
         setError(null);
         
-        const response = await axios.get('http://localhost:5000/api/sdgadmin/stats');
+        const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/sdgadmin/stats');
         
         if (response.data?.data?.sdgStats) {
           setSdgStats(response.data.data.sdgStats);

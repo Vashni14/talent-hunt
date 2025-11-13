@@ -86,7 +86,7 @@ const ProfileModal = ({ profile, onClose }) => {
                 <div className="flex flex-col items-center">
                   <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500/50 mb-4">
                     <img
-                      src={profile?.profilePicture ? `http://localhost:5000${profile.profilePicture}` : "/default-profile.png"}
+                      src={profile?.profilePicture ? `https://resurgenet-team-match.up.railway.app${profile.profilePicture}` : "/default-profile.png"}
                       alt={profile.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
@@ -298,13 +298,13 @@ const CompetitionParticipationModal = ({ userId, onClose }) => {
       setError(null);
 
       // First find the student document using Firebase UID
-      const studentResponse = await axios.get(`http://localhost:5000/api/student/profile/${userId}`);
+      const studentResponse = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${userId}`);
       if (!studentResponse.data) {
         throw new Error('User not found');
       }
 
       // Get all applications for this student
-      const applicationsResponse = await axios.get(`http://localhost:5000/api/compapp/me/${userId}`);
+      const applicationsResponse = await axios.get(`https://resurgenet-team-match.up.railway.app/api/compapp/me/${userId}`);
       const applications = applicationsResponse.data;
 
       // Calculate statistics
@@ -540,7 +540,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
       // Check if we already have this mentor's details
       if (mentorDetails[mentorId]) return;
 
-      const response = await axios.get(`http://localhost:5000/api/mentor/profile/id/${mentorId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/mentor/profile/id/${mentorId}`);
       if (response.data) {
         setMentorDetails(prev => ({
           ...prev,
@@ -567,7 +567,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
       setLoading(true);
       setError(null);
   
-      const response = await axios.get(`http://localhost:5000/api/teams/by-user/${userId}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/by-user/${userId}`);
 
       if (!response.data) {
         throw new Error('No data received from server');
@@ -738,7 +738,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
                           <div className="flex items-center">
                             <img
                               className="w-6 h-6 rounded-full mr-2"
-                              src={team.createdBy?.profilePicture ? `http://localhost:5000${team.createdBy.profilePicture}` : "/default-profile.png"}
+                              src={team.createdBy?.profilePicture ? `https://resurgenet-team-match.up.railway.app${team.createdBy.profilePicture}` : "/default-profile.png"}
                               alt={team.createdBy.name}
                             />
                             <span className="text-yellow-400">
@@ -756,7 +756,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
                           <div className="flex items-center">
                             <img
                               className="w-6 h-6 rounded-full mr-2"
-                              src={member.user?.profilePicture ? `http://localhost:5000${member.user.profilePicture}` : "/default-profile.png"}
+                              src={member.user?.profilePicture ? `https://resurgenet-team-match.up.railway.app${member.user.profilePicture}` : "/default-profile.png"}
                               alt={member.user?.name || member.name}
                               onError={(e) => {
                                 e.target.onerror = null;
@@ -791,7 +791,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
                               <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center mr-2 overflow-hidden">
                                 {mentor.profilePicture ? (
                                   <img
-                                  src={mentor?.profilePicture ? `http://localhost:5000${mentor.profilePicture}` : "/default-profile.png"}
+                                  src={mentor?.profilePicture ? `https://resurgenet-team-match.up.railway.app${mentor.profilePicture}` : "/default-profile.png"}
                                     alt={mentor.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
@@ -854,7 +854,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:5000/api/student/profile');
+      const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/student/profile');
       
       if (response.status === 200) {
         if (Array.isArray(response.data)) {
@@ -880,7 +880,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
 
     try {
       setLoading(true);
-      const response = await axios.delete(`http://localhost:5000/api/student/${studentId}`, {
+      const response = await axios.delete(`https://resurgenet-team-match.up.railway.app/api/student/${studentId}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`, // If using JWT
         },
@@ -906,7 +906,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:5000/api/student/profile/username/${username}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/username/${username}`);
       
       if (response.data?.success) {
         if (response.data.data) {
@@ -937,7 +937,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`http://localhost:5000/api/student/profile/${uid}`);
+      const response = await axios.get(`https://resurgenet-team-match.up.railway.app/api/student/profile/${uid}`);
       
       if (response.status === 200) {
         return response.data;
@@ -1112,7 +1112,7 @@ const MyTeamsModal = ({ userId, onClose }) => {
                   <div className="flex-shrink-0 h-10 w-10">
                     <img
                       className="h-10 w-10 rounded-full object-cover"
-                      src={student?.profilePicture ? `http://localhost:5000${student.profilePicture}` : "/default-profile.png"}
+                      src={student?.profilePicture ? `https://resurgenet-team-match.up.railway.app${student.profilePicture}` : "/default-profile.png"}
                       alt={student.name}
                     />
                   </div>
