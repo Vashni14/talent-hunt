@@ -73,9 +73,9 @@ useEffect(() => {
           return;
         }
         const [competitionsRes, applicationsRes, teamsRes] = await Promise.all([
-          axios.get('https://resurgenet-team-match.up.railway.app/api/competitions'),
-          axios.get(`https://resurgenet-team-match.up.railway.app/api/compapp/me/${userId}`),
-          axios.get(`https://resurgenet-team-match.up.railway.app/api/teams/user/${userId}`)
+          axios.get('https://team-match.up.railway.app/api/competitions'),
+          axios.get(`https://team-match.up.railway.app/api/compapp/me/${userId}`),
+          axios.get(`https://team-match.up.railway.app/api/teams/user/${userId}`)
         ]);
         const validApplications = applicationsRes.data.filter(app => app.competition);
 
@@ -119,7 +119,7 @@ useEffect(() => {
     try {
       const token = await auth.currentUser.getIdToken();
       const response = await axios.post(
-        `https://resurgenet-team-match.up.railway.app/api/compapp/${currentCompetition._id}/apply/${userId}`,
+        `https://team-match.up.railway.app/api/compapp/${currentCompetition._id}/apply/${userId}`,
         {
           motivation: applicationForm.motivation,
           skills: applicationForm.skills.split(',').map(s => s.trim()),
@@ -141,7 +141,7 @@ useEffect(() => {
     try {
       const token = await auth.currentUser.getIdToken();
       await axios.put(
-        `https://resurgenet-team-match.up.railway.app/api/compapp/${applicationId}/result/${userId}`,
+        `https://team-match.up.railway.app/api/compapp/${applicationId}/result/${userId}`,
         { result, analysis },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -269,7 +269,7 @@ useEffect(() => {
           <div className="overflow-y-auto max-h-[80vh]">
             <div className="h-64 w-full bg-gray-700 overflow-hidden relative">
               <img 
-                src={currentCompetition?.photo ? `https://resurgenet-team-match.up.railway.app${currentCompetition.photo}` : "/default-profile.png"}
+                src={currentCompetition?.photo ? `https://team-match.up.railway.app${currentCompetition.photo}` : "/default-profile.png"}
                 alt={currentCompetition.name}
                 className="w-full h-full object-cover"
               />
@@ -844,7 +844,7 @@ useEffect(() => {
                   <div key={competition._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
                     <div className="h-40 overflow-hidden relative">
                       <img 
-                        src={competition?.photo ? `https://resurgenet-team-match.up.railway.app${competition.photo}` : "/default-profile.png"}
+                        src={competition?.photo ? `https://team-match.up.railway.app${competition.photo}` : "/default-profile.png"}
                         alt={competition.name}
                         className="w-full h-full object-cover"
                       />

@@ -65,7 +65,7 @@ const CompetitionsA = () => {
   useEffect(() => {
     const fetchCompetitions = async () => {
       try {
-        const response = await axios.get('https://resurgenet-team-match.up.railway.app/api/competitions');
+        const response = await axios.get('https://team-match.up.railway.app/api/competitions');
         setCompetitions(response.data);
         setIsLoading(false);
       } catch (err) {
@@ -295,7 +295,7 @@ const CompetitionsA = () => {
       let response;
       if (selectedCompetition) {
         response = await axios.put(
-          `https://resurgenet-team-match.up.railway.app/api/competitions/${selectedCompetition._id}`,
+          `https://team-match.up.railway.app/api/competitions/${selectedCompetition._id}`,
           formDataToSend,
           {
             headers: {
@@ -305,7 +305,7 @@ const CompetitionsA = () => {
         );
       } else {
         response = await axios.post(
-          'https://resurgenet-team-match.up.railway.app/api/competitions',
+          'https://team-match.up.railway.app/api/competitions',
           formDataToSend,
           {
             headers: {
@@ -332,7 +332,7 @@ const CompetitionsA = () => {
 
   const handleDeleteCompetition = async (id) => {
     try {
-      await axios.delete(`https://resurgenet-team-match.up.railway.app/api/competitions/${id}`);
+      await axios.delete(`https://team-match.up.railway.app/api/competitions/${id}`);
       setCompetitions(competitions.filter(comp => comp._id !== id));
       if (currentCompetition && currentCompetition._id === id) {
         setIsDetailsModalOpen(false);
@@ -457,7 +457,7 @@ const CompetitionsA = () => {
         <div className="overflow-y-auto max-h-[80vh]">
           <div className="h-64 w-full bg-gray-700 overflow-hidden relative">
             <img 
-              src={currentCompetition?.photo ? `https://resurgenet-team-match.up.railway.app${currentCompetition.photo}` : "/default-profile.png"}
+              src={currentCompetition?.photo ? `https://team-match.up.railway.app${currentCompetition.photo}` : "/default-profile.png"}
               alt={currentCompetition.name}
               className="w-full h-full object-cover"
             />
@@ -763,7 +763,7 @@ const CompetitionsA = () => {
             <div key={competition._id} className="bg-gray-800 rounded-xl overflow-hidden border border-gray-700 hover:border-blue-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
               <div className="h-40 overflow-hidden relative">
                 <img 
-                  src={competition?.photo ? `https://resurgenet-team-match.up.railway.app${competition.photo}` : "/default-profile.png"}
+                  src={competition?.photo ? `https://team-match.up.railway.app${competition.photo}` : "/default-profile.png"}
                   alt={competition.name}
                   className="w-full h-full object-cover"
                 />

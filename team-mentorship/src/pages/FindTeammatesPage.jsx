@@ -21,7 +21,7 @@ import { auth } from "../config/firebase"
 import { useNavigate } from "react-router-dom"
 
 // API base URL
-const API_URL = "https://resurgenet-team-match.up.railway.app/api"
+const API_URL = "https://team-match.up.railway.app/api"
 
 export default function FindTeammatesPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -199,7 +199,7 @@ export default function FindTeammatesPage() {
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50">
               <img 
-                src={user?.profilePicture ? `https://resurgenet-team-match.up.railway.app${user.profilePicture}` : "/default-profile.png"}
+                src={user?.profilePicture ? `https://team-match.up.railway.app${user.profilePicture}` : "/default-profile.png"}
                 alt="Profile" 
                 className="w-full h-full object-cover"
                 onError={(e) => {

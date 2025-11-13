@@ -82,7 +82,7 @@ export default function ProfileModal({ profile, onClose }) {
                 <div  className="flex  flex-col  items-center">
                   <div  className="w-32  h-32  rounded-full  overflow-hidden  border-4  border-blue-500/50  mb-4">
                     <img
-                      src={profile?.profilePicture  ?  `https://resurgenet-team-match.up.railway.app${profile.profilePicture}`  :  "/default-profile.png"}
+                      src={profile?.profilePicture  ?  `https://team-match.up.railway.app${profile.profilePicture}`  :  "/default-profile.png"}
                       alt={profile.name}
                       className="w-full  h-full  object-cover"
                       onError={(e)  =>  {
