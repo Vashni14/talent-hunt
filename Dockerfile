@@ -1,30 +1,9 @@
-# ===== FRONTEND BUILD =====
-FROM node:20 AS frontend
-WORKDIR /app/frontend
+FROM node:18
 
-# Copy only frontend (public + src + package.json)
-COPY team-mentorship/package*.json ./
-RUN npm install
-
-COPY team-mentorship/ ./
-RUN npm run build
-
-# ===== BACKEND =====
-FROM node:20 AS backend
 WORKDIR /app
 
-# Copy backend package.json and install dependencies
-COPY team-mentorship/backend/package*.json ./backend/
-RUN cd backend && npm install
+COPY . .
 
-# Copy backend source code
-COPY team-mentorship/backend ./backend
+RUN chmod +x start.sh
 
-# Copy frontend build output into backend/dist
-COPY --from=frontend /app/frontend/dist ./backend/dist
-
-WORKDIR /app/backend
-
-EXPOSE 5000
-
-CMD ["node", "server.js"]
+CMD ["./start.sh"]

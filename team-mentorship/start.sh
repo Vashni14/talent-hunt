@@ -1,26 +1,39 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting Talent-Hunt build..."
+echo "🚀 Starting Talent-Hunt container..."
 
-# ===== BACKEND =====
+#############################################
+# 1. Install BACKEND dependencies
+#############################################
 echo "📦 Installing backend dependencies..."
 cd team-mentorship/backend
 npm install
 
-# ===== FRONTEND =====
+#############################################
+# 2. Install FRONTEND dependencies
+#############################################
 echo "📦 Installing frontend dependencies..."
-cd ../
+cd ..
 npm install
 
+#############################################
+# 3. Build FRONTEND
+#############################################
 echo "🏗️ Building frontend..."
 npm run build
 
-echo "📂 Copying build folder to backend..."
+#############################################
+# 4. Copy dist → backend/dist
+#############################################
+echo "📂 Moving dist/ folder to backend..."
 rm -rf backend/dist
-cp -r dist backend/
+mkdir -p backend/dist
+cp -r dist/* backend/dist/
 
-# ===== START BACKEND =====
+#############################################
+# 5. Start BACKEND
+#############################################
 echo "🚀 Starting backend server..."
 cd backend
 node server.js
