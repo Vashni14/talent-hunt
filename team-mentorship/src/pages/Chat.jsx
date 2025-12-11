@@ -49,7 +49,7 @@ const ChatApp = () => {
   useEffect(() => {
     if (!currentUser) return;
 
-    socketRef.current = io("https://talent-hunt-2.onrender.com", {
+    socketRef.current = io("https://talent-hunt-3.onrender.com", {
       withCredentials: true,
     });
 
@@ -83,23 +83,23 @@ const ChatApp = () => {
       try {
         if (activeTab === "individual") {
           const res = await axios.get(
-            `https://talent-hunt-2.onrender.com/api/chat/conversations/${currentUser.uid}`
+            `https://talent-hunt-3.onrender.com/api/chat/conversations/${currentUser.uid}`
           );
           setIndividualChats(res.data);
         } else if (activeTab === "team") {
           const res = await axios.get(
-            `https://talent-hunt-2.onrender.com/api/chat/team-conversations/${currentUser.uid}`
+            `https://talent-hunt-3.onrender.com/api/chat/team-conversations/${currentUser.uid}`
           );
           setTeamChats(res.data);
         } else if (activeTab === "mentor") {
           if (currentUser.role === "mentor") {
             const res = await axios.get(
-              `https://talent-hunt-2.onrender.com/api/chat/mentor-students/${currentUser.uid}`
+              `https://talent-hunt-3.onrender.com/api/chat/mentor-students/${currentUser.uid}`
             );
             setMentorChats(res.data);
           } else {
             const res = await axios.get(
-              `https://talent-hunt-2.onrender.com/api/chat/student-mentors/${currentUser.uid}`
+              `https://talent-hunt-3.onrender.com/api/chat/student-mentors/${currentUser.uid}`
             );
             setMentorChats(res.data);
           }
@@ -122,7 +122,7 @@ const ChatApp = () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          `https://talent-hunt-2.onrender.com/api/chat/team-conversations/${currentUser.uid}`
+          `https://talent-hunt-3.onrender.com/api/chat/team-conversations/${currentUser.uid}`
         );
         setTeamChats(res.data);
       } catch (err) {
@@ -147,7 +147,7 @@ const ChatApp = () => {
       try {
         setIsSearching(true);
         const res = await axios.get(
-          `https://talent-hunt-2.onrender.com/api/chat/search/${currentUser.uid}/${searchTerm}`
+          `https://talent-hunt-3.onrender.com/api/chat/search/${currentUser.uid}/${searchTerm}`
         );
         setSearchResults(res.data.results);
       } catch (err) {
@@ -170,15 +170,15 @@ const ChatApp = () => {
         let res;
         if (activeTab === "individual") {
           res = await axios.get(
-            `https://talent-hunt-2.onrender.com/api/chat/messages/${currentUser.uid}/${activeChat}`
+            `https://talent-hunt-3.onrender.com/api/chat/messages/${currentUser.uid}/${activeChat}`
           );
         } else if (activeTab === "team") {
           res = await axios.get(
-            `https://talent-hunt-2.onrender.com/api/chat/team-messages/${activeChat}?userId=${currentUser.uid}`
+            `https://talent-hunt-3.onrender.com/api/chat/team-messages/${activeChat}?userId=${currentUser.uid}`
           );
         } else if (activeTab === "mentor") {
           res = await axios.get(
-            `https://talent-hunt-2.onrender.com/api/chat/messages/${currentUser.uid}/${activeChat}`
+            `https://talent-hunt-3.onrender.com/api/chat/messages/${currentUser.uid}/${activeChat}`
           );
         }
 
@@ -216,7 +216,7 @@ const ChatApp = () => {
     scrollToBottom();
 
     try {
-      await axios.post("https://talent-hunt-2.onrender.com/api/chat/send", {
+      await axios.post("https://talent-hunt-3.onrender.com/api/chat/send", {
         from: currentUser.uid,
         to: activeChat,
         text: message,

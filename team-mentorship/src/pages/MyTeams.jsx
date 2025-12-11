@@ -81,7 +81,7 @@ export default function MyTeams() {
 
   const fetchMentorDetails = async (mentorId) => {
     try {
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/mentor/profile/id/${mentorId}`);
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/mentor/profile/id/${mentorId}`);
       if (!response.ok) throw new Error('Failed to fetch mentor details');
       return await response.json();
     } catch (err) {
@@ -92,7 +92,7 @@ export default function MyTeams() {
 
   const fetchAllMentors = async () => {
     try {
-      const response = await fetch('https://talent-hunt-2.onrender.com/api/mentors/mentors');
+      const response = await fetch('https://talent-hunt-3.onrender.com/api/mentors/mentors');
       if (!response.ok) throw new Error('Failed to fetch mentors');
       return await response.json();
     } catch (err) {
@@ -107,14 +107,14 @@ export default function MyTeams() {
       
       setIsLoading(true);
       setError(null);
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/user/${userId}`);
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/user/${userId}`);
       
       if (!response.ok) throw new Error('Failed to fetch teams');
       
       const result = await response.json();
       const teamsWithTasks = await Promise.all(
         result.data.map(async team => {
-          const tasksResponse = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${team._id}/tasks`);
+          const tasksResponse = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${team._id}/tasks`);
           if (!tasksResponse.ok) return team;
           
           const tasksData = await tasksResponse.json();
@@ -172,7 +172,7 @@ export default function MyTeams() {
 
       setIsLoading(true);
       
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${currentTeamIdForTask}/tasks`, {
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${currentTeamIdForTask}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ export default function MyTeams() {
       setIsLoading(true);
       
       const response = await fetch(
-        `https://talent-hunt-2.onrender.com/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
         {
           method: 'PUT',
           headers: {
@@ -251,7 +251,7 @@ export default function MyTeams() {
       setIsLoading(true);
       
       const response = await fetch(
-        `https://talent-hunt-2.onrender.com/api/teams/${teamId}/tasks/${taskId}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${teamId}/tasks/${taskId}`,
         {
           method: 'DELETE'
         }
@@ -286,7 +286,7 @@ export default function MyTeams() {
       const newCompletedState = !task.completed;
 
       // Update the task on the backend
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${teamId}/tasks/${taskId}`, {
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${teamId}/tasks/${taskId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -335,7 +335,7 @@ export default function MyTeams() {
         requestBody.deadline = new Date(newTeam.deadline).toISOString();
       }
 
-      const response = await fetch('https://talent-hunt-2.onrender.com/api/teams', {
+      const response = await fetch('https://talent-hunt-3.onrender.com/api/teams', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -360,7 +360,7 @@ export default function MyTeams() {
       ];
       
       for (const task of defaultTasks) {
-        await fetch(`https://talent-hunt-2.onrender.com/api/teams/${createdTeam._id}/tasks`, {
+        await fetch(`https://talent-hunt-3.onrender.com/api/teams/${createdTeam._id}/tasks`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -403,7 +403,7 @@ export default function MyTeams() {
       setCurrentProcessingTeam(teamId);
       setIsLoading(true);
       
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${teamId}/mentors/${mentorId}`, {
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${teamId}/mentors/${mentorId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -435,7 +435,7 @@ export default function MyTeams() {
   const handleDeleteTeam = async (teamId) => {
     try {
       setIsLoading(true)
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${teamId}`, {
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${teamId}`, {
         method: 'DELETE'
       })
 
@@ -460,7 +460,7 @@ export default function MyTeams() {
       if (!user) throw new Error('Authentication required');
   
       const response = await fetch(
-        `https://talent-hunt-2.onrender.com/api/teams/${teamId}/members/${user.uid}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${teamId}/members/${user.uid}`,
         {
           method: 'DELETE',
           headers: {
@@ -489,7 +489,7 @@ export default function MyTeams() {
   const handleUpdateTeam = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`https://talent-hunt-2.onrender.com/api/teams/${editingTeam._id}`, {
+      const response = await fetch(`https://talent-hunt-3.onrender.com/api/teams/${editingTeam._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -525,7 +525,7 @@ export default function MyTeams() {
       }
       
       const response = await fetch(
-        `https://talent-hunt-2.onrender.com/api/teams/${teamId}/members/${memberId}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${teamId}/members/${memberId}`,
         {
           method: 'DELETE',
           headers: {
@@ -709,7 +709,7 @@ export default function MyTeams() {
   useEffect(() => {
     const fetchSDGs = async () => {
       try {
-        const response = await fetch('https://talent-hunt-2.onrender.com/api/sdgs');
+        const response = await fetch('https://talent-hunt-3.onrender.com/api/sdgs');
         if (!response.ok) throw new Error('Failed to fetch SDGs');
         const data = await response.json();
         setAllSDGs(data);
@@ -899,7 +899,7 @@ export default function MyTeams() {
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
                           <img
-                            src={member?.avatar ? `https://talent-hunt-2.onrender.com${member.avatar}` : "/default-profile.png"}
+                            src={member?.avatar ? `https://talent-hunt-3.onrender.com${member.avatar}` : "/default-profile.png"}
                             alt={member.name}
                             className="w-10 h-10 rounded-full border border-gray-600"
                           />
@@ -1324,7 +1324,7 @@ export default function MyTeams() {
                                       <div className="flex items-center gap-3">
                                         <img
                                           src={mentor.profilePicture 
-                                            ? `https://talent-hunt-2.onrender.com${mentor.profilePicture}`
+                                            ? `https://talent-hunt-3.onrender.com${mentor.profilePicture}`
                                             : "/default-profile.png"}
                                           alt={mentor.name}
                                           className="w-10 h-10 rounded-full border border-gray-600"
@@ -1391,7 +1391,7 @@ export default function MyTeams() {
                               team.members.map((member) => (
                                 <div key={member._id} className="flex items-start gap-3">
                                   <img
-                                    src={member?.avatar ? `https://talent-hunt-2.onrender.com${member.avatar}` : "/default-profile.png"}
+                                    src={member?.avatar ? `https://talent-hunt-3.onrender.com${member.avatar}` : "/default-profile.png"}
                                     alt={member.name}
                                     className="w-8 h-8 rounded-full border border-gray-600"
                                   />
@@ -1475,7 +1475,7 @@ export default function MyTeams() {
                       {team.members?.slice(0, 5).map((member) => (
                         <img
                           key={member._id}
-                          src={member?.avatar ? `https://talent-hunt-2.onrender.com${member.avatar}` : "/default-profile.png"}
+                          src={member?.avatar ? `https://talent-hunt-3.onrender.com${member.avatar}` : "/default-profile.png"}
                           alt={member.name}
                           title={`${member.name} - ${member.role}`}
                           className="w-8 h-8 rounded-full border-2 border-gray-800"

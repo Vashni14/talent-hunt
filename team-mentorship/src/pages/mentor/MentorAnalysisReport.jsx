@@ -70,7 +70,7 @@ const MentorAnalysisReport = () => {
   
       // Fetch mentor profile data
       try {
-        const profileRes = await axios.get(`https://talent-hunt-2.onrender.com/api/mentor/profile/${userId}`);
+        const profileRes = await axios.get(`https://talent-hunt-3.onrender.com/api/mentor/profile/${userId}`);
         data.profile = profileRes.data || null;
       } catch (error) {
         console.error("Profile fetch error:", error);
@@ -78,7 +78,7 @@ const MentorAnalysisReport = () => {
   
       // Fetch teams where mentor is assigned
       try {
-        const teamsRes = await axios.get(`https://talent-hunt-2.onrender.com/api/teams/mentor/${userId}/members`);
+        const teamsRes = await axios.get(`https://talent-hunt-3.onrender.com/api/teams/mentor/${userId}/members`);
         data.teams = Array.isArray(teamsRes.data?.teams) ? teamsRes.data.teams : [];
         data.students = Array.isArray(teamsRes.data?.members) ? teamsRes.data.members : [];
         data.teams = (teamsRes.data?.teams || []).map(team => ({
@@ -93,7 +93,7 @@ const MentorAnalysisReport = () => {
       // Fetch competitions where mentor's teams are participating
       try {
         if (data.teams.length > 0) {
-          const compRes = await axios.get(`https://talent-hunt-2.onrender.com/api/compapp/mentor/${data.profile._id}`);
+          const compRes = await axios.get(`https://talent-hunt-3.onrender.com/api/compapp/mentor/${data.profile._id}`);
           data.competitions = Array.isArray(compRes.data.data) ? compRes.data.data : [];
           console.log("Mentor competition data:", data.competitions);
         }
@@ -388,7 +388,7 @@ const MentorAnalysisReport = () => {
           <div className="flex items-center gap-6">
             <img 
               src={reportData.profile.profilePicture 
-                ? `https://talent-hunt-2.onrender.com${reportData.profile.profilePicture}`
+                ? `https://talent-hunt-3.onrender.com${reportData.profile.profilePicture}`
                 : "/default-profile.png"}
               alt="Profile" 
               className="w-24 h-24 rounded-full object-cover border-2 border-purple-500"
@@ -796,7 +796,7 @@ const StudentItem = ({ student }) => (
     <div className="flex items-center gap-3 p-3 bg-gray-700 rounded-lg">
       <img 
        src={student.profilePicture 
-        ? `https://talent-hunt-2.onrender.com${student.profilePicture}`
+        ? `https://talent-hunt-3.onrender.com${student.profilePicture}`
         : "/default-profile.png"} 
         alt={student.name} 
         className="w-10 h-10 rounded-full object-cover"

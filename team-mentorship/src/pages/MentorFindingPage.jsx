@@ -82,7 +82,7 @@ const MentorFindingPage = () => {
       setTeamsLoading(true);
       setTeamsError(null);
       
-      const response = await axios.get(`https://talent-hunt-2.onrender.com/api/teams/user/${userId}`);
+      const response = await axios.get(`https://talent-hunt-3.onrender.com/api/teams/user/${userId}`);
   
       let teamsData = [];
       if (Array.isArray(response.data)) {
@@ -126,7 +126,7 @@ const MentorFindingPage = () => {
     for (const team of myTeams) {
       try {
         const appsResponse = await axios.get(
-          `https://talent-hunt-2.onrender.com/api/mentor/applications/team/${team._id}`
+          `https://talent-hunt-3.onrender.com/api/mentor/applications/team/${team._id}`
         );
         if (appsResponse.data.applications) {
           allApplications.push(...appsResponse.data.applications);
@@ -156,7 +156,7 @@ useEffect(() => {
   useEffect(() => {
     const fetchMentors = async () => {
       try {
-        const response = await axios.get('https://talent-hunt-2.onrender.com/api/mentor/mentors');
+        const response = await axios.get('https://talent-hunt-3.onrender.com/api/mentor/mentors');
         setMentors(response.data);
         setFilteredMentors(response.data);
         setLoading(false);
@@ -204,7 +204,7 @@ useEffect(() => {
     setCurrentMentor(mentor);
     setProfileLoading(true);
     try {
-      const response = await axios.get(`https://talent-hunt-2.onrender.com/api/mentor/profile/${mentor.userId}`);
+      const response = await axios.get(`https://talent-hunt-3.onrender.com/api/mentor/profile/${mentor.userId}`);
       setMentorDetails(response.data);
       setShowProfileModal(true);
     } catch (err) {
@@ -226,7 +226,7 @@ useEffect(() => {
         throw new Error("Selected team not found");
       }
       
-      const response = await axios.post('https://talent-hunt-2.onrender.com/api/mentor/applications', {
+      const response = await axios.post('https://talent-hunt-3.onrender.com/api/mentor/applications', {
         mentor: currentMentor._id,
         team: selectedTeam._id,
         message: requestData.message
@@ -249,7 +249,7 @@ useEffect(() => {
   // Handle withdraw application
   const handleWithdraw = async (applicationId) => {
     try {
-      const response = await axios.delete(`https://talent-hunt-2.onrender.com/api/mentor/applications/${applicationId}`);
+      const response = await axios.delete(`https://talent-hunt-3.onrender.com/api/mentor/applications/${applicationId}`);
       
       if (response.data.success) {
         alert(`Application withdrawn successfully`);
@@ -386,7 +386,7 @@ useEffect(() => {
                     <div className="flex items-start gap-4">
                       <div className="w-16 h-16 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/30 flex-shrink-0">
                         <img 
-                          src={mentor.profilePicture ? `https://talent-hunt-2.onrender.com${mentor.profilePicture}` : "/default-profile.png"} 
+                          src={mentor.profilePicture ? `https://talent-hunt-3.onrender.com${mentor.profilePicture}` : "/default-profile.png"} 
                           alt={mentor.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -500,7 +500,7 @@ useEffect(() => {
     <img
       src={
         app.mentor?.profilePicture
-          ? `https://talent-hunt-2.onrender.com${app.mentor.profilePicture}`
+          ? `https://talent-hunt-3.onrender.com${app.mentor.profilePicture}`
           : "https://ui-avatars.com/api/?name=" + encodeURIComponent(app.mentor?.name || "Mentor")
       }
       alt={app.mentor?.name || "Mentor"}
@@ -652,7 +652,7 @@ useEffect(() => {
                   <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
                     <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden border-4 border-blue-500/30 flex-shrink-0">
                       <img 
-                        src={mentorDetails?.profilePicture ? `https://talent-hunt-2.onrender.com${mentorDetails.profilePicture}` : "/default-profile.png"}
+                        src={mentorDetails?.profilePicture ? `https://talent-hunt-3.onrender.com${mentorDetails.profilePicture}` : "/default-profile.png"}
                         alt="Profile" 
                         className="w-full h-full object-cover"
                         onError={(e) => {

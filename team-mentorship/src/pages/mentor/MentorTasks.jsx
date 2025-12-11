@@ -50,7 +50,7 @@ const MentorTasks = () => {
     try {
       setLoading(prev => ({ ...prev, mentor: true }));
       const response = await axios.get(
-        `https://talent-hunt-2.onrender.com/api/mentor/profile/${userId}`);
+        `https://talent-hunt-3.onrender.com/api/mentor/profile/${userId}`);
         setMentorId(response.data._id); // Store mentorId in state
       return response.data._id;
     } catch (err) {
@@ -68,7 +68,7 @@ const MentorTasks = () => {
       setError(null);
       
       const response = await axios.get(
-        `https://talent-hunt-2.onrender.com/api/teams/mentor/${mentorId}`);
+        `https://talent-hunt-3.onrender.com/api/teams/mentor/${mentorId}`);
       
       setTeams(response.data.teams || []);
     } catch (err) {
@@ -89,7 +89,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       const response = await axios.post(
-        `https://talent-hunt-2.onrender.com/api/teams/${newTask.teamId}/tasks`,
+        `https://talent-hunt-3.onrender.com/api/teams/${newTask.teamId}/tasks`,
         {
           name: newTask.name,
           description: newTask.description
@@ -118,7 +118,7 @@ const MentorTasks = () => {
       if (!taskToUpdate) return;
       
       const response = await axios.patch(
-        `https://talent-hunt-2.onrender.com/api/teams/${teamId}/tasks/${taskId}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${teamId}/tasks/${taskId}`,
         { completed: !taskToUpdate.completed });
 
         await fetchMentorTeamsWithTasks(mentorId);
@@ -138,7 +138,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       await axios.delete(
-        `https://talent-hunt-2.onrender.com/api/teams/${teamId}/tasks/${taskId}`);
+        `https://talent-hunt-3.onrender.com/api/teams/${teamId}/tasks/${taskId}`);
 
         await fetchMentorTeamsWithTasks(mentorId);
       
@@ -161,7 +161,7 @@ const MentorTasks = () => {
       setLoading(prev => ({ ...prev, tasks: true }));
       
       const response = await axios.put(
-        `https://talent-hunt-2.onrender.com/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
+        `https://talent-hunt-3.onrender.com/api/teams/${editingTask.teamId}/tasks/${editingTask._id}`,
         editingTask);
 
         await fetchMentorTeamsWithTasks(mentorId);

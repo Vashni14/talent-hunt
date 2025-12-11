@@ -36,11 +36,11 @@ const Dashboard = () => {
         setLoading(true);
         
         const [reportsRes, competitionsRes, teamsRes, mentorsRes, applicationsRes] = await Promise.all([
-          axios.get('https://talent-hunt-2.onrender.com/api/admindash/reports/dashboard'),
-          axios.get('https://talent-hunt-2.onrender.com/api/admindash/competitions'),
-          axios.get('https://talent-hunt-2.onrender.com/api/admindash/teams'),
-          axios.get('https://talent-hunt-2.onrender.com/api/admindash/mentor/mentors'),
-          axios.get('https://talent-hunt-2.onrender.com/api/admindash/applications?status=pending')
+          axios.get('https://talent-hunt-3.onrender.com/api/admindash/reports/dashboard'),
+          axios.get('https://talent-hunt-3.onrender.com/api/admindash/competitions'),
+          axios.get('https://talent-hunt-3.onrender.com/api/admindash/teams'),
+          axios.get('https://talent-hunt-3.onrender.com/api/admindash/mentor/mentors'),
+          axios.get('https://talent-hunt-3.onrender.com/api/admindash/applications?status=pending')
         ]);
 
         const dashboardData = reportsRes.data.data || {};

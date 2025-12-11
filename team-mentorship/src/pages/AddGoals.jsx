@@ -31,7 +31,7 @@ function AddGoals() {
 
   const fetchGoals = async () => {
     try {
-      const { data } = await axios.get(`https://talent-hunt-2.onrender.com/api/goals/${user.uid}`);
+      const { data } = await axios.get(`https://talent-hunt-3.onrender.com/api/goals/${user.uid}`);
       const sortedGoals = data.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
       setGoals(sortedGoals);
     } catch (error) {
@@ -131,7 +131,7 @@ function AddGoals() {
     }
   
     try {
-      await axios.post("https://talent-hunt-2.onrender.com/api/goals", {
+      await axios.post("https://talent-hunt-3.onrender.com/api/goals", {
         userId: user.uid,
         title,
         total: parseInt(total),
@@ -152,7 +152,7 @@ function AddGoals() {
 
   const handleDelete = async (goalId) => {
     try {
-      await axios.delete(`https://talent-hunt-2.onrender.com/api/goals/${goalId}`);
+      await axios.delete(`https://talent-hunt-3.onrender.com/api/goals/${goalId}`);
       alert("❌ Goal deleted!");
       setGoals(goals.filter((goal) => goal._id !== goalId));
     } catch (error) {
@@ -170,7 +170,7 @@ function AddGoals() {
 
   const handleSaveEdit = async () => {
     try {
-      await axios.put(`https://talent-hunt-2.onrender.com/api/goals/${editingId}`, {
+      await axios.put(`https://talent-hunt-3.onrender.com/api/goals/${editingId}`, {
         title: editedTitle,
         total: parseInt(editedTotal),
         deadline: editedDeadline,
@@ -189,7 +189,7 @@ function AddGoals() {
     if (goal.completed < goal.total) {
       try {
         const updatedGoal = { ...goal, completed: goal.completed + 1 };
-        await axios.put(`https://talent-hunt-2.onrender.com/api/goals/${goal._id}`, updatedGoal);
+        await axios.put(`https://talent-hunt-3.onrender.com/api/goals/${goal._id}`, updatedGoal);
 
         setGoals((prevGoals) =>
           prevGoals.map((g) =>
@@ -207,7 +207,7 @@ function AddGoals() {
     if (goal.completed > 0) {
       try {
         const updatedGoal = { ...goal, completed: goal.completed - 1 };
-        await axios.put(`https://talent-hunt-2.onrender.com/api/goals/${goal._id}`, updatedGoal);
+        await axios.put(`https://talent-hunt-3.onrender.com/api/goals/${goal._id}`, updatedGoal);
 
         setGoals((prevGoals) =>
           prevGoals.map((g) =>
