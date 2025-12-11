@@ -384,15 +384,15 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
     try {
       setLoading(true);
       if (user) {
-        const { data } = await axios.get(`https://team-match.up.railway.app/api/student/profile/${user.uid}`);
+        const { data } = await axios.get(`https://talent-hunt-2.onrender.com/api/student/profile/${user.uid}`);
         setStudent(data);
         
         // Fetch saved competitions
-        const savedResponse = await axios.get(`https://team-match.up.railway.app/api/compapp/me/${user.uid}`);
+        const savedResponse = await axios.get(`https://talent-hunt-2.onrender.com/api/compapp/me/${user.uid}`);
         setSavedCompetitions(savedResponse.data.map(app => app.competition._id));
 
         // Fetch user teams - ensure we always get an array
-        const teamsResponse = await axios.get(`https://team-match.up.railway.app/api/teams/user/${user.uid}`);
+        const teamsResponse = await axios.get(`https://talent-hunt-2.onrender.com/api/teams/user/${user.uid}`);
         // Ensure we have an array and each team has sdgs array
         setUserTeams(teamsResponse);
       }
@@ -416,11 +416,11 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
       // Fetch all data in parallel
       const [compResponse, teamsResponse, mentorsResponse, sdgResponse, userTeamsResponse] = 
         await Promise.all([
-          axios.get('https://team-match.up.railway.app/api/competitions').catch(() => ({ data: [] })),
-          axios.get('https://team-match.up.railway.app/api/invitations/openings?limit=4').catch(() => ({ data: [] })),
-          axios.get('https://team-match.up.railway.app/api/mentor/mentors?limit=4').catch(() => ({ data: [] })),
-          axios.get('https://team-match.up.railway.app/api/sdgs').catch(() => ({ data: [] })),
-          axios.get(`https://team-match.up.railway.app/api/teams/user/${user.uid}`).catch(() => ({ data: { data: [] } }))
+          axios.get('https://talent-hunt-2.onrender.com/api/competitions').catch(() => ({ data: [] })),
+          axios.get('https://talent-hunt-2.onrender.com/api/invitations/openings?limit=4').catch(() => ({ data: [] })),
+          axios.get('https://talent-hunt-2.onrender.com/api/mentor/mentors?limit=4').catch(() => ({ data: [] })),
+          axios.get('https://talent-hunt-2.onrender.com/api/sdgs').catch(() => ({ data: [] })),
+          axios.get(`https://talent-hunt-2.onrender.com/api/teams/user/${user.uid}`).catch(() => ({ data: { data: [] } }))
         ]);
   
       // Update all states
@@ -522,7 +522,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
     if (student?.profilePicture) {
       setProfileImage(student.profilePicture.startsWith('http') ? 
         student.profilePicture : 
-        `https://team-match.up.railway.app${student.profilePicture}`);
+        `https://talent-hunt-2.onrender.com${student.profilePicture}`);
     } else {
       setProfileImage("/default-profile.png");
     }
@@ -540,12 +540,12 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
     try {
       const token = await user.getIdToken();
       if (savedCompetitions.includes(id)) {
-        await axios.delete(`https://team-match.up.railway.app/api/compapp/${id}/save`, {
+        await axios.delete(`https://talent-hunt-2.onrender.com/api/compapp/${id}/save`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSavedCompetitions(savedCompetitions.filter(compId => compId !== id));
       } else {
-        await axios.post(`https://team-match.up.railway.app/api/compapp/${id}/save`, {}, {
+        await axios.post(`https://talent-hunt-2.onrender.com/api/compapp/${id}/save`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSavedCompetitions([...savedCompetitions, id]);
@@ -839,7 +839,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
                     )}
                     <div className="h-48 bg-gray-700 overflow-hidden relative">
                       <img 
-                        src={comp.photo ? `https://team-match.up.railway.app${comp.photo}` : "https://images.unsplash.com/photo-1466611653911-95081537e5b7"} 
+                        src={comp.photo ? `https://talent-hunt-2.onrender.com${comp.photo}` : "https://images.unsplash.com/photo-1466611653911-95081537e5b7"} 
                         alt={comp.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
@@ -1090,7 +1090,7 @@ const [deadlinesLoading, setDeadlinesLoading] = useState(true);
                 >
                   <div className="h-48 bg-gray-700 overflow-hidden relative">
                     <img 
-                      src={comp.photo ? `https://team-match.up.railway.app${comp.photo}` : "https://images.unsplash.com/photo-1466611653911-95081537e5b7"} 
+                      src={comp.photo ? `https://talent-hunt-2.onrender.com${comp.photo}` : "https://images.unsplash.com/photo-1466611653911-95081537e5b7"} 
                       alt={comp.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />

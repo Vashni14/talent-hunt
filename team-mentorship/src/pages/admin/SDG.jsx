@@ -37,7 +37,7 @@ const SDG = () => {
         setLoading(true);
         setError(null);
         
-        const response = await axios.get('https://team-match.up.railway.app/api/sdgadmin/stats');
+        const response = await axios.get('https://talent-hunt-2.onrender.com/api/sdgadmin/stats');
         
         if (response.data?.data?.sdgStats) {
           setSdgStats(response.data.data.sdgStats);

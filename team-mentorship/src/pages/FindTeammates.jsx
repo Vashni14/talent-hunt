@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API_URL = "https://team-match.up.railway.app/api";
+const API_URL = "https://talent-hunt-2.onrender.com/api";
 
 function TeammateCard({ teammate, onView, onConnect }) {
   return (
@@ -21,7 +21,7 @@ function TeammateCard({ teammate, onView, onConnect }) {
       <div className="p-4">
         <div className="flex items-start gap-3">
           <img
-             src={teammate?.profilePicture  ?  `https://team-match.up.railway.app${teammate.profilePicture}`  :  "/default-profile.png"}
+             src={teammate?.profilePicture  ?  `https://talent-hunt-2.onrender.com${teammate.profilePicture}`  :  "/default-profile.png"}
             alt={teammate.name}
             className="w-14 h-14 rounded-full object-cover border-2 border-blue-500/30"
             onError={(e) => {
@@ -278,7 +278,7 @@ export default function FindTeammatesPage() {
        setTeamsLoading(true);
        setTeamsError(null);
        
-       const response = await axios.get(`https://team-match.up.railway.app/api/teams/user/${userId}`);
+       const response = await axios.get(`https://talent-hunt-2.onrender.com/api/teams/user/${userId}`);
    
        let teamsData = [];
        if (Array.isArray(response.data)) {
@@ -547,7 +547,7 @@ export default function FindTeammatesPage() {
         <div className="relative group">
           <div className="w-10 h-10 rounded-full bg-gray-700 overflow-hidden border-2 border-blue-500/50 cursor-pointer hover:border-blue-400 transition-all duration-200">
             <img
-               src={user?.profilePicture  ?  `https://team-match.up.railway.app${user.profilePicture}`  :  "/default-profile.png"}
+               src={user?.profilePicture  ?  `https://talent-hunt-2.onrender.com${user.profilePicture}`  :  "/default-profile.png"}
               alt="Profile"
               className="w-full h-full object-cover"
               onError={(e) => {
@@ -837,7 +837,7 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                   src={invitation.createdBy?.profilePicture  ?  `https://team-match.up.railway.app${invitation.createdBy.profilePicture}`  :  "/default-profile.png"}
+                                   src={invitation.createdBy?.profilePicture  ?  `https://talent-hunt-2.onrender.com${invitation.createdBy.profilePicture}`  :  "/default-profile.png"}
                                   alt={invitation.createdBy?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
@@ -938,7 +938,7 @@ export default function FindTeammatesPage() {
                             <div className="flex items-start gap-4">
                               <div className="flex-shrink-0">
                                 <img
-                                   src={invitation.user?.profilePicture  ?  `https://team-match.up.railway.app${invitation.user.profilePicture}`  :  "/default-profile.png"}
+                                   src={invitation.user?.profilePicture  ?  `https://talent-hunt-2.onrender.com${invitation.user.profilePicture}`  :  "/default-profile.png"}
                                   alt={invitation.user?.name}
                                   className="w-12 h-12 rounded-full object-cover border-2 border-blue-500/30"
                                   onError={(e) => {
@@ -1041,7 +1041,7 @@ export default function FindTeammatesPage() {
               <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-700">
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img
-                     src={selectedTeammate?.profilePicture  ?  `https://team-match.up.railway.app${selectedTeammate.profilePicture}`  :  "/default-profile.png"}
+                     src={selectedTeammate?.profilePicture  ?  `https://talent-hunt-2.onrender.com${selectedTeammate.profilePicture}`  :  "/default-profile.png"}
                     alt={selectedTeammate.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {

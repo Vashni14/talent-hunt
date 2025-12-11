@@ -75,7 +75,7 @@ const StatsDashboard = () => {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('https://team-match.up.railway.app/api/reports/dashboard');
+        const response = await fetch('https://talent-hunt-2.onrender.com/api/reports/dashboard');
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');
         }

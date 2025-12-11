@@ -367,7 +367,7 @@ tour.current.addStep({
         try {
           // Fetch mentor profile
           const profileResponse = await axios.get(
-            `https://team-match.up.railway.app/api/mentor/profile/${userId}`
+            `https://talent-hunt-2.onrender.com/api/mentor/profile/${userId}`
           );
           setUser({
             name: profileResponse.data.name,
@@ -378,13 +378,13 @@ tour.current.addStep({
   
           // Fetch dashboard data
           const dashboardResponse = await axios.get(
-            `https://team-match.up.railway.app/api/mentor-dashboard/stats/${userId}`
+            `https://talent-hunt-2.onrender.com/api/mentor-dashboard/stats/${userId}`
           );
           setDashboardData(dashboardResponse.data);
   
           // Fetch initial chat messages
           const chatResponse = await axios.get(
-            `https://team-match.up.railway.app/api/mentor-chat/${userId}`
+            `https://talent-hunt-2.onrender.com/api/mentor-chat/${userId}`
           );
           setChatMessages(chatResponse.data.messages || []);
         } catch (error) {
@@ -473,7 +473,7 @@ tour.current.addStep({
         setNewMessage('');
   
         // Send to backend
-        await axios.post(`https://team-match.up.railway.app/api/mentor-chat/${auth.currentUser.uid}`, {
+        await axios.post(`https://talent-hunt-2.onrender.com/api/mentor-chat/${auth.currentUser.uid}`, {
           message: message
         });
   
@@ -565,7 +565,7 @@ tour.current.addStep({
                 <img
                   src={
                     user?.profilePicture
-                      ? `https://team-match.up.railway.app${user.profilePicture}`
+                      ? `https://talent-hunt-2.onrender.com${user.profilePicture}`
                       : "/default-profile.png"
                   }
                   alt="Profile"

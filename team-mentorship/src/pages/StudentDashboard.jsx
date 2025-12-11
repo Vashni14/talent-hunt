@@ -61,7 +61,7 @@ function StudentDashboard() {
 
   const fetchStudentData = async () => {
     try {
-      const { data } = await axios.get(`https://team-match.up.railway.app/api/student/profile/${user.uid}`);
+      const { data } = await axios.get(`https://talent-hunt-2.onrender.com/api/student/profile/${user.uid}`);
       
       setStudentData({
         name: data.name || "",
@@ -146,7 +146,7 @@ function StudentDashboard() {
       };
   
       const response = await axios.post(
-        "https://team-match.up.railway.app/api/student/profile", 
+        "https://talent-hunt-2.onrender.com/api/student/profile", 
         payload
       );
 
@@ -171,7 +171,7 @@ function StudentDashboard() {
 
     try {
       const response = await axios.post(
-        "https://team-match.up.railway.app/api/student/uploadProfile", 
+        "https://talent-hunt-2.onrender.com/api/student/uploadProfile", 
         formData, 
         { headers: { "Content-Type": "multipart/form-data" } }
       );
