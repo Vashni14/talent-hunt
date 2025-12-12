@@ -33,12 +33,22 @@ const io = new Server(httpServer, {
 });
 
 // Make sure this comes before your routes
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://talentsearch14.netlify.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true
+}));
 
 // In your main server file (app.js or server.js)
 const sdgRoutes = require("./routes/sdg");
