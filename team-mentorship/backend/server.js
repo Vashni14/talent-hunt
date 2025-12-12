@@ -166,15 +166,23 @@ app.use(express.static(path.join(__dirname, "dist")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
-
-// --- KEEP ALIVE FOR RENDER ---
+// ------------------- Keep Awake (10 AM – 10 PM IST) -------------------
 const fetch = require("node-fetch");
 
 setInterval(() => {
-  fetch("https://talent-hunt-3.onrender.com/api/health")
-    .then(() => console.log("🔄 Keep-alive ping sent"))
-    .catch(() => console.log("⚠️ Render backend waking up..."));
-}, 12 * 60 * 1000);
+  const now = new Date();
+  const utcHour = now.getUTCHours(); // Current hour in UTC
+
+  // Active window: 10 AM – 10 PM IST → 4:00 – 17:00 UTC
+  if (utcHour >= 4 && utcHour <= 17) {
+    fetch("https://talent-hunt-3.onrender.com/api/health")
+      .then(() => console.log("☀️ Keep-alive ping sent"))
+      .catch(() => console.log("⚠️ Backend waking from sleep..."));
+  } else {
+    console.log("🌙 Night time — no keep-alive ping (saving hours)");
+  }
+}, 12 * 60 * 1000); // ping every 12 minutes
+
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
