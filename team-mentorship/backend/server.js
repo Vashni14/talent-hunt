@@ -26,7 +26,7 @@ app.use(express.json());
 // Configure CORS properly
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: "https://talentsearch14.netlify.app", // Your frontend URL
     methods: ["GET", "POST"],
     credentials: true,
   },
